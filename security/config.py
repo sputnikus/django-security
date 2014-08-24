@@ -2,10 +2,10 @@ from django.conf import settings
 
 from .throttling import PerRequestThrottlingValidator, UnsuccessfulLoginThrottlingValidator, SuccessfulLoginThrottlingValidator
 
-DEFAULT_THROTTLING_VALIDATORS = getattr(settings, 'AUTH_COOKIE_NAME',
+DEFAULT_THROTTLING_VALIDATORS = getattr(settings, 'DEFAULT_THROTTLING_VALIDATORS',
                                         (
                                          PerRequestThrottlingValidator(3600, 150),  # 150 per an hour
-                                         PerRequestThrottlingValidator(60, 10),  # 10 per an minute
+                                         PerRequestThrottlingValidator(60, 20),  # 10 per an minute
                                          UnsuccessfulLoginThrottlingValidator(60, 2),
                                          UnsuccessfulLoginThrottlingValidator(10 * 60, 10),
                                          SuccessfulLoginThrottlingValidator(60, 2),
