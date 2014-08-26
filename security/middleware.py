@@ -1,3 +1,5 @@
+from importlib import import_module
+
 from django.utils.encoding import force_text
 from django.http import QueryDict
 from django.core.urlresolvers import get_callable
@@ -23,7 +25,7 @@ class LogMiddleware(object):
 
     def process_request(self, request):
         try:
-            for validator in DEFAULT_THROTTLING_VALIDATORS:
+            for validator in import_module(DEFAULT_THROTTLING_VALIDATORS).validators:
                 validator.validate(request)
         except ThrottlingException as ex:
             request._security_data = SecurityData(LoggedRequest.THROTTLED_REQUEST, force_text(ex))
