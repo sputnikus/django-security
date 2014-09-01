@@ -2,7 +2,7 @@ from .throttling import PerRequestThrottlingValidator, UnsuccessfulLoginThrottli
 
 
 validators = (
-    PerRequestThrottlingValidator(3600, 150),  # 150 per an hour
+    PerRequestThrottlingValidator(3600, 1000),  # 1000 per an hour
     PerRequestThrottlingValidator(60, 20),  # 20 per an minute
     UnsuccessfulLoginThrottlingValidator(60, 2),
     UnsuccessfulLoginThrottlingValidator(10 * 60, 10),

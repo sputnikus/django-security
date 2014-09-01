@@ -22,6 +22,7 @@ class ThrottlingValidator(object):
     def _validate(self, request):
         raise NotImplemented
 
+
 class PerRequestThrottlingValidator(ThrottlingValidator):
 
     def __init__(self, timeframe, throttle_at, description=_('Slow down')):
@@ -29,9 +30,9 @@ class PerRequestThrottlingValidator(ThrottlingValidator):
 
     def _validate(self, request):
         count_same_requests = LoggedRequest.objects.filter(ip=get_client_ip(request), path=request.path,
-                                                       timestamp__gte=timezone.now() - timedelta(seconds=self.timeframe),
-                                                       method=request.method.upper())\
-                                                       .count()
+                                                           timestamp__gte=timezone.now() - timedelta(seconds=self.timeframe),
+                                                           method=request.method.upper())\
+                                                           .count()
         return count_same_requests <= self.throttle_at
 
 
