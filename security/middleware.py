@@ -23,13 +23,15 @@ class LogMiddleware(object):
     def _render_throttling(self, request, exception):
         return get_callable(THROTTLING_FAILURE_VIEW)(request, exception)
 
-    def process_request(self, request):
-        try:
-            for validator in import_module(DEFAULT_THROTTLING_VALIDATORS).validators:
-                validator.validate(request)
-        except ThrottlingException as ex:
-            request._security_data = SecurityData(LoggedRequest.THROTTLED_REQUEST, force_text(ex))
-            return self._render_throttling(request, ex)
+    def process_view(self, request, callback, callback_args, callback_kwargs):
+        # Check if throttling is not exempted
+        if not getattr(callback, 'throttling_exempt', False):
+            try:
+                for validator in import_module(DEFAULT_THROTTLING_VALIDATORS).validators:
+                    validator.validate(request)
+            except ThrottlingException as ex:
+                request._security_data = SecurityData(LoggedRequest.THROTTLED_REQUEST, force_text(ex))
+                return self._render_throttling(request, ThrottlingException('ted'))
 
     def process_response(self, request, response):
         user = hasattr(request, 'user') and request.user.is_authenticated() and request.user or None
