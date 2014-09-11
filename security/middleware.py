@@ -8,6 +8,7 @@ from .models import LoggedRequest
 from .utils import get_client_ip
 from .exception import ThrottlingException
 from .config import DEFAULT_THROTTLING_VALIDATORS, THROTTLING_FAILURE_VIEW
+from django.template.defaultfilters import truncatechars
 
 
 class SecurityData(object):
@@ -23,13 +24,15 @@ class LogMiddleware(object):
     def _render_throttling(self, request, exception):
         return get_callable(THROTTLING_FAILURE_VIEW)(request, exception)
 
-    def process_request(self, request):
-        try:
-            for validator in import_module(DEFAULT_THROTTLING_VALIDATORS).validators:
-                validator.validate(request)
-        except ThrottlingException as ex:
-            request._security_data = SecurityData(LoggedRequest.THROTTLED_REQUEST, force_text(ex))
-            return self._render_throttling(request, ex)
+    def process_view(self, request, callback, callback_args, callback_kwargs):
+        # Check if throttling is not exempted
+        if not getattr(callback, 'throttling_exempt', False):
+            try:
+                for validator in import_module(DEFAULT_THROTTLING_VALIDATORS).validators:
+                    validator.validate(request)
+            except ThrottlingException as ex:
+                request._security_data = SecurityData(LoggedRequest.THROTTLED_REQUEST, force_text(ex))
+                return self._render_throttling(request, ThrottlingException('ted'))
 
     def process_response(self, request, response):
         user = hasattr(request, 'user') and request.user.is_authenticated() and request.user or None
@@ -47,7 +50,7 @@ class LogMiddleware(object):
             if hidden in post_params:
                 del post_params[hidden]
 
-        LoggedRequest.objects.create(status=status, path=request.path,
+        LoggedRequest.objects.create(status=status, path=truncatechars(request.path, 250),
                                      response_code=response.status_code, user=user, ip=get_client_ip(request),
                                      get_params=get_params, post_params=post_params,
                                      method=request.method.upper(), type=security_data.type,

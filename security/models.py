@@ -5,6 +5,7 @@ from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
 from json_field.fields import JSONField
+from django.template.defaultfilters import truncatechars
 
 
 # Prior to Django 1.5, the AUTH_USER_MODEL setting does not exist.
@@ -48,8 +49,12 @@ class LoggedRequest(models.Model):
     error_description = models.CharField(_('Error description'), max_length=255, null=True, blank=True)
     ip = models.IPAddressField(_('IP address'), null=False, blank=False)
 
+    def short_path(self):
+        return truncatechars(self.path, 50)
+    short_path.short_description = _('URL path')
+
     def __unicode__(self):
-        return self.path
+        return truncatechars(self.path, 50)
 
     def save(self, *args, **kwargs):
         from security import config
@@ -57,7 +62,6 @@ class LoggedRequest(models.Model):
         LoggedRequest.objects.filter(pk__in=LoggedRequest.objects.all()
                                      .order_by('-timestamp')[config.MAX_LOGGED_REQUESTS - 1:]).delete()
         super(LoggedRequest, self).save(*args, **kwargs)
-
 
     class Meta:
         ordering = ('-timestamp',)
