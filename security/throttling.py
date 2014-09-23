@@ -35,7 +35,7 @@ class PerRequestThrottlingValidator(ThrottlingValidator):
 
     def _validate(self, request):
         count_same_requests = LoggedRequest.objects.filter(ip=get_client_ip(request), path=request.path,
-                                                           timestamp__gte=timezone.now() - timedelta(seconds=self.timeframe),
+                                                           request_timestamp__gte=timezone.now() - timedelta(seconds=self.timeframe),
                                                            method=request.method.upper())\
                                                            .count()
         return count_same_requests <= self.throttle_at
@@ -48,8 +48,8 @@ class UnsuccessfulLoginThrottlingValidator(ThrottlingValidator):
 
     def _validate(self, request):
         count_same_requests = LoggedRequest.objects.filter(ip=get_client_ip(request), path=request.path,
-                                                       timestamp__gte=timezone.now() - timedelta(seconds=self.timeframe),
-                                                       type=LoggedRequest.UNSUCCESSFUL_LOGIN_REQUEST)\
+                                                           request_timestamp__gte=timezone.now() - timedelta(seconds=self.timeframe),
+                                                           type=LoggedRequest.UNSUCCESSFUL_LOGIN_REQUEST)\
                                                        .count()
         return count_same_requests <= self.throttle_at
 
@@ -61,7 +61,7 @@ class SuccessfulLoginThrottlingValidator(ThrottlingValidator):
 
     def _validate(self, request):
         count_same_requests = LoggedRequest.objects.filter(ip=get_client_ip(request), path=request.path,
-                                                       timestamp__gte=timezone.now() - timedelta(seconds=self.timeframe),
+                                                       request_timestamp__gte=timezone.now() - timedelta(seconds=self.timeframe),
                                                        type=LoggedRequest.SUCCESSFUL_LOGIN_REQUEST)\
                                                        .count()
         return count_same_requests <= self.throttle_at

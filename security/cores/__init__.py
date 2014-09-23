@@ -7,7 +7,7 @@ from security.models import LoggedRequest
 
 class RequestsLogIsCore(UIRestModelISCore):
     model = LoggedRequest
-    list_display = ('timestamp', 'status', 'response_code', 'path', 'ip', 'user', 'method', 'type')
+    list_display = ('request_timestamp', 'status', 'response_code', 'path', 'ip', 'user', 'method', 'type')
     abstract = True
 
     def has_create_permission(self, request, obj=None):
