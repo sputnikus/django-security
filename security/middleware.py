@@ -23,7 +23,7 @@ class LogMiddleware(object):
                 for validator in import_module(DEFAULT_THROTTLING_VALIDATORS).validators:
                     validator.validate(request)
             except ThrottlingException as exception:
-                self.process_exception(request, exception)
+                return self.process_exception(request, exception)
 
     def process_response(self, request, response):
         if hasattr(request, '_logged_request'):
@@ -31,9 +31,8 @@ class LogMiddleware(object):
         return response
 
     def process_exception(self, request, exception):
-        if isinstance(exception, ThrottlingException):
+        if isinstance(exception, ThrottlingException) and hasattr(request, '_logged_request'):
             logged_request = request._logged_request
             logged_request.type = LoggedRequest.THROTTLED_REQUEST
             logged_request.error_description = force_text(exception)
-            logged_request.save()
             return self._render_throttling(request, exception)

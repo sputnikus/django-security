@@ -57,21 +57,22 @@ class LoggedRequest(models.Model):
     objects = LoggedRequestManager()
 
     # Request information
-    request_timestamp = models.DateTimeField(_('Timestamp'), null=False, blank=False, auto_now_add=True)
+    request_timestamp = models.DateTimeField(_('Request timestamp'), null=False, blank=False, auto_now_add=True)
     method = models.CharField(_('Method'), max_length=7, null=False, blank=False)
     path = models.CharField(_('URL path'), max_length=255, null=False, blank=False)
     queries = JSONField(_('Queries'), null=True, blank=True)
     headers = JSONField(_('Headers'), null=True, blank=True)
     body = models.TextField(_('Body'), null=False, blank=True)
-    is_secure = models.BooleanField(_('is secure'), default=False)
+    is_secure = models.BooleanField(_('HTTP connection'), default=False, null=False, blank=False)
 
     # Response information
-    response_timestamp = models.DateTimeField(_('Timestamp'), null=True, blank=True)
+    response_timestamp = models.DateTimeField(_('Response timestamp'), null=True, blank=True)
     response_code = models.PositiveSmallIntegerField(_('Response code'), null=True, blank=True)
     status = models.PositiveSmallIntegerField(_('Status'), choices=STATUS_CHOICES, null=True, blank=True)
     type = models.PositiveSmallIntegerField(_('Request type'), choices=TYPE_CHOICES, default=COMMON_REQUEST, null=True,
                                             blank=True)
     error_description = models.CharField(_('Error description'), max_length=255, null=True, blank=True)
+    has_response = models.BooleanField(_('Has response'), default=False, null=False, blank=False)
 
     # User information
     user = models.ForeignKey(AUTH_USER_MODEL, null=True, blank=True)
@@ -83,8 +84,12 @@ class LoggedRequest(models.Model):
     # log = models.TextField(_('Log'), null=True, blank=True)
 
 
+    def short_path(self):
+        return truncatechars(self.path, 20)
+    short_path.short_description = _('Path')
+
     def __unicode__(self):
-        return truncatechars(self.path, 50)
+        return self.short_path()
 
     def save(self, *args, **kwargs):
         from security import config
@@ -102,14 +107,20 @@ class LoggedRequest(models.Model):
             return LoggedRequest.FINE
 
     def update_from_response(self, response, status=None, type=None, error_description=None):
-        self.request_timestamp = timezone.now()
+        self.response_timestamp = timezone.now()
         self.status = status or self.get_status(response)
         self.response_code = response.status_code
+        self.has_response = True
         if type is not None:
             self.type = type
         if error_description is not None:
             self.error_description = error_description
         self.save()
+
+    def response_time(self):
+        if self.response_timestamp and self.request_timestamp:
+            return '%s ms' % ((self.response_timestamp - self.request_timestamp).microseconds / 1000)
+    response_time.short_description = _('Response time')
 
     class Meta:
         ordering = ('-request_timestamp',)
