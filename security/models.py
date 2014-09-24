@@ -63,7 +63,7 @@ class LoggedRequest(models.Model):
     queries = JSONField(_('Queries'), null=True, blank=True)
     headers = JSONField(_('Headers'), null=True, blank=True)
     body = models.TextField(_('Body'), null=False, blank=True)
-    is_secure = models.BooleanField(_('HTTP connection'), default=False, null=False, blank=False)
+    is_secure = models.BooleanField(_('HTTPS connection'), default=False, null=False, blank=False)
 
     # Response information
     response_timestamp = models.DateTimeField(_('Response timestamp'), null=True, blank=True)
@@ -82,7 +82,6 @@ class LoggedRequest(models.Model):
     # Log information
     # TODO: is nessesary to relate thread with request.
     # log = models.TextField(_('Log'), null=True, blank=True)
-
 
     def short_path(self):
         return truncatechars(self.path, 20)

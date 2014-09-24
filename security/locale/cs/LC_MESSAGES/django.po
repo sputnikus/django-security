@@ -1,0 +1,151 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2014-09-23 21:22-0500\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+
+#: cores/__init__.py:14
+msgid "Request"
+msgstr ""
+
+#: cores/__init__.py:16
+msgid "Response"
+msgstr ""
+
+#: cores/__init__.py:18
+msgid "User information"
+msgstr "Uživatelské informace"
+
+#: cores/__init__.py:19
+msgid "Extra information"
+msgstr "Další informace"
+
+#: models.py:40
+msgid "Fine"
+msgstr ""
+
+#: models.py:41
+msgid "Warning"
+msgstr ""
+
+#: models.py:42
+msgid "Error"
+msgstr ""
+
+#: models.py:51
+msgid "Common request"
+msgstr "Běžný HTTP dotaz"
+
+#: models.py:52
+msgid "Throttled request"
+msgstr "Throttled HTTP dotaz"
+
+#: models.py:53
+msgid "Successful login request"
+msgstr "Úspěšné přihlášení"
+
+#: models.py:54
+msgid "Unsuccessful login request"
+msgstr "Neúspěšné přihlášení"
+
+#: models.py:60
+msgid "Request timestamp"
+msgstr "Čas a datum dotazu"
+
+#: models.py:61
+msgid "Method"
+msgstr "Metoda"
+
+#: models.py:62
+msgid "URL path"
+msgstr "URL"
+
+#: models.py:63
+msgid "Queries"
+msgstr ""
+
+#: models.py:64
+msgid "Headers"
+msgstr "Hlavičky"
+
+#: models.py:65
+msgid "Body"
+msgstr "Tělo dotazu"
+
+#: models.py:66
+msgid "HTTPS connection"
+msgstr "HTTPS"
+
+#: models.py:69
+msgid "Response timestamp"
+msgstr "Datum a čas odpovědi"
+
+#: models.py:70
+msgid "Response code"
+msgstr "Kód odpovědi"
+
+#: models.py:71
+msgid "Status"
+msgstr "Stav"
+
+#: models.py:72
+msgid "Request type"
+msgstr "Typ dotazu"
+
+#: models.py:74
+msgid "Error description"
+msgstr "Popis chyby"
+
+#: models.py:75
+msgid "Has response"
+msgstr "Obsahuje odpověď"
+
+#: models.py:79
+msgid "IP address"
+msgstr "IP adresa"
+
+#: models.py:88
+msgid "Path"
+msgstr "Cesta"
+
+#: models.py:122
+msgid "Response time"
+msgstr "Čas odpovědi"
+
+#: models.py:126
+msgid "Logged request"
+msgstr "Log HTTP dotazu"
+
+#: models.py:127
+msgid "Logged requests"
+msgstr "Log HTTP dotazů"
+
+#: templates/429.html:9
+msgid "Too Many Requests (429)"
+msgstr "Příliš mnoho HTTP dotazů (429)"
+
+#: throttling.py:28
+msgid "Slow down"
+msgstr "Zpomal"
+
+#: throttling.py:41
+msgid "Too many login attempts"
+msgstr "Příliš mnoho pokusů o přihlášení"
+
+#: throttling.py:54
+msgid "You are logged too much times"
+msgstr "Příliš mnoho přihlášení najednou"

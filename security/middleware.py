@@ -17,6 +17,12 @@ class LogMiddleware(object):
         return get_callable(THROTTLING_FAILURE_VIEW)(request, exception)
 
     def process_view(self, request, callback, callback_args, callback_kwargs):
+        # TODO: this is not the best solution if the request throw exception inside process_request of some Middleware
+        # the bode will be included (But I didn't have better solution now)
+        if getattr(callback, 'hide_request_body', False):
+            request._logged_request.body = ''
+            request._logged_request.save()
+
         # Check if throttling is not exempted
         if not getattr(callback, 'throttling_exempt', False):
             try:
