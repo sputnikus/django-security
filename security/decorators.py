@@ -25,17 +25,22 @@ def throttling_all(klass):
     return klass
 
 
+def add_attribute_wrapper(name, value):
+
+    def decorator(view_func):
+        def _wrapper(*args, **kwargs):
+            return view_func(*args, **kwargs)
+        setattr(_wrapper, name, value)
+        return wraps(view_func, assigned=available_attrs(view_func))(_wrapper)
+
+    return decorator
+
+
 def throttling_exempt():
     """
     Marks a function as being exempt from the throttling protection.
     """
-    def decorator(view_func):
-        def _throttling_exempt(*args, **kwargs):
-            return view_func(*args, **kwargs)
-        _throttling_exempt.throttling_exempt = True
-        return wraps(view_func, assigned=available_attrs(view_func))(_throttling_exempt)
-
-    return decorator
+    return add_attribute_wrapper('throttling_exempt', True)
 
 
 def throttling_exempt_all(klass):
@@ -51,13 +56,7 @@ def hide_request_body():
     """
     Marks a function as being exempt from storing request base to DB.
     """
-    def decorator(view_func):
-        def _hide_base(*args, **kwargs):
-            return view_func(*args, **kwargs)
-        _hide_base.hide_request_body = True
-        return wraps(view_func, assigned=available_attrs(view_func))(_hide_base)
-
-    return decorator
+    return add_attribute_wrapper('hide_request_body', True)
 
 
 def hide_request_body_all(klass):
@@ -66,4 +65,20 @@ def hide_request_body_all(klass):
     """
     dispatch = getattr(klass, 'dispatch')
     setattr(klass, 'dispatch', hide_request_body()(dispatch))
+    return klass
+
+
+def log_exempt():
+    """
+    Marks a function as being exempt from whole log.
+    """
+    return add_attribute_wrapper('log_exempt', True)
+
+
+def log_exempt_all(klass):
+    """
+    Marks a class as being exempt from whole log.
+    """
+    dispatch = getattr(klass, 'dispatch')
+    setattr(klass, 'dispatch', log_exempt()(dispatch))
     return klass

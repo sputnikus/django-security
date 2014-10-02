@@ -20,14 +20,14 @@ class LoggedRequestManager(models.Manager):
     Create new LoggedRequest instance from HTTP request
     """
 
-    def create_from_request(self, request):
+    def prepare_from_request(self, request):
         user = hasattr(request, 'user') and request.user.is_authenticated() and request.user or None
         path = truncatechars(request.path, 200)
         body = truncatechars(request.body, 500)
 
-        return self.create(headers=get_headers(request), body=body, user=user, method=request.method.upper(),
+        return self.model(headers=get_headers(request), body=body, user=user, method=request.method.upper(),
                            path=path, queries=request.GET.dict(), is_secure=request.is_secure(),
-                           ip=get_client_ip(request))
+                           ip=get_client_ip(request), request_timestamp=timezone.now())
 
 
 class LoggedRequest(models.Model):
@@ -57,7 +57,7 @@ class LoggedRequest(models.Model):
     objects = LoggedRequestManager()
 
     # Request information
-    request_timestamp = models.DateTimeField(_('Request timestamp'), null=False, blank=False, auto_now_add=True)
+    request_timestamp = models.DateTimeField(_('Request timestamp'), null=False, blank=False)
     method = models.CharField(_('Method'), max_length=7, null=False, blank=False)
     path = models.CharField(_('URL path'), max_length=255, null=False, blank=False)
     queries = JSONField(_('Queries'), null=True, blank=True)
@@ -66,18 +66,16 @@ class LoggedRequest(models.Model):
     is_secure = models.BooleanField(_('HTTPS connection'), default=False, null=False, blank=False)
 
     # Response information
-    response_timestamp = models.DateTimeField(_('Response timestamp'), null=True, blank=True)
-    response_code = models.PositiveSmallIntegerField(_('Response code'), null=True, blank=True)
-    status = models.PositiveSmallIntegerField(_('Status'), choices=STATUS_CHOICES, null=True, blank=True)
-    type = models.PositiveSmallIntegerField(_('Request type'), choices=TYPE_CHOICES, default=COMMON_REQUEST, null=True,
-                                            blank=True)
+    response_timestamp = models.DateTimeField(_('Response timestamp'), null=False, blank=False)
+    response_code = models.PositiveSmallIntegerField(_('Response code'), null=False, blank=False)
+    status = models.PositiveSmallIntegerField(_('Status'), choices=STATUS_CHOICES, null=False, blank=False)
+    type = models.PositiveSmallIntegerField(_('Request type'), choices=TYPE_CHOICES, default=COMMON_REQUEST, null=False,
+                                            blank=False)
     error_description = models.CharField(_('Error description'), max_length=255, null=True, blank=True)
-    has_response = models.BooleanField(_('Has response'), default=False, null=False, blank=False)
 
     # User information
     user = models.ForeignKey(AUTH_USER_MODEL, null=True, blank=True)
     ip = models.IPAddressField(_('IP address'), null=False, blank=False)
-
 
     # Log information
     # TODO: is nessesary to relate thread with request.
@@ -109,16 +107,13 @@ class LoggedRequest(models.Model):
         self.response_timestamp = timezone.now()
         self.status = status or self.get_status(response)
         self.response_code = response.status_code
-        self.has_response = True
         if type is not None:
             self.type = type
         if error_description is not None:
             self.error_description = error_description
-        self.save()
 
     def response_time(self):
-        if self.response_timestamp and self.request_timestamp:
-            return '%s ms' % ((self.response_timestamp - self.request_timestamp).microseconds / 1000)
+        return '%s ms' % ((self.response_timestamp - self.request_timestamp).microseconds / 1000)
     response_time.short_description = _('Response time')
 
     class Meta:
