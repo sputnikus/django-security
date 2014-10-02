@@ -74,7 +74,7 @@ class LoggedRequest(models.Model):
     error_description = models.CharField(_('Error description'), max_length=255, null=True, blank=True)
 
     # User information
-    user = models.ForeignKey(AUTH_USER_MODEL, null=True, blank=True)
+    user = models.ForeignKey(AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
     ip = models.IPAddressField(_('IP address'), null=False, blank=False)
 
     # Log information

@@ -17,9 +17,9 @@ class LogMiddleware(object):
         return get_callable(THROTTLING_FAILURE_VIEW)(request, exception)
 
     def process_view(self, request, callback, callback_args, callback_kwargs):
-        # Exempt all log
         if getattr(request, '_logged_request', False):
 
+            # Exempt all logs
             if getattr(callback, 'log_exempt', False):
                 del request._logged_request
 
