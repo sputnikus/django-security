@@ -9,6 +9,7 @@ from django.template.defaultfilters import truncatechars
 from json_field.fields import JSONField
 
 from security.utils import get_client_ip, get_headers
+from django.utils.encoding import force_text
 
 
 # Prior to Django 1.5, the AUTH_USER_MODEL setting does not exist.
@@ -23,7 +24,7 @@ class LoggedRequestManager(models.Manager):
     def prepare_from_request(self, request):
         user = hasattr(request, 'user') and request.user.is_authenticated() and request.user or None
         path = truncatechars(request.path, 200)
-        body = truncatechars(request.body, 500)
+        body = truncatechars(force_text(request.body[:520], errors='replace'), 500)
 
         return self.model(headers=get_headers(request), body=body, user=user, method=request.method.upper(),
                            path=path, queries=request.GET.dict(), is_secure=request.is_secure(),
