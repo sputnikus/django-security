@@ -5,11 +5,13 @@ from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from django.utils import timezone
 from django.template.defaultfilters import truncatechars
+from django.utils.encoding import force_text
 
 from json_field.fields import JSONField
 
-from security.utils import get_client_ip, get_headers
-from django.utils.encoding import force_text
+from ipware.ip import get_ip
+
+from security.utils import get_headers
 
 
 # Prior to Django 1.5, the AUTH_USER_MODEL setting does not exist.
@@ -28,7 +30,7 @@ class LoggedRequestManager(models.Manager):
 
         return self.model(headers=get_headers(request), body=body, user=user, method=request.method.upper(),
                            path=path, queries=request.GET.dict(), is_secure=request.is_secure(),
-                           ip=get_client_ip(request), request_timestamp=timezone.now())
+                           ip=get_ip(request), request_timestamp=timezone.now())
 
 
 class LoggedRequest(models.Model):
