@@ -91,13 +91,6 @@ class LoggedRequest(models.Model):
     def __unicode__(self):
         return self.short_path()
 
-    def save(self, *args, **kwargs):
-        from security import config
-
-        LoggedRequest.objects.filter(pk__in=LoggedRequest.objects.all()
-                                     .order_by('-request_timestamp')[config.MAX_LOGGED_REQUESTS - 1:]).delete()
-        super(LoggedRequest, self).save(*args, **kwargs)
-
     def get_status(self, response):
         if response.status_code >= 500:
             return LoggedRequest.ERROR
