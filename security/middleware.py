@@ -3,15 +3,18 @@ from importlib import import_module
 from django.utils.encoding import force_text
 from django.core.urlresolvers import get_callable
 
+from ipware.ip import get_ip
+
 from .models import LoggedRequest
 from .exception import ThrottlingException
-from .config import DEFAULT_THROTTLING_VALIDATORS, THROTTLING_FAILURE_VIEW
+from .config import DEFAULT_THROTTLING_VALIDATORS, THROTTLING_FAILURE_VIEW, LOG_IGNORE_IP
 
 
 class LogMiddleware(object):
 
     def process_request(self, request):
-        request._logged_request = LoggedRequest.objects.prepare_from_request(request)
+        if get_ip(request) not in LOG_IGNORE_IP:
+            request._logged_request = LoggedRequest.objects.prepare_from_request(request)
 
     def _render_throttling(self, request, exception):
         return get_callable(THROTTLING_FAILURE_VIEW)(request, exception)
