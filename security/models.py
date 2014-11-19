@@ -11,6 +11,7 @@ from json_field.fields import JSONField
 
 from ipware.ip import get_ip
 
+from security.config import LOG_REQUEST_BODY_LENGTH
 from security.utils import get_headers
 
 
@@ -26,7 +27,7 @@ class LoggedRequestManager(models.Manager):
     def prepare_from_request(self, request):
         user = hasattr(request, 'user') and request.user.is_authenticated() and request.user or None
         path = truncatechars(request.path, 200)
-        body = truncatechars(force_text(request.body[:520], errors='replace'), 500)
+        body = truncatechars(force_text(request.body, errors='replace'), LOG_REQUEST_BODY_LENGTH)
 
         return self.model(headers=get_headers(request), body=body, user=user, method=request.method.upper(),
                            path=path, queries=request.GET.dict(), is_secure=request.is_secure(),
