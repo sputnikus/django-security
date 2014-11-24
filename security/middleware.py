@@ -1,5 +1,6 @@
 from importlib import import_module
 
+from django.core.exceptions import PermissionDenied
 from django.utils.encoding import force_text
 from django.core.urlresolvers import get_callable
 
@@ -41,7 +42,10 @@ class LogMiddleware(object):
 
     def process_response(self, request, response):
         if hasattr(request, '_logged_request'):
-            request._logged_request.update_from_response(response)
+            error_desc = None
+            if response.status_code == 403:
+                error_desc = force_text(response.reason_phrase)
+            request._logged_request.update_from_response(response, error_description=error_desc)
             request._logged_request.save()
         return response
 
