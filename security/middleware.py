@@ -1,6 +1,5 @@
 from importlib import import_module
 
-from django.core.exceptions import PermissionDenied
 from django.utils.encoding import force_text
 from django.core.urlresolvers import get_callable
 
