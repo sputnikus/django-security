@@ -27,7 +27,8 @@ class LoggedRequestManager(models.Manager):
     def prepare_from_request(self, request):
         user = hasattr(request, 'user') and request.user.is_authenticated() and request.user or None
         path = truncatechars(request.path, 200)
-        body = truncatechars(force_text(request.body, errors='replace'), LOG_REQUEST_BODY_LENGTH)
+        body = truncatechars(force_text(request.body[:LOG_REQUEST_BODY_LENGTH + 1],
+                                        errors='replace'), LOG_REQUEST_BODY_LENGTH)
 
         return self.model(headers=get_headers(request), body=body, user=user, method=request.method.upper(),
                            path=path, queries=request.GET.dict(), is_secure=request.is_secure(),
