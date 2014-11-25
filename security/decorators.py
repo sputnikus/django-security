@@ -8,9 +8,10 @@ def throttling(validator):
     Adds throttling validator to a function.
     """
     def decorator(view_func):
-        def _throttling(self, request, *args, **kwargs):
-            validator.validate(request)
-            return view_func(self, request, *args, **kwargs)
+
+        def _throttling(self, *args, **kwargs):
+            validator.validate(self.request)
+            return view_func(self, *args, **kwargs)
         return wraps(view_func, assigned=available_attrs(view_func))(_throttling)
 
     return decorator
