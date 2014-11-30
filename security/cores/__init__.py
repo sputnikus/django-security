@@ -14,8 +14,10 @@ class RequestsLogIsCore(UIRestModelISCore):
     )
 
     form_fieldsets = (
-        (_('Request'), {'fields': ('request_timestamp', 'method', 'path', 'queries', 'headers', 'body', 'is_secure')}),
-        (_('Response'), {'fields': ('response_timestamp', 'response_code', 'status', 'type', 'error_description')}),
+        (_('Request'), {'fields': ('request_timestamp', 'method', 'path', 'queries', 'headers', 'request_body',
+                                   'is_secure')}),
+        (_('Response'), {'fields': ('response_timestamp', 'response_code', 'status', 'response_body', 'type',
+                                    'error_description')}),
         (_('User information'), {'fields': ('user', 'ip')}),
         (_('Extra information'), {'fields': ('response_time',)})
     )

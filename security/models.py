@@ -11,7 +11,7 @@ from json_field.fields import JSONField
 
 from ipware.ip import get_ip
 
-from security.config import LOG_REQUEST_BODY_LENGTH
+from security.config import LOG_REQUEST_BODY_LENGTH, LOG_RESPONSE_BODY_LENGTH
 from security.utils import get_headers
 
 
@@ -27,12 +27,13 @@ class LoggedRequestManager(models.Manager):
     def prepare_from_request(self, request):
         user = hasattr(request, 'user') and request.user.is_authenticated() and request.user or None
         path = truncatechars(request.path, 200)
-        body = truncatechars(force_text(request.body[:LOG_REQUEST_BODY_LENGTH + 1],
-                                        errors='replace'), LOG_REQUEST_BODY_LENGTH)
+        request_body = truncatechars(force_text(request.body[:LOG_REQUEST_BODY_LENGTH + 1],
+                                     errors='replace'), LOG_REQUEST_BODY_LENGTH)
 
-        return self.model(headers=get_headers(request), body=body, user=user, method=request.method.upper(),
-                           path=path, queries=request.GET.dict(), is_secure=request.is_secure(),
-                           ip=get_ip(request), request_timestamp=timezone.now())
+        return self.model(headers=get_headers(request), request_body=request_body, user=user,
+                          method=request.method.upper(),
+                          path=path, queries=request.GET.dict(), is_secure=request.is_secure(),
+                          ip=get_ip(request), request_timestamp=timezone.now())
 
 
 class LoggedRequest(models.Model):
@@ -67,7 +68,7 @@ class LoggedRequest(models.Model):
     path = models.CharField(_('URL path'), max_length=255, null=False, blank=False)
     queries = JSONField(_('Queries'), null=True, blank=True)
     headers = JSONField(_('Headers'), null=True, blank=True)
-    body = models.TextField(_('Body'), null=False, blank=True)
+    request_body = models.TextField(_('Request body'), null=False, blank=True)
     is_secure = models.BooleanField(_('HTTPS connection'), default=False, null=False, blank=False)
 
     # Response information
@@ -76,6 +77,7 @@ class LoggedRequest(models.Model):
     status = models.PositiveSmallIntegerField(_('Status'), choices=STATUS_CHOICES, null=False, blank=False)
     type = models.PositiveSmallIntegerField(_('Request type'), choices=TYPE_CHOICES, default=COMMON_REQUEST, null=False,
                                             blank=False)
+    response_body = models.TextField(_('Response body'), null=False, blank=True)
     error_description = models.CharField(_('Error description'), max_length=255, null=True, blank=True)
 
     # User information
@@ -101,14 +103,13 @@ class LoggedRequest(models.Model):
         else:
             return LoggedRequest.FINE
 
-    def update_from_response(self, response, status=None, type=None, error_description=None):
+    def update_from_response(self, response):
         self.response_timestamp = timezone.now()
-        self.status = status or self.get_status(response)
+        self.status = self.get_status(response)
         self.response_code = response.status_code
-        if type is not None:
-            self.type = type
-        if error_description is not None:
-            self.error_description = error_description
+        response_body = truncatechars(force_text(response.content[:LOG_RESPONSE_BODY_LENGTH + 1],
+                                      errors='replace'), LOG_RESPONSE_BODY_LENGTH)
+        self.response_body = response_body
 
     def response_time(self):
         return '%s ms' % ((self.response_timestamp - self.request_timestamp).microseconds / 1000)

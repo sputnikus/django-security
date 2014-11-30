@@ -46,8 +46,9 @@ class LogMiddleware(object):
         return response
 
     def process_exception(self, request, exception):
-        if isinstance(exception, ThrottlingException) and hasattr(request, '_logged_request'):
+        if hasattr(request, '_logged_request'):
             logged_request = request._logged_request
-            logged_request.type = LoggedRequest.THROTTLED_REQUEST
             logged_request.error_description = force_text(exception)
-            return self._render_throttling(request, exception)
+            if isinstance(exception, ThrottlingException):
+                logged_request.type = LoggedRequest.THROTTLED_REQUEST
+                return self._render_throttling(request, exception)
