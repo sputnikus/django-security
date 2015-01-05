@@ -107,8 +107,11 @@ class LoggedRequest(models.Model):
         self.response_timestamp = timezone.now()
         self.status = self.get_status(response)
         self.response_code = response.status_code
-        response_body = truncatechars(force_text(response.content[:LOG_RESPONSE_BODY_LENGTH + 1],
-                                      errors='replace'), LOG_RESPONSE_BODY_LENGTH)
+        if not response.streaming:
+            response_body = truncatechars(force_text(response.content[:LOG_RESPONSE_BODY_LENGTH + 1],
+                                                     errors='replace'), LOG_RESPONSE_BODY_LENGTH)
+        else:
+            response_body = ''
         self.response_body = response_body
 
     def response_time(self):
