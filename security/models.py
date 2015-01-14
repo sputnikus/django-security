@@ -78,7 +78,7 @@ class LoggedRequest(models.Model):
     type = models.PositiveSmallIntegerField(_('Request type'), choices=TYPE_CHOICES, default=COMMON_REQUEST, null=False,
                                             blank=False)
     response_body = models.TextField(_('Response body'), null=False, blank=True)
-    error_description = models.CharField(_('Error description'), max_length=255, null=True, blank=True)
+    error_description = models.TextField(_('Error description'), null=True, blank=True)
 
     # User information
     user = models.ForeignKey(AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
