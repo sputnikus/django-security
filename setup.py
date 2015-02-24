@@ -36,8 +36,8 @@ setup(
     ],
     install_requires=[
         'django>=1.6',
-        'django-json-field>=0.5.5',
-        'django-ipware>=0.1.0',
+        'django-json-field>=0.5.7',
+        'django-ipware>=1.0.0',
     ],
     zip_safe=False
 )

@@ -9,7 +9,7 @@ from security.models import LoggedRequest
 class RequestsLogIsCore(UIRestModelISCore):
     model = LoggedRequest
     list_display = (
-        'request_timestamp', 'response_timestamp', 'status', 'response_code', 'short_path', 'ip',
+        'request_timestamp', 'response_timestamp', 'status', 'response_code', 'path', 'ip',
         'user', 'method', 'type'
     )
 

@@ -5,13 +5,13 @@ from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from django.utils import timezone
 from django.template.defaultfilters import truncatechars
-from django.utils.encoding import force_text
+from django.utils.encoding import force_text, smart_text, python_2_unicode_compatible
 
 from json_field.fields import JSONField
 
 from ipware.ip import get_ip
 
-from security.config import LOG_REQUEST_BODY_LENGTH, LOG_RESPONSE_BODY_LENGTH
+from security.config import LOG_REQUEST_BODY_LENGTH, LOG_RESPONSE_BODY_LENGTH, LOG_RESPONSE_BODY_CONTENT_TYPES
 from security.utils import get_headers
 
 
@@ -36,6 +36,7 @@ class LoggedRequestManager(models.Manager):
                           ip=get_ip(request), request_timestamp=timezone.now())
 
 
+@python_2_unicode_compatible
 class LoggedRequest(models.Model):
 
     FINE = 1
@@ -82,18 +83,10 @@ class LoggedRequest(models.Model):
 
     # User information
     user = models.ForeignKey(AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
-    ip = models.IPAddressField(_('IP address'), null=False, blank=False)
+    ip = models.GenericIPAddressField(_('IP address'), null=False, blank=False)
 
-    # Log information
-    # TODO: is nessesary to relate thread with request.
-    # log = models.TextField(_('Log'), null=True, blank=True)
-
-    def short_path(self):
-        return truncatechars(self.path, 20)
-    short_path.short_description = _('Path')
-
-    def __unicode__(self):
-        return self.short_path()
+    def __str__(self):
+        return self.path
 
     def get_status(self, response):
         if response.status_code >= 500:
@@ -107,11 +100,13 @@ class LoggedRequest(models.Model):
         self.response_timestamp = timezone.now()
         self.status = self.get_status(response)
         self.response_code = response.status_code
-        if not response.streaming:
+
+        if not response.streaming and response.get('content-type', '').split(';')[0] in LOG_RESPONSE_BODY_CONTENT_TYPES:
             response_body = truncatechars(force_text(response.content[:LOG_RESPONSE_BODY_LENGTH + 1],
                                                      errors='replace'), LOG_RESPONSE_BODY_LENGTH)
         else:
             response_body = ''
+
         self.response_body = response_body
 
     def response_time(self):
