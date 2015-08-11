@@ -5,7 +5,7 @@ from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from django.utils import timezone
 from django.template.defaultfilters import truncatechars
-from django.utils.encoding import force_text, smart_text, python_2_unicode_compatible
+from django.utils.encoding import force_text, python_2_unicode_compatible
 
 from json_field.fields import JSONField
 
@@ -85,9 +85,6 @@ class LoggedRequest(models.Model):
     user = models.ForeignKey(AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
     ip = models.GenericIPAddressField(_('IP address'), null=False, blank=False)
 
-    def __str__(self):
-        return self.path
-
     def get_status(self, response):
         if response.status_code >= 500:
             return LoggedRequest.ERROR
@@ -112,6 +109,9 @@ class LoggedRequest(models.Model):
     def response_time(self):
         return '%s ms' % ((self.response_timestamp - self.request_timestamp).microseconds / 1000)
     response_time.short_description = _('Response time')
+
+    def __str__(self):
+        return self.path
 
     class Meta:
         ordering = ('-request_timestamp',)
