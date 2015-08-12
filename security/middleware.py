@@ -1,4 +1,7 @@
-from importlib import import_module
+try:
+    from importlib import import_module
+except ImportError:  # For Django < 1.8
+    from django.utils.importlib import import_module
 
 from django.utils.encoding import force_text
 from django.core.urlresolvers import get_callable

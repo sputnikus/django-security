@@ -36,8 +36,11 @@ setup(
     ],
     install_requires=[
         'django>=1.6',
-        'django-json-field>=0.5.7',
+        'django-json-field==0.5.6',
         'django-ipware>=1.0.0',
+    ],
+    dependency_links=[
+        'https://github.com/matllubos/django-json-field/tarball/0.5.6#egg=django-json-field-0.5.6',
     ],
     zip_safe=False
 )
