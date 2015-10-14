@@ -64,7 +64,7 @@ class LoggedRequest(models.Model):
     objects = LoggedRequestManager()
 
     # Request information
-    request_timestamp = models.DateTimeField(_('Request timestamp'), null=False, blank=False)
+    request_timestamp = models.DateTimeField(_('Request timestamp'), null=False, blank=False, db_index=True)
     method = models.CharField(_('Method'), max_length=7, null=False, blank=False)
     path = models.CharField(_('URL path'), max_length=255, null=False, blank=False)
     queries = JSONField(_('Queries'), null=True, blank=True)
@@ -109,6 +109,12 @@ class LoggedRequest(models.Model):
     def response_time(self):
         return '%s ms' % ((self.response_timestamp - self.request_timestamp).microseconds / 1000)
     response_time.short_description = _('Response time')
+
+    def short_path(self):
+        return truncatechars(self.path, 20)
+    short_path.short_description = _('Path')
+    short_path.filter_by = 'path'
+    short_path.order_by = 'path'
 
     def __str__(self):
         return self.path

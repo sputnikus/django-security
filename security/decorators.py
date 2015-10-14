@@ -3,27 +3,29 @@ from functools import wraps
 from django.utils.decorators import available_attrs
 
 
-def throttling(validator):
+def throttling(*validators):
     """
-    Adds throttling validator to a function.
+    Adds throttling validators to a function.
     """
     def decorator(view_func):
 
         def _throttling(self, *args, **kwargs):
-            validator.validate(self.request)
+            map(lambda validator: validator.validate(self.request), validators)
             return view_func(self, *args, **kwargs)
         return wraps(view_func, assigned=available_attrs(view_func))(_throttling)
 
     return decorator
 
 
-def throttling_all(klass):
+def throttling_all(*validators):
     """
-    Adds throttling validator to a class.
+    Adds throttling validators to a class.
     """
-    dispatch = getattr(klass, 'dispatch')
-    setattr(klass, 'dispatch', throttling()(dispatch))
-    return klass
+    def decorator(klass):
+        dispatch = getattr(klass, 'dispatch')
+        setattr(klass, 'dispatch', throttling(*validators)(dispatch))
+        return klass
+    return decorator
 
 
 def add_attribute_wrapper(name, value):
