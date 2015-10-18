@@ -10,7 +10,7 @@ def throttling(*validators):
     def decorator(view_func):
 
         def _throttling(self, *args, **kwargs):
-            map(lambda validator: validator.validate(self.request), validators)
+            [v.validate(self.request) for v in validators]
             return view_func(self, *args, **kwargs)
         return wraps(view_func, assigned=available_attrs(view_func))(_throttling)
 
