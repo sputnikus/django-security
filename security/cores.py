@@ -1,12 +1,13 @@
 from __future__ import unicode_literals
 
-from is_core.main import UIRestModelISCore
 from django.utils.translation import ugettext_lazy as _
+
+from is_core.main import UIRESTModelISCore
 
 from security.models import LoggedRequest
 
 
-class RequestsLogIsCore(UIRestModelISCore):
+class RequestsLogIsCore(UIRESTModelISCore):
     model = LoggedRequest
     list_display = (
         'request_timestamp', 'response_timestamp', 'status', 'response_code', 'short_path', 'ip',
