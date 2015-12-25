@@ -2,7 +2,10 @@ from __future__ import unicode_literals
 
 from django.utils.translation import ugettext_lazy as _
 
-from is_core.main import UIRESTModelISCore
+try:
+    from is_core.main import UIRESTModelISCore
+except ImportError:
+    from is_core.main import UIRestModelISCore as UIRESTModelISCore
 
 from security.models import LoggedRequest
 
