@@ -6,7 +6,7 @@ from django.conf import settings
 
 from ipware.ip import get_ip
 
-from .models import LoggedRequest
+from .models import InputLoggedRequest
 from .exception import ThrottlingException
 
 
@@ -31,10 +31,10 @@ class PerRequestThrottlingValidator(ThrottlingValidator):
         super(PerRequestThrottlingValidator, self).__init__(timeframe, throttle_at, description)
 
     def _validate(self, request):
-        count_same_requests = LoggedRequest.objects.filter(ip=get_ip(request), path=request.path,
-                                                           request_timestamp__gte=timezone.now() - timedelta(seconds=self.timeframe),
-                                                           method=request.method.upper())\
-                                                           .count()
+        count_same_requests = InputLoggedRequest.objects.filter(
+            ip=get_ip(request), path=request.path,
+            request_timestamp__gte=timezone.now() - timedelta(seconds=self.timeframe),
+            method=request.method.upper()).count()
         return count_same_requests <= self.throttle_at
 
 
@@ -44,10 +44,10 @@ class UnsuccessfulLoginThrottlingValidator(ThrottlingValidator):
         super(UnsuccessfulLoginThrottlingValidator, self).__init__(timeframe, throttle_at, description)
 
     def _validate(self, request):
-        count_same_requests = LoggedRequest.objects.filter(ip=get_ip(request), path=request.path,
-                                                           request_timestamp__gte=timezone.now() - timedelta(seconds=self.timeframe),
-                                                           type=LoggedRequest.UNSUCCESSFUL_LOGIN_REQUEST)\
-                                                       .count()
+        count_same_requests = InputLoggedRequest.objects.filter(
+            ip=get_ip(request), path=request.path,
+            request_timestamp__gte=timezone.now() - timedelta(seconds=self.timeframe),
+            type=InputLoggedRequest.UNSUCCESSFUL_LOGIN_REQUEST).count()
         return count_same_requests <= self.throttle_at
 
 
@@ -57,8 +57,8 @@ class SuccessfulLoginThrottlingValidator(ThrottlingValidator):
         super(SuccessfulLoginThrottlingValidator, self).__init__(timeframe, throttle_at, description)
 
     def _validate(self, request):
-        count_same_requests = LoggedRequest.objects.filter(ip=get_ip(request), path=request.path,
-                                                       request_timestamp__gte=timezone.now() - timedelta(seconds=self.timeframe),
-                                                       type=LoggedRequest.SUCCESSFUL_LOGIN_REQUEST)\
-                                                       .count()
+        count_same_requests = InputLoggedRequest.objects.filter(
+            ip=get_ip(request), path=request.path,
+            request_timestamp__gte=timezone.now() - timedelta(seconds=self.timeframe),
+            type=InputLoggedRequest.SUCCESSFUL_LOGIN_REQUEST).count()
         return count_same_requests <= self.throttle_at

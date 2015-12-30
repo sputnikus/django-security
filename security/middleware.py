@@ -60,6 +60,7 @@ class LogMiddleware(object):
         if hasattr(request, '_logged_request'):
             logged_request = request._logged_request
             logged_request.error_description = force_text(exception)
+            logged_request.exception_name = exception.__class__.__name__
             if isinstance(exception, ThrottlingException):
-                logged_request.type = LoggedRequest.THROTTLED_REQUEST
+                logged_request.type = InputLoggedRequest.THROTTLED_REQUEST
                 return self._render_throttling(request, exception)

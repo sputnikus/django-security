@@ -13,7 +13,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.utils.timezone import utc
 from django.utils.encoding import force_text
 
-from security.models import LoggedRequest
+from security.models import InputLoggedRequest, OutputLoggedRequest
 
 
 DURATION_OPTIONS = {
@@ -24,12 +24,15 @@ DURATION_OPTIONS = {
     'years': lambda amount: timezone.now() - timedelta(weeks=(52 * amount)),  # 364-day year
 }
 
+
 class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
         make_option('--noinput', action='store_false', dest='interactive', default=True,
-            help='Tells Django to NOT prompt the user for input of any kind.'),
+                    help='Tells Django to NOT prompt the user for input of any kind.'),
         make_option('--backup', action='store', dest='backup', default=False,
-            help='Tells Django where to backup removing requests.'),
+                    help='Tells Django where to backup removing requests.'),
+        make_option('--type', action='store', dest='type', default='input',
+                    help='Tells Django what type of requests shoud be logged (input/output).'),
     )
     help = ""
     args = '[amount duration]'
@@ -61,7 +64,7 @@ class Command(BaseCommand):
             with gzip.open('%s.json.zip' % log_file_path, 'wb') as file_out:
                 file_out.writelines(json.dumps(self.serialize(file_qs), cls=DjangoJSONEncoder, indent=5))
 
-    def handle(self, amount, duration, **options):
+    def handle(self, amount, duration, type, **options):
         # Check we have the correct values
         try:
             amount = int(amount)
@@ -74,11 +77,19 @@ class Command(BaseCommand):
         else:
             duration_plural = duration
 
-        if not duration_plural in DURATION_OPTIONS:
+        if type == 'input':
+            model = InputLoggedRequest
+        elif type == 'output':
+            model = OutputLoggedRequest
+        else:
+            self.stderr.write('Type can be only input or output')
+            return
+
+        if duration_plural not in DURATION_OPTIONS:
             self.stderr.write('Amount must be %s' % ', '.join(DURATION_OPTIONS))
             return
 
-        qs = LoggedRequest.objects.filter(request_timestamp__lte=DURATION_OPTIONS[duration_plural](amount))
+        qs = model.objects.filter(request_timestamp__lte=DURATION_OPTIONS[duration_plural](amount))
         count = qs.count()
 
         if count == 0:
@@ -89,7 +100,7 @@ class Command(BaseCommand):
             confirm = raw_input('''
             You have requested a database reset.
             This will IRREVERSIBLY DESTROY any
-            logged requests created before %d %s 
+            logged requests created before %d %s
             ago. That is a total of %d requests.
             Are you sure you want to do this?
             Type 'yes' to continue, or 'no' to cancel: ''' % (amount, duration, count))

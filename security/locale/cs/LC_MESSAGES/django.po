@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-08-11 22:38+0200\n"
+"POT-Creation-Date: 2015-12-30 14:37+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,126 +18,167 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
 
-#: cores.py:17 reversion_log/cores.py:17
+#: cores.py:23 cores.py:55 reversion_log/cores.py:17
 msgid "Request"
 msgstr "Dotaz"
 
-#: cores.py:19 reversion_log/cores.py:19
+#: cores.py:25 cores.py:57 reversion_log/cores.py:19
 msgid "Response"
 msgstr "Odpověď"
 
-#: cores.py:21 reversion_log/cores.py:21
+#: cores.py:27 reversion_log/cores.py:21
 msgid "User information"
 msgstr "Uživatelské informace"
 
-#: cores.py:22 reversion_log/cores.py:22
+#: cores.py:28 cores.py:59 reversion_log/cores.py:22
 msgid "Extra information"
 msgstr "Další informace"
 
-#: models.py:47
-msgid "Fine"
-msgstr "OK"
+#: cores.py:60
+msgid "Related objects"
+msgstr "Vztažené objekty"
 
-#: models.py:48
+#: models.py:59
+msgid "Info"
+msgstr "Info"
+
+#: models.py:60
 msgid "Warning"
 msgstr "Varování"
 
-#: models.py:49
+#: models.py:61
 msgid "Error"
 msgstr "Chyba"
 
-#: models.py:58
-msgid "Common request"
-msgstr "Běžný HTTP dotaz"
+#: models.py:62
+msgid "Debug"
+msgstr "Debug"
 
-#: models.py:59
-msgid "Throttled request"
-msgstr "Throttled HTTP dotaz"
+#: models.py:63
+msgid "Critical"
+msgstr "Kritické"
 
-#: models.py:60
-msgid "Successful login request"
-msgstr "Úspěšné přihlášení"
-
-#: models.py:61
-msgid "Unsuccessful login request"
-msgstr "Neúspěšné přihlášení"
+#: models.py:66
+msgid "host"
+msgstr "host"
 
 #: models.py:67
-msgid "Request timestamp"
-msgstr "Čas a datum dotazu"
+msgid "method"
+msgstr "metoda"
 
 #: models.py:68
-msgid "Method"
-msgstr "Metoda"
+msgid "URL path"
+msgstr "URL cesta"
 
 #: models.py:69
-msgid "URL path"
-msgstr "URL"
+msgid "queries"
+msgstr "query string"
 
 #: models.py:70
-msgid "Queries"
-msgstr ""
-
-#: models.py:71
-msgid "Headers"
-msgstr "Hlavičky"
-
-#: models.py:72
-#| msgid "Request type"
-msgid "Request body"
-msgstr "Tělo dotazu"
+msgid "HTTPS connection"
+msgstr "HTTPS spojení"
 
 #: models.py:73
-msgid "HTTPS connection"
-msgstr "HTTPS"
+msgid "request timestamp"
+msgstr "čas a datum dotazu"
 
-#: models.py:76
-msgid "Response timestamp"
-msgstr "Datum a čas odpovědi"
+#: models.py:74
+msgid "request headers"
+msgstr "hlavičky dotazu"
 
-#: models.py:77
-msgid "Response code"
-msgstr "Kód odpovědi"
+#: models.py:75
+msgid "request body"
+msgstr "tělo dotazu"
 
 #: models.py:78
-msgid "Status"
-msgstr "Stav"
+msgid "response timestamp"
+msgstr "datum a čas odpovědi"
 
 #: models.py:79
-msgid "Request type"
-msgstr "Typ dotazu"
+msgid "response code"
+msgstr "kód odpovědi"
+
+#: models.py:80
+msgid "response headers"
+msgstr "hlavičky odpovědi"
 
 #: models.py:81
-#| msgid "Response code"
-msgid "Response body"
-msgstr "Tělo odpovědi"
+msgid "response body"
+msgstr "tělo odpovědi"
 
-#: models.py:82
-msgid "Error description"
-msgstr "Popis chyby"
+#: models.py:83
+msgid "status"
+msgstr "stav"
 
-#: models.py:86
-msgid "IP address"
-msgstr "IP adresa"
+#: models.py:84
+msgid "error description"
+msgstr "popis chyby"
 
-#: models.py:111
+#: models.py:98
 msgid "Response time"
 msgstr "Čas odpovědi"
 
-#: models.py:118
-msgid "Logged request"
-msgstr "Log HTTP dotazu"
+#: models.py:102
+msgid "Path"
+msgstr "Cesta"
 
-#: models.py:119
-msgid "Logged requests"
-msgstr "Log HTTP dotazů"
+#: models.py:120
+msgid "Common request"
+msgstr "Běžný HTTP dotaz"
+
+#: models.py:121
+msgid "Throttled request"
+msgstr "Throttled HTTP dotaz"
+
+#: models.py:122
+msgid "Successful login request"
+msgstr "Úspěšné přihlášení"
+
+#: models.py:123
+msgid "Unsuccessful login request"
+msgstr "Neúspěšné přihlášení"
+
+#: models.py:126
+msgid "user"
+msgstr "uživatel"
+
+#: models.py:127
+msgid "IP address"
+msgstr "IP adresa"
+
+#: models.py:128
+msgid "type"
+msgstr "typ"
+
+#: models.py:148
+msgid "input logged request"
+msgstr "vstupní logovaný dotaz"
+
+#: models.py:149
+msgid "input logged requests"
+msgstr "vstupní logované dotazy"
+
+#: models.py:154
+msgid "slug"
+msgstr "slug"
+
+#: models.py:157
+msgid "output logged request"
+msgstr "výstupní logovaný dotaz"
+
+#: models.py:158 models.py:163
+msgid "output logged requests"
+msgstr "výstupní logované dotazy"
+
+#: models.py:173
+msgid "object"
+msgstr "objekt"
 
 #: reversion_log/cores.py:23
 msgid "Revisions"
-msgstr ""
+msgstr "Revize"
 
 #: reversion_log/models.py:14
-#| msgid "Logged request"
 msgid "logged request"
 msgstr "logovaný dotaz"
 
@@ -146,12 +187,10 @@ msgid "revision"
 msgstr "datové změny"
 
 #: reversion_log/models.py:21
-#| msgid "Logged requests"
 msgid "Logged request revision"
 msgstr "logovaná datová změna"
 
 #: reversion_log/models.py:22
-#| msgid "Logged requests"
 msgid "Logged requests revisions"
 msgstr "Logované datové změny"
 
@@ -159,14 +198,14 @@ msgstr "Logované datové změny"
 msgid "Too Many Requests (429)"
 msgstr "Příliš mnoho HTTP dotazů (429)"
 
-#: throttling.py:29
+#: throttling.py:30
 msgid "Slow down"
 msgstr "Zpomal"
 
-#: throttling.py:42
+#: throttling.py:43
 msgid "Too many login attempts"
 msgstr "Příliš mnoho pokusů o přihlášení"
 
-#: throttling.py:55
+#: throttling.py:56
 msgid "You are logged too much times"
 msgstr "Příliš mnoho přihlášení najednou"
