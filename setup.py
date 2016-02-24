@@ -38,9 +38,11 @@ setup(
         'django>=1.6',
         'django-json-field==0.5.8',
         'django-ipware>=1.0.0',
+        'django-chamber>=0.1.9',
     ],
     dependency_links=[
         'https://github.com/matllubos/django-json-field/tarball/0.5.8#egg=django-json-field-0.5.8',
+        'https://github.com/matllubos/django-chamber/tarball/0.1.9#egg=django-chamber-0.1.9',
     ],
     zip_safe=False
 )

@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+import json
+
 from django.db import models
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
@@ -7,6 +9,7 @@ from django.utils import timezone
 from django.template.defaultfilters import truncatechars
 from django.utils.encoding import force_text, python_2_unicode_compatible
 from django.contrib.contenttypes.models import ContentType
+from django.core.serializers.json import DjangoJSONEncoder
 try:
     from django.contrib.contenttypes.fields import GenericForeignKey
 except ImportError:
@@ -15,6 +18,8 @@ except ImportError:
 from json_field.fields import JSONField
 
 from ipware.ip import get_ip
+
+from chamber.utils import keep_spacing
 
 from security.config import LOG_REQUEST_BODY_LENGTH, LOG_RESPONSE_BODY_LENGTH, LOG_RESPONSE_BODY_CONTENT_TYPES
 from security.utils import get_headers
@@ -77,7 +82,25 @@ class LoggedRequest(models.Model):
 
     status = models.PositiveSmallIntegerField(_('status'), choices=STATUS_CHOICES, null=False, blank=False)
     error_description = models.TextField(_('error description'), null=True, blank=True)
-    exception_name = models.CharField(_('xxception name'), null=True, blank=True, max_length=255)
+    exception_name = models.CharField(_('exception name'), null=True, blank=True, max_length=255)
+
+    def _get_json_field_humanized(self, field_name):
+        return keep_spacing(json.dumps(getattr(self, field_name), indent=4, ensure_ascii=False, cls=DjangoJSONEncoder))
+
+    def get_request_headers_humanized(self):
+        return self._get_json_field_humanized('request_headers')
+
+    def get_response_headers_humanized(self):
+        return self._get_json_field_humanized('response_headers')
+
+    def get_queries_humanized(self):
+        return self._get_json_field_humanized('queries')
+
+    def get_request_body_humanized(self):
+        return keep_spacing(self.request_body)
+
+    def get_response_body_humanized(self):
+        return keep_spacing(self.response_body)
 
     @classmethod
     def get_status(cls, status_code):

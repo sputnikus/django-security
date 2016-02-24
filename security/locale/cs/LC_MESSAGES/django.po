@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-12-30 14:37+0100\n"
+"POT-Creation-Date: 2016-02-25 10:48+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -38,139 +38,143 @@ msgstr "Další informace"
 msgid "Related objects"
 msgstr "Vztažené objekty"
 
-#: models.py:59
+#: models.py:58
 msgid "Info"
 msgstr "Info"
 
-#: models.py:60
+#: models.py:59
 msgid "Warning"
 msgstr "Varování"
 
-#: models.py:61
+#: models.py:60
 msgid "Error"
 msgstr "Chyba"
 
-#: models.py:62
+#: models.py:61
 msgid "Debug"
 msgstr "Debug"
 
-#: models.py:63
+#: models.py:62
 msgid "Critical"
 msgstr "Kritické"
 
-#: models.py:66
+#: models.py:65
 msgid "host"
 msgstr "host"
 
-#: models.py:67
+#: models.py:66
 msgid "method"
 msgstr "metoda"
 
-#: models.py:68
+#: models.py:67
 msgid "URL path"
 msgstr "URL cesta"
 
-#: models.py:69
+#: models.py:68
 msgid "queries"
 msgstr "query string"
 
-#: models.py:70
+#: models.py:69
 msgid "HTTPS connection"
 msgstr "HTTPS spojení"
 
-#: models.py:73
+#: models.py:72
 msgid "request timestamp"
 msgstr "čas a datum dotazu"
 
-#: models.py:74
+#: models.py:73
 msgid "request headers"
 msgstr "hlavičky dotazu"
 
-#: models.py:75
+#: models.py:74
 msgid "request body"
 msgstr "tělo dotazu"
 
-#: models.py:78
+#: models.py:77
 msgid "response timestamp"
 msgstr "datum a čas odpovědi"
 
-#: models.py:79
+#: models.py:78
 msgid "response code"
 msgstr "kód odpovědi"
 
-#: models.py:80
+#: models.py:79
 msgid "response headers"
 msgstr "hlavičky odpovědi"
 
-#: models.py:81
+#: models.py:80
 msgid "response body"
 msgstr "tělo odpovědi"
 
-#: models.py:83
+#: models.py:82
 msgid "status"
 msgstr "stav"
 
-#: models.py:84
+#: models.py:83
 msgid "error description"
 msgstr "popis chyby"
 
-#: models.py:98
+#: models.py:84
+msgid "exception name"
+msgstr "název výjimky"
+
+#: models.py:116
 msgid "Response time"
 msgstr "Čas odpovědi"
 
-#: models.py:102
+#: models.py:120
 msgid "Path"
 msgstr "Cesta"
 
-#: models.py:120
+#: models.py:138
 msgid "Common request"
 msgstr "Běžný HTTP dotaz"
 
-#: models.py:121
+#: models.py:139
 msgid "Throttled request"
 msgstr "Throttled HTTP dotaz"
 
-#: models.py:122
+#: models.py:140
 msgid "Successful login request"
 msgstr "Úspěšné přihlášení"
 
-#: models.py:123
+#: models.py:141
 msgid "Unsuccessful login request"
 msgstr "Neúspěšné přihlášení"
 
-#: models.py:126
+#: models.py:144
 msgid "user"
 msgstr "uživatel"
 
-#: models.py:127
+#: models.py:145
 msgid "IP address"
 msgstr "IP adresa"
 
-#: models.py:128
+#: models.py:146
 msgid "type"
 msgstr "typ"
 
-#: models.py:148
+#: models.py:166
 msgid "input logged request"
 msgstr "vstupní logovaný dotaz"
 
-#: models.py:149
+#: models.py:167
 msgid "input logged requests"
 msgstr "vstupní logované dotazy"
 
-#: models.py:154
+#: models.py:172
 msgid "slug"
 msgstr "slug"
 
-#: models.py:157
+#: models.py:175
 msgid "output logged request"
 msgstr "výstupní logovaný dotaz"
 
-#: models.py:158 models.py:163
+#: models.py:176 models.py:181
 msgid "output logged requests"
 msgstr "výstupní logované dotazy"
 
-#: models.py:173
+#: models.py:191
 msgid "object"
 msgstr "objekt"
 
