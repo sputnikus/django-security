@@ -97,10 +97,10 @@ class LoggedRequest(models.Model):
         return self._get_json_field_humanized('queries')
 
     def get_request_body_humanized(self):
-        return keep_spacing(self.request_body)
+        return keep_spacing(self.request_body) if self.request_body is not None else None
 
     def get_response_body_humanized(self):
-        return keep_spacing(self.response_body)
+        return keep_spacing(self.response_body) if self.response_body is not None else None
 
     @classmethod
     def get_status(cls, status_code):
