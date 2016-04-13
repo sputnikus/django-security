@@ -29,6 +29,15 @@ from security.utils import get_headers
 AUTH_USER_MODEL = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
 
 
+def get_full_host(request):
+    host = request.META['SERVER_NAME']
+    port = request.META['SERVER_PORT']
+    if (request.is_secure() and port != '443') or (not request.is_secure() and port != '80'):
+        return '{}:{}'.format(host, port)
+    else:
+        return host
+
+
 class InputLoggedRequestManager(models.Manager):
     """
     Create new LoggedRequest instance from HTTP request
@@ -39,9 +48,8 @@ class InputLoggedRequestManager(models.Manager):
         path = truncatechars(request.path, 200)
         request_body = truncatechars(force_text(request.body[:LOG_REQUEST_BODY_LENGTH + 1],
                                      errors='replace'), LOG_REQUEST_BODY_LENGTH)
-
         return self.model(request_headers=get_headers(request), request_body=request_body, user=user,
-                          method=request.method.upper()[:7], host=request.META['SERVER_NAME'],
+                          method=request.method.upper()[:7], host=get_full_host(request),
                           path=path, queries=request.GET.dict(), is_secure=request.is_secure(),
                           ip=get_ip(request), request_timestamp=timezone.now())
 

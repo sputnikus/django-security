@@ -15,7 +15,7 @@ from security.models import InputLoggedRequest, OutputLoggedRequest, OutputLogge
 class InputRequestsLogISCore(UIRESTModelISCore):
     model = InputLoggedRequest
     list_display = (
-        'request_timestamp', 'response_timestamp', 'status', 'response_code', 'short_path', 'ip',
+        'request_timestamp', 'response_timestamp', 'status', 'response_code', 'host', 'short_path', 'ip',
         'user', 'method', 'type'
     )
 
