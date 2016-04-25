@@ -48,7 +48,7 @@ class OutputLoggedRequestRelatedObjectsInlineFormView(TabularInlineFormView):
 class OutputRequestsLogISCore(UIRESTModelISCore):
     model = OutputLoggedRequest
     list_display = (
-        'request_timestamp', 'response_timestamp', 'status', 'response_code', 'short_path', 'method', 'slug'
+        'request_timestamp', 'response_timestamp', 'status', 'response_code', 'host', 'short_path', 'method', 'slug'
     )
 
     form_fieldsets = (
