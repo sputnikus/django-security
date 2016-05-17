@@ -47,6 +47,7 @@ dj/static/js/var
 dj/static/js/start.js
 dj/static/js/deps.js
 dj/static/js/app.js
+static/
 
 # Coverage #
 ############
@@ -55,3 +56,14 @@ dj/static/js/app.js
 # Makefile config #
 ###################
 build/config
+build/
+dist/
+
+# IDE #
+###################
+.idea
+*/.idea
+
+# Vim #
+#######
+*.swp
