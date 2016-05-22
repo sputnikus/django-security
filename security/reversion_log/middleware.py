@@ -1,4 +1,4 @@
-import reversion
+from reversion import revisions as reversion
 
 from security.reversion_log.models import InputRequestRevision
 

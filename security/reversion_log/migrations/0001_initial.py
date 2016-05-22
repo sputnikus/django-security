@@ -7,16 +7,16 @@ from django.db import models, migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('security', '0001_initial'),
-        ('reversion', '0004_auto_20150811_1505'),
+        ('reversion', '0005_auto_20160518_2202'),
+        ('security', '0003_auto_20160509_1622'),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='RequestRevision',
+            name='InputRequestRevision',
             fields=[
-                ('id', models.AutoField(verbose_name='ID', auto_created=True, primary_key=True, serialize=False)),
-                ('logged_request', models.ForeignKey(verbose_name='logged request', to='security.LoggedRequest')),
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('logged_request', models.ForeignKey(verbose_name='logged request', to='security.InputLoggedRequest')),
                 ('revision', models.OneToOneField(verbose_name='revision', to='reversion.Revision')),
             ],
             options={
