@@ -1,6 +1,5 @@
 from six.moves.urllib.parse import urlparse, parse_qs
 
-from django.conf import settings
 from django.utils import timezone
 from django.template.defaultfilters import truncatechars
 from django.utils.encoding import force_text
@@ -22,7 +21,8 @@ def request(method, url, params=None, data=None, headers=None, cookies=None, fil
     :param json: (optional) json data to send in the body of the :class:`Request`.
     :param headers: (optional) Dictionary of HTTP Headers to send with the :class:`Request`.
     :param cookies: (optional) Dict or CookieJar object to send with the :class:`Request`.
-    :param files: (optional) Dictionary of ``'name': file-like-objects`` (or ``{'name': ('filename', fileobj)}``) for multipart encoding upload.
+    :param files: (optional) Dictionary of ``'name': file-like-objects`` (or ``{'name': ('filename', fileobj)}``)
+                  for multipart encoding upload.
     :param auth: (optional) Auth tuple to enable Basic/Digest/Custom HTTP Auth.
     :param timeout: (optional) How long to wait for the server to send data
         before giving up, as a float, or a :ref:`(connect timeout, read
@@ -31,7 +31,8 @@ def request(method, url, params=None, data=None, headers=None, cookies=None, fil
     :param allow_redirects: (optional) Boolean. Set to True if POST/PUT/DELETE redirect following is allowed.
     :type allow_redirects: bool
     :param proxies: (optional) Dictionary mapping protocol to the URL of the proxy.
-    :param verify: (optional) whether the SSL cert will be verified. A CA_BUNDLE path can also be provided. Defaults to ``True``.
+    :param verify: (optional) whether the SSL cert will be verified. A CA_BUNDLE path can also be provided. Defaults to
+                   ``True``.
     :param stream: (optional) if ``False``, the response content will be immediately downloaded.
     :param cert: (optional) if String, path to ssl client cert file (.pem). If Tuple, ('cert', 'key') pair.
     :return: :class:`Response <Response>` object
@@ -48,7 +49,7 @@ def request(method, url, params=None, data=None, headers=None, cookies=None, fil
         'host': parsed_url.netloc,
         'path': parsed_url.path,
         'method': method.upper(),
-        'queries': parse_qs(parsed_url.query),
+        'queries': params or parse_qs(parsed_url.query),
         'slug': slug
     }
 
@@ -75,19 +76,21 @@ def request(method, url, params=None, data=None, headers=None, cookies=None, fil
             }
             send_kwargs.update(settings)
 
+            def prepare_request_body(prep):
+                return (truncatechars(force_text(prep.body[:LOG_REQUEST_BODY_LENGTH + 1], errors='replace'),
+                                      LOG_REQUEST_BODY_LENGTH) if prep.body else '')
+
             logged_kwargs.update({
                 'request_timestamp': timezone.now(),
                 'request_headers': dict(prep.headers.items()),
-                'request_body': truncatechars(force_text(prep.body[:LOG_REQUEST_BODY_LENGTH + 1],
-                                                         errors='replace'), LOG_REQUEST_BODY_LENGTH),
+                'request_body': prepare_request_body(prep),
             })
             resp = session.send(prep, **send_kwargs)
             logged_kwargs.update({
                 'response_timestamp': timezone.now(),
                 'response_code': resp.status_code,
                 'response_headers': dict(resp.headers.items()),
-                'response_body': truncatechars(force_text(resp.content[:LOG_RESPONSE_BODY_LENGTH + 1],
-                                                          errors='replace'), LOG_RESPONSE_BODY_LENGTH),
+                'request_body': prepare_request_body(prep),
                 'status': LoggedRequest.get_status(resp.status_code)
             })
             return resp
