@@ -2,11 +2,7 @@ from __future__ import unicode_literals
 
 from django.utils.translation import ugettext_lazy as _
 
-try:
-    from is_core.main import UIRESTModelISCore
-except ImportError:
-    from is_core.main import UIRestModelISCore as UIRESTModelISCore
-
+from is_core.main import UIRESTModelISCore
 from is_core.generic_views.inlines.inline_form_views import TabularInlineFormView
 
 from security.models import InputLoggedRequest, OutputLoggedRequest, OutputLoggedRequestRelatedObjects
@@ -30,14 +26,9 @@ class InputRequestsLogISCore(UIRESTModelISCore):
 
     abstract = True
 
-    def has_create_permission(self, request, obj=None):
-        return False
-
-    def has_update_permission(self, request, obj=None):
-        return False
-
-    def has_delete_permission(self, request, obj=None):
-        return False
+    create_permission = False
+    update_permission = False
+    delete_permission = False
 
 
 class OutputLoggedRequestRelatedObjectsInlineFormView(TabularInlineFormView):
@@ -57,17 +48,11 @@ class OutputRequestsLogISCore(UIRESTModelISCore):
         (_('Response'), {'fields': ('response_timestamp', 'response_code', 'status', 'response_headers',
                                     'response_body', 'error_description')}),
         (_('Extra information'), {'fields': ('slug', 'response_time',)}),
-        (_('Related objects'), {'inline_view': 'OutputLoggedRequestRelatedObjectsInlineFormView'})
+        (_('Related objects'), {'inline_view': OutputLoggedRequestRelatedObjectsInlineFormView})
     )
-    form_inline_views = [OutputLoggedRequestRelatedObjectsInlineFormView]
 
     abstract = True
 
-    def has_create_permission(self, request, obj=None):
-        return False
-
-    def has_update_permission(self, request, obj=None):
-        return False
-
-    def has_delete_permission(self, request, obj=None):
-        return False
+    create_permission = False
+    update_permission = False
+    delete_permission = False

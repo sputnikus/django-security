@@ -20,7 +20,6 @@ class InputRequestsLogISCore(OriginInputRequestsLogISCore):
                                     'response_body', 'type', 'error_description')}),
         (_('User information'), {'fields': ('user', 'ip')}),
         (_('Extra information'), {'fields': ('response_time',)}),
-        (_('Revisions'), {'inline_view': 'RequestRevisionTabularInlineFormView'})
+        (_('Revisions'), {'inline_view': RequestRevisionTabularInlineFormView})
     )
     abstract = True
-    form_inline_views = [RequestRevisionTabularInlineFormView]
