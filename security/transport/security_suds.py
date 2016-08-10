@@ -1,92 +1,75 @@
-from six.moves.urllib.parse import urlparse, parse_qs
-import six
-from django.utils import timezone
-from django.template.defaultfilters import truncatechars
+import functools
+
+import traceback
+
+from six import BytesIO
+
 from django.utils.encoding import force_text
 
-from suds.transport.https import HttpAuthenticated
-from suds.transport.http import HttpTransport
+import requests
+
 from suds.client import Client as DefaultClient
+from suds.transport import Reply, TransportError
+from suds.transport.http import HttpTransport
 
-from security.compatibility import extract_headers
-from security.config import LOG_REQUEST_BODY_LENGTH, LOG_RESPONSE_BODY_LENGTH
-from security.models import LoggedRequest, OutputLoggedRequest
-
-
-def stringify_dict(d):
-    def stringify(value):
-        if isinstance(value, six.binary_type):
-            return force_text(value)
-        elif isinstance(value, dict):
-            return stringify_dict(value)
-        else:
-            return value
-
-    return {k: stringify(v) for k, v in d.items()}
+from . import security_requests
 
 
-class SecurityHttpTransportMixin:
-
-    def log_and_send(self, request, slug, related_objects):
-        parsed_url = urlparse(request.url)
-        logged_kwargs = {
-            'is_secure': parsed_url.scheme == 'https',
-            'host': parsed_url.netloc,
-            'path': parsed_url.path,
-            'method': 'POST',
-            'queries': parse_qs(parsed_url.query),
-            'slug': self.slug,
-            'request_timestamp': timezone.now(),
-            'request_headers': request.headers.copy(),
-            'request_body': truncatechars(force_text(request.message[:LOG_REQUEST_BODY_LENGTH + 1],
-                                                     errors='replace'), LOG_REQUEST_BODY_LENGTH),
-        }
+def handle_errors(f):
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
         try:
-            resp = HttpTransport.send(self, request)
-            logged_kwargs.update({
-                'response_timestamp': timezone.now(),
-                'response_code': resp.code,
-                'response_headers': extract_headers(resp).copy(),
-                'response_body': truncatechars(force_text(resp.message[:LOG_RESPONSE_BODY_LENGTH + 1],
-                                                          errors='replace'), LOG_RESPONSE_BODY_LENGTH),
-                'status': LoggedRequest.get_status(resp.code)
-            })
-            return resp
-        except Exception as ex:
-            logged_kwargs.update({
-                'error_description': force_text(ex),
-                'status': LoggedRequest.CRITICAL,
-                'exception_name': ex.__class__.__name__
-            })
-            raise
-        finally:
-            # TODO: remove suds is fixed. (This is here to prevent nasty Python 3 related bugs with str vs. bytes.)
-            logged_kwargs = stringify_dict(logged_kwargs)
-            output_logged_request = OutputLoggedRequest.objects.create(**logged_kwargs)
-            for obj in self.related_objects or ():
-                output_logged_request.related_objects.create(content_object=obj)
-            self.related_objects = []
+            return f(*args, **kwargs)
+        except requests.HTTPError as e:
+            buf = StringIO(e.response.content)
+            raise transport.TransportError(
+                'Error in requests\n' + traceback.format_exc(), e.response.status_code, buf,
+            )
+        except requests.RequestException:
+            raise TransportError(
+                'Error in requests\n' + traceback.format_exc(), 000,
+            )
+    return wrapper
 
 
-class SecurityHttpAuthenticated(SecurityHttpTransportMixin, HttpAuthenticated):
+class SecurityRequestsTransport(HttpTransport):
 
-    def __init__(self, slug=None, related_objects=None, *args, **kwargs):
+    def __init__(self, slug=None, session=None, related_objects=None):
+        self.related_objects = related_objects or ()
         self.slug = slug
-        self.related_objects = related_objects or []
-        HttpAuthenticated.__init__(self, *args, **kwargs)
+        # super won't work because not using new style class
+        HttpTransport.__init__(self)
+        self._session = session or security_requests.SecuritySession()
+
+    @handle_errors
+    def open(self, request):
+        url = request.url
+        if url.startswith('file:'):
+            return HttpTransport.open(self, request)
+        else:
+            resp = self._session.get(url)
+            resp.raise_for_status()
+            return BytesIO(resp.content)
+
+    @handle_errors
+    def send(self, request):
+        try:
+            resp = self._session.post(request.url, data=request.message, headers=request.headers, slug=self.slug,
+                                      related_objects=self.related_objects)
+            if resp.headers.get('content-type') not in {'text/xml', 'application/soap+xml'}:
+                resp.raise_for_status()
+            return Reply(resp.status_code, resp.headers, resp.content)
+        finally:
+            self.related_objects = ()
 
     def add_related_objects(self, *related_objects):
-        self.related_objects += list(related_objects)
-
-    def send(self, request):
-        self.addcredentials(request)
-        return self.log_and_send(request, self.slug, self.related_objects)
+        self.related_objects += tuple(related_objects)
 
 
 class Client(DefaultClient):
 
-    def __init__(self, url, slug=None, related_objects=None, transport=None, **kwargs):
-        transport = transport or SecurityHttpAuthenticated(slug=slug, related_objects=related_objects)
+    def __init__(self, url, slug=None, related_objects=None, session=None, transport=None, **kwargs):
+        transport = transport or SecurityRequestsTransport(slug=slug, related_objects=related_objects, session=session)
         DefaultClient.__init__(self, url, transport=transport, **kwargs)
 
     def add_related_objects(self, *related_objects):
