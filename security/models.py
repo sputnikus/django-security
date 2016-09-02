@@ -21,7 +21,9 @@ from ipware.ip import get_ip
 
 from chamber.utils import keep_spacing
 
-from security.config import LOG_REQUEST_BODY_LENGTH, LOG_RESPONSE_BODY_LENGTH, LOG_RESPONSE_BODY_CONTENT_TYPES
+from security.config import (
+    SECURITY_LOG_REQUEST_BODY_LENGTH, SECURITY_LOG_RESPONSE_BODY_LENGTH, SECURITY_LOG_RESPONSE_BODY_CONTENT_TYPES
+)
 from security.utils import get_headers
 
 
@@ -46,8 +48,8 @@ class InputLoggedRequestManager(models.Manager):
     def prepare_from_request(self, request):
         user = hasattr(request, 'user') and request.user.is_authenticated() and request.user or None
         path = truncatechars(request.path, 200)
-        request_body = truncatechars(force_text(request.body[:LOG_REQUEST_BODY_LENGTH + 1],
-                                     errors='replace'), LOG_REQUEST_BODY_LENGTH)
+        request_body = truncatechars(force_text(request.body[:SECURITY_LOG_REQUEST_BODY_LENGTH + 1],
+                                     errors='replace'), SECURITY_LOG_REQUEST_BODY_LENGTH)
         return self.model(request_headers=get_headers(request), request_body=request_body, user=user,
                           method=request.method.upper()[:7], host=get_full_host(request),
                           path=path, queries=request.GET.dict(), is_secure=request.is_secure(),
@@ -163,9 +165,10 @@ class InputLoggedRequest(LoggedRequest):
         self.response_code = response.status_code
         self.response_headers = dict(response.items())
 
-        if not response.streaming and response.get('content-type', '').split(';')[0] in LOG_RESPONSE_BODY_CONTENT_TYPES:
-            response_body = truncatechars(force_text(response.content[:LOG_RESPONSE_BODY_LENGTH + 1],
-                                                     errors='replace'), LOG_RESPONSE_BODY_LENGTH)
+        if (not response.streaming and
+                response.get('content-type', '').split(';')[0] in SECURITY_LOG_RESPONSE_BODY_CONTENT_TYPES):
+            response_body = truncatechars(force_text(response.content[:SECURITY_LOG_RESPONSE_BODY_LENGTH + 1],
+                                                     errors='replace'), SECURITY_LOG_RESPONSE_BODY_LENGTH)
         else:
             response_body = ''
 

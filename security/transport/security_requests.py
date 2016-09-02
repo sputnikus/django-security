@@ -7,7 +7,7 @@ from django.utils.encoding import force_text
 
 from requests import *
 
-from security.config import LOG_REQUEST_BODY_LENGTH, LOG_RESPONSE_BODY_LENGTH
+from security.config import SECURITY_LOG_REQUEST_BODY_LENGTH, SECURITY_LOG_RESPONSE_BODY_LENGTH
 from security.models import LoggedRequest, OutputLoggedRequest
 
 
@@ -24,13 +24,13 @@ def stringify_dict(d):
 
 
 def prepare_request_body(prep):
-    return (truncatechars(force_text(prep.body[:LOG_REQUEST_BODY_LENGTH + 1], errors='replace'),
-                          LOG_REQUEST_BODY_LENGTH) if prep.body else '')
+    return (truncatechars(force_text(prep.body[:SECURITY_LOG_REQUEST_BODY_LENGTH + 1], errors='replace'),
+                          SECURITY_LOG_REQUEST_BODY_LENGTH) if prep.body else '')
 
 
 def prepare_response_body(resp):
-    return (truncatechars(force_text(resp.content[:LOG_RESPONSE_BODY_LENGTH + 1], errors='replace'),
-                          LOG_RESPONSE_BODY_LENGTH) if resp.content else '')
+    return (truncatechars(force_text(resp.content[:SECURITY_LOG_RESPONSE_BODY_LENGTH + 1], errors='replace'),
+                          SECURITY_LOG_RESPONSE_BODY_LENGTH) if resp.content else '')
 
 
 class SecuritySession(Session):

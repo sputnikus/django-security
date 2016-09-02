@@ -11,11 +11,11 @@ from ipware.ip import get_ip
 
 from .models import InputLoggedRequest
 from .exception import ThrottlingException
-from .config import DEFAULT_THROTTLING_VALIDATORS, THROTTLING_FAILURE_VIEW, LOG_IGNORE_IP
+from .config import SECURITY_DEFAULT_THROTTLING_VALIDATORS, SECURITY_THROTTLING_FAILURE_VIEW, SECURITY_LOG_IGNORE_IP
 
 
 try:
-    THROTTLING_VALIDATORS_MODULE, THROTTLING_VALIDATORS_VAR = DEFAULT_THROTTLING_VALIDATORS.rsplit('.', 1)
+    THROTTLING_VALIDATORS_MODULE, THROTTLING_VALIDATORS_VAR = SECURITY_DEFAULT_THROTTLING_VALIDATORS.rsplit('.', 1)
     THROTTLING_VALIDATORS = getattr(import_module(THROTTLING_VALIDATORS_MODULE), THROTTLING_VALIDATORS_VAR)
 except ImportError:
     raise ImproperlyConfigured('Configuration DEFAULT_THROTTLING_VALIDATORS does not contain valid module')
@@ -24,11 +24,11 @@ except ImportError:
 class LogMiddleware(object):
 
     def process_request(self, request):
-        if get_ip(request) not in LOG_IGNORE_IP:
+        if get_ip(request) not in SECURITY_LOG_IGNORE_IP:
             request._logged_request = InputLoggedRequest.objects.prepare_from_request(request)
 
     def _render_throttling(self, request, exception):
-        return get_callable(THROTTLING_FAILURE_VIEW)(request, exception)
+        return get_callable(SECURITY_THROTTLING_FAILURE_VIEW)(request, exception)
 
     def process_view(self, request, callback, callback_args, callback_kwargs):
         if getattr(request, '_logged_request', False):
