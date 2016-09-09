@@ -21,8 +21,8 @@ def handle_errors(f):
         try:
             return f(*args, **kwargs)
         except requests.HTTPError as e:
-            buf = StringIO(e.response.content)
-            raise transport.TransportError(
+            buf = BytesIO(e.response.content)
+            raise TransportError(
                 'Error in requests\n' + traceback.format_exc(), e.response.status_code, buf,
             )
         except requests.RequestException:
