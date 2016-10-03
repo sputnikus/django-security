@@ -8,7 +8,7 @@ from datetime import timedelta, datetime, time
 
 from optparse import make_option
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 from django.core import serializers
 from django.core.serializers.json import DjangoJSONEncoder
@@ -18,12 +18,12 @@ from django.utils.encoding import force_text, force_bytes
 from security.models import InputLoggedRequest, OutputLoggedRequest
 
 
-DURATION_OPTIONS = {
-    'hours': lambda amount: timezone.now() - timedelta(hours=amount),
-    'days': lambda amount: timezone.now() - timedelta(days=amount),
-    'weeks': lambda amount: timezone.now() - timedelta(weeks=amount),
-    'months': lambda amount: timezone.now() - timedelta(days=(30 * amount)),  # 30-day month
-    'years': lambda amount: timezone.now() - timedelta(weeks=(52 * amount)),  # 364-day year
+UNIT_OPTIONS = {
+    'h': lambda amount: timezone.now() - timedelta(hours=amount),
+    'd': lambda amount: timezone.now() - timedelta(days=amount),
+    'w': lambda amount: timezone.now() - timedelta(weeks=amount),
+    'm': lambda amount: timezone.now() - timedelta(days=(30 * amount)),  # 30-day month
+    'y': lambda amount: timezone.now() - timedelta(weeks=(52 * amount)),  # 364-day year
 }
 
 
@@ -33,12 +33,14 @@ class Command(BaseCommand):
     args = '[amount duration]'
 
     def add_arguments(self, parser):
+        parser.add_argument('--expiration', action='store', dest='expiration',
+                            help='Set the timedelta from requestss will be removed.', required=True)
         parser.add_argument('--noinput', action='store_false', dest='interactive', default=True,
                             help='Tells Django to NOT prompt the user for input of any kind.')
         parser.add_argument('--backup', action='store', dest='backup', default=False,
                             help='Tells Django where to backup removing requests.')
         parser.add_argument('--type', action='store', dest='type', default='input',
-                    help='Tells Django what type of requests shoud be logged (input/output).')
+                            help='Tells Django what type of requests shoud be logged (input/output).')
 
     def serialize(self, qs):
         data = serializers.serialize('python', qs)
@@ -67,54 +69,46 @@ class Command(BaseCommand):
             with gzip.open('{}.json.zip'.format(log_file_path), 'wb') as file_out:
                 file_out.write(force_bytes(json.dumps(self.serialize(file_qs), cls=DjangoJSONEncoder, indent=5)))
 
-    def handle(self, amount, duration, type, **options):
+    def handle(self, expiration, type, **options):
         # Check we have the correct values
+        unit = expiration[-1]
+        amount = expiration[0:-1]
         try:
             amount = int(amount)
         except ValueError:
-            self.stderr.write('Amount must be a number')
-            return
+            raise CommandError('Invalid expiration format')
 
-        if duration[-1] != 's':  # If its not plural, make it plural
-            duration_plural = '{}s'.format(duration)
-        else:
-            duration_plural = duration
+        if unit not in UNIT_OPTIONS:
+            raise CommandError('Invalid expiration format')
 
         if type == 'input':
             model = InputLoggedRequest
         elif type == 'output':
             model = OutputLoggedRequest
         else:
-            self.stderr.write('Type can be only input or output')
-            return
+            raise CommandError('Type can be only input or output')
 
-        if duration_plural not in DURATION_OPTIONS:
-            self.stderr.write('Amount must be {}'.format(', '.join(DURATION_OPTIONS)))
-            return
+        qs = model.objects.filter(request_timestamp__lte=UNIT_OPTIONS[unit](amount))
 
-        qs = model.objects.filter(request_timestamp__lte=DURATION_OPTIONS[duration_plural](amount))
-        count = qs.count()
-
-        if count == 0:
+        if qs.count() == 0:
             self.stdout.write('There are no requests to delete.')
-            return
-
-        if options.get('interactive'):
-            confirm = input('''
-            You have requested a database reset.
-            This will IRREVERSIBLY DESTROY any
-            logged requests created before {} {}
-            ago. That is a total of {} requests.
-            Are you sure you want to do this?
-            Type 'yes' to continue, or 'no' to cancel: '''.format(amount, duration, count))
         else:
-            confirm = 'yes'
+            if options.get('interactive'):
+                confirm = input('''
+                You have requested a database reset.
+                This will IRREVERSIBLY DESTROY any
+                logged requests created before {} {}
+                ago. That is a total of {} requests.
+                Are you sure you want to do this?
+                Type 'yes' to continue, or 'no' to cancel: '''.format(amount, duration, count))
+            else:
+                confirm = 'yes'
 
-        if confirm == 'yes':
-            try:
-                if options.get('backup'):
-                    self.backup_to_file(qs, options.get('backup'))
-                self.stdout.write('Removing data')
-                qs.delete()
-            except IOError as ex:
-                self.stderr.write(force_text(ex))
+            if confirm == 'yes':
+                try:
+                    if options.get('backup'):
+                        self.backup_to_file(qs, options.get('backup'))
+                    self.stdout.write('Removing data')
+                    qs.delete()
+                except IOError as ex:
+                    raise CommandError(force_text(ex))
