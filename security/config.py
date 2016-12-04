@@ -1,8 +1,8 @@
 from django.conf import settings
 
 
-SECURITY_DEFAULT_THROTTLING_VALIDATORS = getattr(settings, 'SECURITY_DEFAULT_THROTTLING_VALIDATORS',
-                                                 'security.default_validators.validators')
+SECURITY_DEFAULT_THROTTLING_VALIDATORS_PATH = getattr(settings, 'SECURITY_DEFAULT_THROTTLING_VALIDATORS_PATH',
+                                                      'security.default_validators')
 SECURITY_THROTTLING_FAILURE_VIEW = getattr(settings, 'SECURITY_THROTTLING_FAILURE_VIEW',
                                            'security.views.throttling_failure_view')
 SECURITY_LOG_IGNORE_IP = getattr(settings, 'SECURITY_LOG_IGNORE_IP', tuple())
