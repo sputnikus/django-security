@@ -14,12 +14,12 @@ from ipware.ip import get_ip
 
 from .models import InputLoggedRequest
 from .exception import ThrottlingException
-from .config import SECURITY_DEFAULT_THROTTLING_VALIDATORS, SECURITY_THROTTLING_FAILURE_VIEW, SECURITY_LOG_IGNORE_IP
+from .config import (SECURITY_DEFAULT_THROTTLING_VALIDATORS_PATH, SECURITY_THROTTLING_FAILURE_VIEW,
+                     SECURITY_LOG_IGNORE_IP)
 
 
 try:
-    THROTTLING_VALIDATORS_MODULE, THROTTLING_VALIDATORS_VAR = SECURITY_DEFAULT_THROTTLING_VALIDATORS.rsplit('.', 1)
-    THROTTLING_VALIDATORS = getattr(import_module(THROTTLING_VALIDATORS_MODULE), THROTTLING_VALIDATORS_VAR)
+    THROTTLING_VALIDATORS = getattr(import_module(SECURITY_DEFAULT_THROTTLING_VALIDATORS_PATH), 'default')
 except ImportError:
     raise ImproperlyConfigured('Configuration DEFAULT_THROTTLING_VALIDATORS does not contain valid module')
 
