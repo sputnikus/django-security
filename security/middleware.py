@@ -19,7 +19,7 @@ from .config import (SECURITY_DEFAULT_THROTTLING_VALIDATORS_PATH, SECURITY_THROT
 
 
 try:
-    THROTTLING_VALIDATORS = getattr(import_module(SECURITY_DEFAULT_THROTTLING_VALIDATORS_PATH), 'default')
+    THROTTLING_VALIDATORS = getattr(import_module(SECURITY_DEFAULT_THROTTLING_VALIDATORS_PATH), 'default_validators')
 except ImportError:
     raise ImproperlyConfigured('Configuration DEFAULT_THROTTLING_VALIDATORS does not contain valid module')
 
