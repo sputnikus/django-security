@@ -9,6 +9,7 @@ from security.models import InputLoggedRequest, OutputLoggedRequest, OutputLogge
 
 
 class InputRequestsLogISCore(UIRESTModelISCore):
+
     model = InputLoggedRequest
     list_display = (
         'request_timestamp', 'response_timestamp', 'status', 'response_code', 'host', 'short_path', 'ip',
@@ -32,11 +33,13 @@ class InputRequestsLogISCore(UIRESTModelISCore):
 
 
 class OutputLoggedRequestRelatedObjectsInlineFormView(TabularInlineFormView):
+
     model = OutputLoggedRequestRelatedObjects
     fields = ('display_object',)
 
 
 class OutputRequestsLogISCore(UIRESTModelISCore):
+
     model = OutputLoggedRequest
     list_display = (
         'request_timestamp', 'response_timestamp', 'status', 'response_code', 'host', 'short_path', 'method', 'slug'
