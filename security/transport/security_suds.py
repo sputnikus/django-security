@@ -34,9 +34,10 @@ def handle_errors(f):
 
 class SecurityRequestsTransport(HttpTransport):
 
-    def __init__(self, slug=None, session=None, related_objects=None):
+    def __init__(self, slug=None, session=None, related_objects=None, timeout=None):
         self.related_objects = related_objects or ()
         self.slug = slug
+        self.timeout = timeout
         # super won't work because not using new style class
         HttpTransport.__init__(self)
         self._session = session or security_requests.SecuritySession()
@@ -55,7 +56,7 @@ class SecurityRequestsTransport(HttpTransport):
     def send(self, request):
         try:
             resp = self._session.post(request.url, data=request.message, headers=request.headers, slug=self.slug,
-                                      related_objects=self.related_objects)
+                                      related_objects=self.related_objects, timeout=self.timeout)
             if resp.headers.get('content-type') not in {'text/xml', 'application/soap+xml'}:
                 resp.raise_for_status()
             return Reply(resp.status_code, resp.headers, resp.content)
@@ -68,8 +69,9 @@ class SecurityRequestsTransport(HttpTransport):
 
 class Client(DefaultClient):
 
-    def __init__(self, url, slug=None, related_objects=None, session=None, transport=None, **kwargs):
-        transport = transport or SecurityRequestsTransport(slug=slug, related_objects=related_objects, session=session)
+    def __init__(self, url, slug=None, related_objects=None, session=None, transport=None, timeout=None, **kwargs):
+        transport = transport or SecurityRequestsTransport(slug=slug, related_objects=related_objects, session=session,
+                                                           timeout=timeout)
         DefaultClient.__init__(self, url, transport=transport, **kwargs)
 
     def add_related_objects(self, *related_objects):
