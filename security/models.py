@@ -139,6 +139,16 @@ class LoggedRequest(models.Model):
     short_path.filter_by = 'path'
     short_path.order_by = 'path'
 
+    def short_response_body(self):
+        return truncatechars(self.response_body, 50)
+    short_response_body.short_description = _('response body')
+    short_response_body.filter_by = 'response_body'
+
+    def short_request_body(self):
+        return truncatechars(self.request_body, 50)
+    short_request_body.short_description = _('request body')
+    short_request_body.filter_by = 'request_body'
+
     def __str__(self):
         return self.path
 
