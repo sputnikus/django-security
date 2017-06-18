@@ -12,8 +12,8 @@ class InputRequestsLogISCore(UIRESTModelISCore):
 
     model = InputLoggedRequest
     list_display = (
-        'request_timestamp', 'response_timestamp', 'status', 'response_code', 'host', 'short_path', 'ip',
-        'user', 'method', 'type', 'short_response_body', 'short_request_body'
+        'request_timestamp', 'response_timestamp', 'response_time', 'status', 'response_code', 'host', 'short_path',
+        'ip', 'user', 'method', 'type', 'short_response_body', 'short_request_body'
     )
 
     form_fieldsets = (
@@ -42,8 +42,8 @@ class OutputRequestsLogISCore(UIRESTModelISCore):
 
     model = OutputLoggedRequest
     list_display = (
-        'request_timestamp', 'response_timestamp', 'status', 'response_code', 'host', 'short_path', 'method', 'slug',
-        'short_response_body', 'short_request_body'
+        'request_timestamp', 'response_timestamp', 'response_time', 'status', 'response_code', 'host', 'short_path',
+        'method', 'slug', 'short_response_body', 'short_request_body'
     )
 
     form_fieldsets = (
