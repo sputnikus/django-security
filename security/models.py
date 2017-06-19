@@ -129,8 +129,13 @@ class LoggedRequest(models.Model):
             return LoggedRequest.INFO
 
     def response_time(self):
-        return ('%s ms' % ((self.response_timestamp - self.request_timestamp).microseconds / 1000)
-                if self.response_timestamp else None)
+        if self.response_timestamp:
+            response_time_in_seconds = (self.response_timestamp - self.request_timestamp).total_seconds()
+            return '{}s {}ms'.format(
+                int(response_time_in_seconds), int((response_time_in_seconds - int(response_time_in_seconds)) * 1000)
+            ) if int(response_time_in_seconds) > 0 else '{}ms'.format(int(response_time_in_seconds * 1000))
+        else:
+            return None
     response_time.short_description = _('Response time')
 
     def short_path(self):
