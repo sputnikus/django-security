@@ -27,9 +27,9 @@ from security.config import (
 from security.utils import get_headers
 
 try:
-    from is_core.filters.default_filters import CaseSensitiveCharFieldFilter
+    from pyston.filters.default_filters import CaseSensitiveStringFieldFilter
 except ImportError:
-    CaseSensitiveCharFieldFilter = object
+    CaseSensitiveStringFieldFilter = object
 
 
 # Prior to Django 1.5, the AUTH_USER_MODEL setting does not exist.
@@ -79,10 +79,10 @@ class LoggedRequest(models.Model):
     )
 
     host = models.CharField(_('host'), max_length=255, null=False, blank=False, db_index=True)
-    host._filter = CaseSensitiveCharFieldFilter
+    host._filter = CaseSensitiveStringFieldFilter
     method = models.SlugField(_('method'), max_length=7, null=False, blank=False, db_index=True)
     path = models.CharField(_('URL path'), max_length=255, null=False, blank=False, db_index=True)
-    path._filter = CaseSensitiveCharFieldFilter
+    path._filter = CaseSensitiveStringFieldFilter
     queries = JSONField(_('queries'), null=True, blank=True)
     is_secure = models.BooleanField(_('HTTPS connection'), default=False, null=False, blank=False)
 
