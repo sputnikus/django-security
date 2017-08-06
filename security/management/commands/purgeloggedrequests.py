@@ -1,22 +1,18 @@
+import gzip
 import json
 import os
-import gzip
+from datetime import datetime, time, timedelta
 
-from six.moves import input
-
-from datetime import timedelta, datetime, time
-
-from optparse import make_option
-
-from django.core.management.base import BaseCommand, CommandError
-from django.utils import timezone
 from django.core import serializers
+from django.core.management.base import BaseCommand, CommandError
 from django.core.serializers.json import DjangoJSONEncoder
+from django.utils import timezone
+from django.utils.encoding import force_bytes, force_text
 from django.utils.timezone import utc
-from django.utils.encoding import force_text, force_bytes
 
 from security.models import InputLoggedRequest, OutputLoggedRequest
 
+from six.moves import input
 
 UNIT_OPTIONS = {
     'h': lambda amount: timezone.now() - timedelta(hours=amount),
@@ -100,7 +96,7 @@ class Command(BaseCommand):
                 logged requests created before {} {}
                 ago. That is a total of {} requests.
                 Are you sure you want to do this?
-                Type 'yes' to continue, or 'no' to cancel: '''.format(amount, duration, count))
+                Type 'yes' to continue, or 'no' to cancel: '''.format(amount, unit, qs.count()))
             else:
                 confirm = 'yes'
 
