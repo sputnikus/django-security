@@ -10,6 +10,8 @@ from requests import *
 from security.config import SECURITY_LOG_REQUEST_BODY_LENGTH, SECURITY_LOG_RESPONSE_BODY_LENGTH
 from security.models import LoggedRequest, OutputLoggedRequest
 
+from .transaction import log_output_request
+
 
 def stringify_dict(d):
     def stringify(value):
@@ -93,8 +95,7 @@ class SecuritySession(Session):
             })
             raise
         finally:
-            output_logged_request = OutputLoggedRequest.objects.create(**stringify_dict(logged_kwargs))
-            [output_logged_request.related_objects.create(content_object=obj) for obj in related_objects]
+            log_output_request(stringify_dict(logged_kwargs), related_objects)
 
 
 def request(method, url, **kwargs):
