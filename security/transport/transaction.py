@@ -14,10 +14,11 @@ class OutputLoggedRequestContext(object):
         self.data = data
         self.related_objects = related_objects
 
-    def create(self, raised_exception):
+    def create(self):
         output_logged_request = OutputLoggedRequest.objects.create(**self.data)
-        if not raised_exception and self.related_objects:
-            [output_logged_request.related_objects.create(content_object=obj) for obj in self.related_objects]
+        for obj in self.related_objects:
+            if obj.__class__.objects.filter(pk=obj.pk).exists():
+                output_logged_request.related_objects.create(content_object=obj)
 
 
 class AtomicLog(ContextDecorator):
@@ -38,7 +39,7 @@ class AtomicLog(ContextDecorator):
     def __exit__(self, exc_type, exc_value, traceback):
         connection = get_connection(self.using)
         logged_requests = connection.logged_requests.pop()
-        [logged_request.create(bool(exc_value)) for logged_request in logged_requests]
+        [logged_request.create() for logged_request in logged_requests]
 
 
 def atomic_log(using=None):

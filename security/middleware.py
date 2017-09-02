@@ -9,6 +9,7 @@ from django.core.urlresolvers import get_callable
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.encoding import force_text
 from django.urls import is_valid_path
+from django.db.transaction import get_connection
 
 from ipware.ip import get_ip
 
@@ -35,6 +36,11 @@ class LogMiddleware(object):
         # Return a redirect if necessary
         if self.should_redirect_with_slash(request):
             return self.response_redirect_class(self.get_full_path_with_slash(request))
+
+        connection = get_connection()
+        logged_requests_list = getattr(connection, 'logged_requests', [])
+        logged_requests_list.append([])
+        connection.logged_requests = logged_requests_list
 
     def get_full_path_with_slash(self, request):
         """
@@ -97,6 +103,10 @@ class LogMiddleware(object):
         if hasattr(request, '_logged_request'):
             request._logged_request.update_from_response(response)
             request._logged_request.save()
+
+        connection = get_connection()
+        logged_requests = connection.logged_requests.pop()
+        [logged_request.create() for logged_request in logged_requests]
         return response
 
     def process_exception(self, request, exception):
