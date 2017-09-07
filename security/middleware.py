@@ -33,14 +33,14 @@ class LogMiddleware(object):
         if get_ip(request) not in SECURITY_LOG_IGNORE_IP:
             request._logged_request = InputLoggedRequest.objects.prepare_from_request(request)
 
-        # Return a redirect if necessary
-        if self.should_redirect_with_slash(request):
-            return self.response_redirect_class(self.get_full_path_with_slash(request))
-
         connection = get_connection()
         logged_requests_list = getattr(connection, 'logged_requests', [])
         logged_requests_list.append([])
         connection.logged_requests = logged_requests_list
+
+        # Return a redirect if necessary
+        if self.should_redirect_with_slash(request):
+            return self.response_redirect_class(self.get_full_path_with_slash(request))
 
     def get_full_path_with_slash(self, request):
         """
