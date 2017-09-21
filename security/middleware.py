@@ -105,7 +105,7 @@ class LogMiddleware(object):
             request._logged_request.save()
 
         connection = get_connection()
-        logged_requests = connection.logged_requests.pop()
+        logged_requests = connection.logged_requests.pop() if hasattr(connection, 'logged_requests') else ()
         [logged_request.create() for logged_request in logged_requests]
         return response
 
