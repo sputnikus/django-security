@@ -1,6 +1,10 @@
 from __future__ import unicode_literals
 
+import six
+
 import json
+
+from json import JSONDecodeError
 
 from django.db import models
 from django.conf import settings
@@ -22,7 +26,8 @@ from ipware.ip import get_ip
 from chamber.utils import keep_spacing
 
 from security.config import (
-    SECURITY_LOG_REQUEST_BODY_LENGTH, SECURITY_LOG_RESPONSE_BODY_LENGTH, SECURITY_LOG_RESPONSE_BODY_CONTENT_TYPES
+    SECURITY_LOG_REQUEST_BODY_LENGTH, SECURITY_LOG_RESPONSE_BODY_LENGTH, SECURITY_LOG_RESPONSE_BODY_CONTENT_TYPES,
+    SECURITY_LOG_JSON_STRING_LENGTH
 )
 from security.utils import get_headers
 
@@ -45,6 +50,34 @@ def get_full_host(request):
         return host
 
 
+def truncate_json_data(data):
+    if isinstance(data, dict):
+        return {key: truncate_json_data(val) for key, val in data.items()}
+    elif isinstance(data, list):
+        return [truncate_json_data(val) for val in data]
+    elif isinstance(data, six.string_types):
+        return truncatechars(data, SECURITY_LOG_JSON_STRING_LENGTH)
+    else:
+        return data
+
+
+def truncate_body(content):
+    content = force_text(content, errors='replace')
+    if len(content) > SECURITY_LOG_REQUEST_BODY_LENGTH:
+        try:
+            json_content = json.loads(content)
+            return (
+                json.dumps(truncate_json_data(json_content))
+                if isinstance(json_content, (dict, list))
+                else content[:SECURITY_LOG_REQUEST_BODY_LENGTH + 1]
+            )
+        except JSONDecodeError:
+            return content[:SECURITY_LOG_REQUEST_BODY_LENGTH + 1]
+    else:
+        return content
+
+
+
 class InputLoggedRequestManager(models.Manager):
     """
     Create new LoggedRequest instance from HTTP request
@@ -53,8 +86,7 @@ class InputLoggedRequestManager(models.Manager):
     def prepare_from_request(self, request):
         user = hasattr(request, 'user') and request.user.is_authenticated() and request.user or None
         path = truncatechars(request.path, 200)
-        request_body = truncatechars(force_text(request.body[:SECURITY_LOG_REQUEST_BODY_LENGTH + 1],
-                                     errors='replace'), SECURITY_LOG_REQUEST_BODY_LENGTH)
+        request_body = truncatechars(truncate_body(request.body), SECURITY_LOG_REQUEST_BODY_LENGTH)
         return self.model(request_headers=get_headers(request), request_body=request_body, user=user,
                           method=request.method.upper()[:7], host=get_full_host(request),
                           path=path, queries=request.GET.dict(), is_secure=request.is_secure(),
@@ -129,17 +161,11 @@ class LoggedRequest(models.Model):
             return LoggedRequest.INFO
 
     def response_time(self):
-        if self.response_timestamp:
-            response_time_in_seconds = (self.response_timestamp - self.request_timestamp).total_seconds()
-            return '{}s {}ms'.format(
-                int(response_time_in_seconds), int((response_time_in_seconds - int(response_time_in_seconds)) * 1000)
-            ) if int(response_time_in_seconds) > 0 else '{}ms'.format(int(response_time_in_seconds * 1000))
-        else:
-            return None
+        return (self.response_timestamp - self.request_timestamp).total_seconds() if self.response_timestamp else None
     response_time.short_description = _('Response time')
 
     def short_path(self):
-        return truncatechars(self.path, 20)
+        return truncatechars(self.path, 50)
     short_path.short_description = _('Path')
     short_path.filter_by = 'path'
     short_path.order_by = 'path'
@@ -189,8 +215,7 @@ class InputLoggedRequest(LoggedRequest):
 
         if (not response.streaming and
                 response.get('content-type', '').split(';')[0] in SECURITY_LOG_RESPONSE_BODY_CONTENT_TYPES):
-            response_body = truncatechars(force_text(response.content[:SECURITY_LOG_RESPONSE_BODY_LENGTH + 1],
-                                                     errors='replace'), SECURITY_LOG_RESPONSE_BODY_LENGTH)
+            response_body = truncatechars(truncate_body(response.content), SECURITY_LOG_RESPONSE_BODY_LENGTH)
         else:
             response_body = ''
 
