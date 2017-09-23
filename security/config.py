@@ -11,3 +11,4 @@ SECURITY_LOG_RESPONSE_BODY_LENGTH = getattr(settings, 'SECURITY_LOG_RESPONSE_BOD
 SECURITY_LOG_RESPONSE_BODY_CONTENT_TYPES = getattr(settings, 'SECURITY_LOG_RESPONSE_BODY_CONTENT_TYPES', (
         'application/json', 'application/xml', 'text/xml', 'text/csv', 'text/html', 'application/xhtml+xml'
 ))
+SECURITY_LOG_JSON_STRING_LENGTH = getattr(settings, 'SECURITY_LOG_JSON_PART_LENGTH', 250)
