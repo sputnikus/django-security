@@ -10,7 +10,7 @@ from django.db import models
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from django.utils import timezone
-from django.urls import resolve
+from django.urls import resolve, reverse
 from django.urls.exceptions import Resolver404
 from django.core.urlresolvers import get_resolver
 from django.template.defaultfilters import truncatechars
@@ -90,9 +90,8 @@ class InputLoggedRequestManager(models.Manager):
         user = hasattr(request, 'user') and request.user.is_authenticated() and request.user or None
         path = truncatechars(request.path, 200)
         request_body = truncatechars(truncate_body(request.body), SECURITY_LOG_REQUEST_BODY_LENGTH)
-        urlconf = getattr(request, 'urlconf', None)
         try:
-            slug = resolve(request.path_info, urlconf).view_name
+            slug = resolve(request.path_info, getattr(request, 'urlconf', None)).view_name
         except Resolver404:
             slug = None
 
@@ -126,7 +125,7 @@ class LoggedRequest(models.Model):
     path._filter = CaseSensitiveStringFieldFilter
     queries = JSONField(_('queries'), null=True, blank=True)
     is_secure = models.BooleanField(_('HTTPS connection'), default=False, null=False, blank=False)
-    slug = models.SlugField(_('slug'), null=True, blank=True, db_index=True)
+    slug = models.SlugField(_('slug'), null=True, blank=True, db_index=True, max_length=255)
 
     # Request information
     request_timestamp = models.DateTimeField(_('request timestamp'), null=False, blank=False, db_index=True)
@@ -214,7 +213,6 @@ class InputLoggedRequest(LoggedRequest):
     ip = models.GenericIPAddressField(_('IP address'), null=False, blank=False)
     type = models.PositiveSmallIntegerField(_('type'), choices=TYPE_CHOICES, default=COMMON_REQUEST, null=False,
                                             blank=False)
-    url_pattern = models.CharField(_('URL pattern'), max_length=255, null=True, blank=True, db_index=True)
 
     objects = InputLoggedRequestManager()
 
