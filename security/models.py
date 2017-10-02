@@ -10,6 +10,9 @@ from django.db import models
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from django.utils import timezone
+from django.urls import resolve, reverse
+from django.urls.exceptions import Resolver404
+from django.core.urlresolvers import get_resolver
 from django.template.defaultfilters import truncatechars
 from django.utils.encoding import force_text, python_2_unicode_compatible
 from django.contrib.contenttypes.models import ContentType
@@ -87,10 +90,15 @@ class InputLoggedRequestManager(models.Manager):
         user = hasattr(request, 'user') and request.user.is_authenticated() and request.user or None
         path = truncatechars(request.path, 200)
         request_body = truncatechars(truncate_body(request.body), SECURITY_LOG_REQUEST_BODY_LENGTH)
+        try:
+            slug = resolve(request.path_info, getattr(request, 'urlconf', None)).view_name
+        except Resolver404:
+            slug = None
+
         return self.model(request_headers=get_headers(request), request_body=request_body, user=user,
                           method=request.method.upper()[:7], host=get_full_host(request),
                           path=path, queries=request.GET.dict(), is_secure=request.is_secure(),
-                          ip=get_ip(request), request_timestamp=timezone.now())
+                          ip=get_ip(request), request_timestamp=timezone.now(), slug=slug)
 
 
 @python_2_unicode_compatible
@@ -117,6 +125,7 @@ class LoggedRequest(models.Model):
     path._filter = CaseSensitiveStringFieldFilter
     queries = JSONField(_('queries'), null=True, blank=True)
     is_secure = models.BooleanField(_('HTTPS connection'), default=False, null=False, blank=False)
+    slug = models.SlugField(_('slug'), null=True, blank=True, db_index=True, max_length=255)
 
     # Request information
     request_timestamp = models.DateTimeField(_('request timestamp'), null=False, blank=False, db_index=True)
@@ -228,7 +237,6 @@ class InputLoggedRequest(LoggedRequest):
 
 
 class OutputLoggedRequest(LoggedRequest):
-    slug = models.SlugField(_('slug'), null=True, blank=True)
 
     class Meta:
         verbose_name = _('output logged request')
