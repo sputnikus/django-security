@@ -1,16 +1,13 @@
 import functools
-
 import traceback
 
-from six import BytesIO
-
-from django.utils.encoding import force_text
-
 import requests
-
+from six import BytesIO
 from suds.client import Client as DefaultClient
 from suds.transport import Reply, TransportError
 from suds.transport.http import HttpTransport
+
+from django.utils.encoding import force_text
 
 from . import security_requests
 

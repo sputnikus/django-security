@@ -9,17 +9,19 @@ from security.reversion_log.models import InputRequestRevision
 
 
 class RequestRevisionTabularInlineFormView(TabularInlineFormView):
+
     model = InputRequestRevision
 
 
 class InputRequestsLogISCore(OriginInputRequestsLogISCore):
+
     form_fieldsets = (
-        (_('Request'), {'fields': ('request_timestamp', 'method', 'path', 'queries', 'request_headers', 'request_body',
-                                   'is_secure')}),
-        (_('Response'), {'fields': ('response_timestamp', 'response_code', 'status', 'response_headers',
-                                    'response_body', 'type', 'error_description')}),
+        (_('Request'), {'fields': ('request_timestamp', 'method', 'path', 'queries', 'request_headers_code',
+                                   'request_body_code', 'is_secure')}),
+        (_('Response'), {'fields': ('response_timestamp', 'response_code', 'status', 'response_headers_code',
+                                    'response_body_code', 'type', 'error_description_code')}),
         (_('User information'), {'fields': ('user', 'ip')}),
-        (_('Extra information'), {'fields': ('response_time',)}),
-        (_('Revisions'), {'inline_view': RequestRevisionTabularInlineFormView})
+        (_('Extra information'), {'fields': ('response_time', 'output_logged_requests',)}),
+        (_('Revisions'), {'inline_view': RequestRevisionTabularInlineFormView}),
     )
     abstract = True

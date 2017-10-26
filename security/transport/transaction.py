@@ -1,6 +1,6 @@
-from django.utils.decorators import ContextDecorator
 from django.db import DEFAULT_DB_ALIAS
 from django.db.transaction import get_connection
+from django.utils.decorators import ContextDecorator
 
 from security.models import OutputLoggedRequest
 
@@ -14,8 +14,10 @@ class OutputLoggedRequestContext(object):
         self.data = data
         self.related_objects = related_objects
 
-    def create(self):
-        output_logged_request = OutputLoggedRequest.objects.create(**self.data)
+    def create(self, input_logged_request=None):
+        output_logged_request = OutputLoggedRequest.objects.create(
+            input_logged_request=input_logged_request, **self.data
+        )
         for obj in self.related_objects:
             if obj.__class__.objects.filter(pk=obj.pk).exists():
                 output_logged_request.related_objects.create(content_object=obj)
@@ -23,7 +25,7 @@ class OutputLoggedRequestContext(object):
 
 class AtomicLog(ContextDecorator):
     """
-    Context decorator that stores logged requests to database connections and inside exit method 
+    Context decorator that stores logged requests to database connections and inside exit method
     stores it to the database
     """
 
@@ -44,7 +46,7 @@ class AtomicLog(ContextDecorator):
 
 def atomic_log(using=None):
     """
-    Decorator that surrounds atomic block, ensures that logged output requests will be stored inside database in case 
+    Decorator that surrounds atomic block, ensures that logged output requests will be stored inside database in case
     of DB rollback
     """
     if callable(using):

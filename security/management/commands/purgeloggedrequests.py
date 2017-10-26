@@ -3,6 +3,8 @@ import json
 import os
 from datetime import datetime, time, timedelta
 
+from six.moves import input
+
 from django.core import serializers
 from django.core.management.base import BaseCommand, CommandError
 from django.core.serializers.json import DjangoJSONEncoder
@@ -12,7 +14,6 @@ from django.utils.timezone import utc
 
 from security.models import InputLoggedRequest, OutputLoggedRequest
 
-from six.moves import input
 
 UNIT_OPTIONS = {
     'h': lambda amount: timezone.now() - timedelta(hours=amount),

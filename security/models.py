@@ -1,43 +1,45 @@
 from __future__ import unicode_literals
 
-import six
-
 import json
-
 from json import JSONDecodeError
 
-from django.db import models
+import six
+from ipware.ip import get_ip
+from jsonfield import JSONField
+
 from django.conf import settings
-from django.utils.translation import ugettext_lazy as _
-from django.utils import timezone
-from django.urls import resolve, reverse
-from django.urls.exceptions import Resolver404
-from django.core.urlresolvers import get_resolver
-from django.template.defaultfilters import truncatechars
-from django.utils.encoding import force_text, python_2_unicode_compatible
 from django.contrib.contenttypes.models import ContentType
 from django.core.serializers.json import DjangoJSONEncoder
+from django.core.urlresolvers import get_resolver
+from django.db import models
+from django.template.defaultfilters import truncatechars
+from django.urls import resolve, reverse
+from django.urls.exceptions import Resolver404
+from django.utils import timezone
+from django.utils.encoding import force_text, python_2_unicode_compatible
+from django.utils.translation import ugettext_lazy as _
+
+from security.config import (
+    SECURITY_LOG_JSON_STRING_LENGTH, SECURITY_LOG_REQUEST_BODY_LENGTH, SECURITY_LOG_RESPONSE_BODY_CONTENT_TYPES,
+    SECURITY_LOG_RESPONSE_BODY_LENGTH
+)
+from security.utils import get_headers
+
+
 try:
     from django.contrib.contenttypes.fields import GenericForeignKey
 except ImportError:
     from django.contrib.contenttypes.generic import GenericForeignKey
 
-from jsonfield import JSONField
-
-from ipware.ip import get_ip
-
-from chamber.utils import keep_spacing
-
-from security.config import (
-    SECURITY_LOG_REQUEST_BODY_LENGTH, SECURITY_LOG_RESPONSE_BODY_LENGTH, SECURITY_LOG_RESPONSE_BODY_CONTENT_TYPES,
-    SECURITY_LOG_JSON_STRING_LENGTH
-)
-from security.utils import get_headers
 
 try:
     from pyston.filters.default_filters import CaseSensitiveStringFieldFilter
 except ImportError:
     CaseSensitiveStringFieldFilter = object
+
+
+def display_json(value, indent=4):
+    return json.dumps(value, indent=indent, ensure_ascii=False, cls=DjangoJSONEncoder)
 
 
 # Prior to Django 1.5, the AUTH_USER_MODEL setting does not exist.
@@ -78,7 +80,6 @@ def truncate_body(content):
             return content[:SECURITY_LOG_REQUEST_BODY_LENGTH + 1]
     else:
         return content
-
 
 
 class InputLoggedRequestManager(models.Manager):
@@ -142,24 +143,6 @@ class LoggedRequest(models.Model):
     error_description = models.TextField(_('error description'), null=True, blank=True)
     exception_name = models.CharField(_('exception name'), null=True, blank=True, max_length=255)
 
-    def _get_json_field_humanized(self, field_name):
-        return keep_spacing(json.dumps(getattr(self, field_name), indent=4, ensure_ascii=False, cls=DjangoJSONEncoder))
-
-    def get_request_headers_humanized(self):
-        return self._get_json_field_humanized('request_headers')
-
-    def get_response_headers_humanized(self):
-        return self._get_json_field_humanized('response_headers')
-
-    def get_queries_humanized(self):
-        return self._get_json_field_humanized('queries')
-
-    def get_request_body_humanized(self):
-        return keep_spacing(self.request_body) if self.request_body is not None else None
-
-    def get_response_body_humanized(self):
-        return keep_spacing(self.response_body) if self.response_body is not None else None
-
     @classmethod
     def get_status(cls, status_code):
         if status_code >= 500:
@@ -168,6 +151,16 @@ class LoggedRequest(models.Model):
             return LoggedRequest.WARNING
         else:
             return LoggedRequest.INFO
+
+    def short_queries(self):
+        return truncatechars(display_json(self.queries, indent=0), 50)
+    short_queries.short_description = _('queries')
+    short_queries.filter_by = 'queries'
+
+    def short_request_headers(self):
+        return truncatechars(display_json(self.request_headers, indent=0), 50)
+    short_request_headers.short_description = _('request headers')
+    short_request_headers.filter_by = 'request_headers'
 
     def response_time(self):
         return (self.response_timestamp - self.request_timestamp).total_seconds() if self.response_timestamp else None
@@ -190,7 +183,7 @@ class LoggedRequest(models.Model):
     short_request_body.filter_by = 'request_body'
 
     def __str__(self):
-        return self.path
+        return '#{} ({})'.format(self.pk, self.path)
 
     class Meta:
         abstract = True
@@ -237,6 +230,10 @@ class InputLoggedRequest(LoggedRequest):
 
 
 class OutputLoggedRequest(LoggedRequest):
+
+    input_logged_request = models.ForeignKey(InputLoggedRequest, verbose_name=_('input logged request'), null=True,
+                                             blank=True, on_delete=models.SET_NULL,
+                                             related_name='output_logged_requests')
 
     class Meta:
         verbose_name = _('output logged request')

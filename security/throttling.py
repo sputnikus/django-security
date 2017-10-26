@@ -1,13 +1,13 @@
 from datetime import timedelta
 
-from django.utils import timezone
-from django.utils.translation import ugettext as _
-from django.conf import settings
-
 from ipware.ip import get_ip
 
-from .models import InputLoggedRequest
+from django.conf import settings
+from django.utils import timezone
+from django.utils.translation import ugettext as _
+
 from .exception import ThrottlingException
+from .models import InputLoggedRequest
 
 
 class ThrottlingValidator(object):
