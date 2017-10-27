@@ -1,11 +1,10 @@
 import six
-from six.moves.urllib.parse import urlparse, parse_qs
-
-from django.utils import timezone
-from django.template.defaultfilters import truncatechars
-from django.utils.encoding import force_text
-
 from requests import *
+from six.moves.urllib.parse import parse_qs, urlparse
+
+from django.template.defaultfilters import truncatechars
+from django.utils import timezone
+from django.utils.encoding import force_text
 
 from security.config import SECURITY_LOG_REQUEST_BODY_LENGTH, SECURITY_LOG_RESPONSE_BODY_LENGTH
 from security.models import LoggedRequest, OutputLoggedRequest

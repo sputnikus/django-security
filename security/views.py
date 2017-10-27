@@ -1,6 +1,5 @@
-from django.utils.encoding import force_text
-
 from django.shortcuts import render
+from django.utils.encoding import force_text
 
 
 def throttling_failure_view(request, exception):

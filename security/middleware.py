@@ -1,22 +1,26 @@
+import traceback
+
+from ipware.ip import get_ip
+
+from django import http
+from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
+from django.core.urlresolvers import get_callable
+from django.db.transaction import get_connection
+from django.urls import is_valid_path
+from django.utils.encoding import force_text
+
+from .config import (
+    SECURITY_DEFAULT_THROTTLING_VALIDATORS_PATH, SECURITY_LOG_IGNORE_IP, SECURITY_THROTTLING_FAILURE_VIEW
+)
+from .exception import ThrottlingException
+from .models import InputLoggedRequest
+
+
 try:
     from importlib import import_module
 except ImportError:  # For Django < 1.8
     from django.utils.importlib import import_module
-
-from django import http
-from django.conf import settings
-from django.core.urlresolvers import get_callable
-from django.core.exceptions import ImproperlyConfigured
-from django.utils.encoding import force_text
-from django.urls import is_valid_path
-from django.db.transaction import get_connection
-
-from ipware.ip import get_ip
-
-from .models import InputLoggedRequest
-from .exception import ThrottlingException
-from .config import (SECURITY_DEFAULT_THROTTLING_VALIDATORS_PATH, SECURITY_THROTTLING_FAILURE_VIEW,
-                     SECURITY_LOG_IGNORE_IP)
 
 
 try:
@@ -100,19 +104,20 @@ class LogMiddleware(object):
                     return self.process_exception(request, exception)
 
     def process_response(self, request, response):
-        if hasattr(request, '_logged_request'):
-            request._logged_request.update_from_response(response)
-            request._logged_request.save()
+        input_logged_request = getattr(request, '_logged_request')
+        if input_logged_request:
+            input_logged_request.update_from_response(response)
+            input_logged_request.save()
 
         connection = get_connection()
         logged_requests = connection.logged_requests.pop() if hasattr(connection, 'logged_requests') else ()
-        [logged_request.create() for logged_request in logged_requests]
+        [logged_request.create(input_logged_request) for logged_request in logged_requests]
         return response
 
     def process_exception(self, request, exception):
         if hasattr(request, '_logged_request'):
             logged_request = request._logged_request
-            logged_request.error_description = force_text(exception)
+            logged_request.error_description = traceback.format_exc()
             logged_request.exception_name = exception.__class__.__name__
             if isinstance(exception, ThrottlingException):
                 logged_request.type = InputLoggedRequest.THROTTLED_REQUEST
