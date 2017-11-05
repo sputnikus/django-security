@@ -104,7 +104,7 @@ class LogMiddleware(object):
                     return self.process_exception(request, exception)
 
     def process_response(self, request, response):
-        input_logged_request = getattr(request, '_logged_request')
+        input_logged_request = getattr(request, '_logged_request', None)
         if input_logged_request:
             input_logged_request.update_from_response(response)
             input_logged_request.save()

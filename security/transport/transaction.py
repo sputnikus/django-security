@@ -18,7 +18,7 @@ class OutputLoggedRequestContext(object):
         output_logged_request = OutputLoggedRequest.objects.create(
             input_logged_request=input_logged_request, **self.data
         )
-        for obj in self.related_objects:
+        for obj in self.related_objects or ():
             if obj.__class__.objects.filter(pk=obj.pk).exists():
                 output_logged_request.related_objects.create(content_object=obj)
 
