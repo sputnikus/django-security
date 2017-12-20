@@ -31,7 +31,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--expiration', action='store', dest='expiration',
-                            help='Set the timedelta from requestss will be removed.', required=True)
+                            help='Set the timedelta from requests will be removed.', required=True)
         parser.add_argument('--noinput', action='store_false', dest='interactive', default=True,
                             help='Tells Django to NOT prompt the user for input of any kind.')
         parser.add_argument('--backup', action='store', dest='backup', default=False,
