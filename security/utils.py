@@ -17,3 +17,7 @@ def get_headers(request):
     regex = re.compile('^HTTP_')
     return dict((regex.sub('', header), value) for (header, value)
                 in request.META.items() if header.startswith('HTTP_'))
+
+
+def remove_nul_from_string(value):
+    return value.replace('\x00', '')

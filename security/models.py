@@ -23,7 +23,7 @@ from security.config import (
     SECURITY_LOG_JSON_STRING_LENGTH, SECURITY_LOG_REQUEST_BODY_LENGTH, SECURITY_LOG_RESPONSE_BODY_CONTENT_TYPES,
     SECURITY_LOG_RESPONSE_BODY_LENGTH
 )
-from security.utils import get_headers
+from security.utils import get_headers, remove_nul_from_string
 
 
 try:
@@ -181,6 +181,11 @@ class LoggedRequest(models.Model):
         return truncatechars(self.request_body, 50)
     short_request_body.short_description = _('request body')
     short_request_body.filter_by = 'request_body'
+
+    def save(self, *args, **kwargs):
+        self.request_body = remove_nul_from_string(self.request_body) if self.request_body else self.request_body
+        self.response_body = remove_nul_from_string(self.response_body) if self.response_body else self.response_body
+        super(LoggedRequest, self).save(*args, **kwargs)
 
     def __str__(self):
         return '#{} ({})'.format(self.pk, self.path)

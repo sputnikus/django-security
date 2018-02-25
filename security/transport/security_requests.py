@@ -26,12 +26,12 @@ def stringify_dict(d):
 
 def prepare_request_body(prep):
     return (truncatechars(force_text(prep.body, errors='replace'),
-                          SECURITY_LOG_REQUEST_BODY_LENGTH) if prep.body else '').replace('\x00', '')
+                          SECURITY_LOG_REQUEST_BODY_LENGTH) if prep.body else '')
 
 
 def prepare_response_body(resp):
     return (truncatechars(force_text(resp.content[:SECURITY_LOG_RESPONSE_BODY_LENGTH + 1], errors='replace'),
-                          SECURITY_LOG_RESPONSE_BODY_LENGTH) if resp.content else '').replace('\x00', '')
+                          SECURITY_LOG_RESPONSE_BODY_LENGTH) if resp.content else '')
 
 
 class SecuritySession(Session):
