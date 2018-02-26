@@ -41,7 +41,10 @@ class AtomicLog(ContextDecorator):
     def __exit__(self, exc_type, exc_value, traceback):
         connection = get_connection(self.using)
         logged_requests = connection.logged_requests.pop()
-        [logged_request.create() for logged_request in logged_requests]
+        if connection.logged_requests:
+            connection.logged_requests[-1] += logged_requests
+        else:
+            [logged_request.create() for logged_request in logged_requests]
 
 
 def atomic_log(using=None):
