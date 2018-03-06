@@ -40,6 +40,7 @@ setup(
         'django-json-field==0.5.8',
         'django-ipware>=1.0.0',
         'django-chamber>=0.3.6',
+        'ansi2html>=1.3.0',
     ],
     dependency_links=[
         'https://github.com/matllubos/django-json-field/tarball/0.5.8#egg=django-json-field-0.5.8',

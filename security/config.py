@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.conf import settings
 
 
@@ -12,3 +14,8 @@ SECURITY_LOG_RESPONSE_BODY_CONTENT_TYPES = getattr(settings, 'SECURITY_LOG_RESPO
         'application/json', 'application/xml', 'text/xml', 'text/csv', 'text/html', 'application/xhtml+xml'
 ))
 SECURITY_LOG_JSON_STRING_LENGTH = getattr(settings, 'SECURITY_LOG_JSON_PART_LENGTH', 250)
+
+SECURITY_COMMAND_LOG_EXCLUDED_COMMANDS = getattr(
+    settings, 'SECURITY_COMMAND_LOG_EXCLUDED_COMMANDS', ('runserver', 'makemigrations', 'migrate', 'sqlmigrate',
+                                                         'showmigrations')
+)
