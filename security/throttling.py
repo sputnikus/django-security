@@ -10,7 +10,7 @@ from .exception import ThrottlingException
 from .models import InputLoggedRequest
 
 
-class ThrottlingValidator(object):
+class ThrottlingValidator:
 
     def __init__(self, timeframe, throttle_at, description):
         self.timeframe = timeframe

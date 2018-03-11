@@ -1,9 +1,10 @@
 from reversion import revisions as reversion
 
+from security.middleware import MiddlewareMixin
 from security.reversion_log.models import InputRequestRevision
 
 
-class RevisionLogMiddleware(object):
+class RevisionLogMiddleware(MiddlewareMixin):
 
     def process_request(self, request):
         def create_revision_request_log(revision):

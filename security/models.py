@@ -1,23 +1,24 @@
-from __future__ import unicode_literals
-
 import json
 from json import JSONDecodeError
 
-import six
 from ipware.ip import get_ip
 from jsonfield import JSONField
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.serializers.json import DjangoJSONEncoder
-from django.core.urlresolvers import get_resolver
 from django.db import models
 from django.template.defaultfilters import truncatechars
 from django.urls import resolve, reverse
 from django.urls.exceptions import Resolver404
 from django.utils import timezone
-from django.utils.encoding import force_text, python_2_unicode_compatible
+from django.utils.encoding import force_text
 from django.utils.translation import ugettext_lazy as _
+
+try:
+    from django.core.urlresolvers import get_resolver
+except ImportError:
+    from django.urls import get_resolver
 
 from security.config import (
     SECURITY_LOG_JSON_STRING_LENGTH, SECURITY_LOG_REQUEST_BODY_LENGTH, SECURITY_LOG_RESPONSE_BODY_CONTENT_TYPES,
@@ -60,7 +61,7 @@ def truncate_json_data(data):
         return {key: truncate_json_data(val) for key, val in data.items()}
     elif isinstance(data, list):
         return [truncate_json_data(val) for val in data]
-    elif isinstance(data, six.string_types):
+    elif isinstance(data, str):
         return truncatechars(data, SECURITY_LOG_JSON_STRING_LENGTH)
     else:
         return data
@@ -88,7 +89,7 @@ class InputLoggedRequestManager(models.Manager):
     """
 
     def prepare_from_request(self, request):
-        user = hasattr(request, 'user') and request.user.is_authenticated() and request.user or None
+        user = hasattr(request, 'user') and request.user.is_authenticated and request.user or None
         path = truncatechars(request.path, 200)
         request_body = truncatechars(truncate_body(request.body), SECURITY_LOG_REQUEST_BODY_LENGTH)
         try:
@@ -102,7 +103,6 @@ class InputLoggedRequestManager(models.Manager):
                           ip=get_ip(request), request_timestamp=timezone.now(), slug=slug)
 
 
-@python_2_unicode_compatible
 class LoggedRequest(models.Model):
 
     DEBUG = 10
@@ -252,7 +252,7 @@ class OutputLoggedRequest(LoggedRequest):
 
 class OutputLoggedRequestRelatedObjects(models.Model):
     output_logged_request = models.ForeignKey(OutputLoggedRequest, verbose_name=_('output logged requests'), null=False,
-                                              blank=False, related_name='related_objects')
+                                              blank=False, related_name='related_objects', on_delete=models.CASCADE)
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')

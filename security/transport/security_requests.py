@@ -1,6 +1,5 @@
-import six
 from requests import *
-from six.moves.urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlparse
 
 from django.template.defaultfilters import truncatechars
 from django.utils import timezone
@@ -14,7 +13,7 @@ from .transaction import log_output_request
 
 def stringify_dict(d):
     def stringify(value):
-        if isinstance(value, six.binary_type):
+        if isinstance(value, bytes):
             return force_text(value)
         elif isinstance(value, dict):
             return stringify_dict(value)

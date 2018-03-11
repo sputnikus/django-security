@@ -2,7 +2,9 @@ import functools
 import traceback
 
 import requests
-from six import BytesIO
+
+from io import BytesIO
+
 from suds.client import Client as DefaultClient
 from suds.transport import Reply, TransportError
 from suds.transport.http import HttpTransport

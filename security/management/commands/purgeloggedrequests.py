@@ -11,7 +11,7 @@ class Command(PurgeLogsBaseCommand):
     def add_arguments(self, parser):
         super().add_arguments(parser)
         parser.add_argument('--type', action='store', dest='type', default='input',
-                            help='Tells Django what type of requests shoud be removed (input/output).')
+                            help='Tells Django what type of requests should be removed (input/output).')
 
     def handle(self, expiration, type, **options):
         self.type = type

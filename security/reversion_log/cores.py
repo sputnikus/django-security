@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from django.utils.translation import ugettext_lazy as _
 
 from is_core.generic_views.inlines.inline_form_views import TabularInlineFormView
