@@ -3,14 +3,16 @@ from __future__ import unicode_literals
 import json
 
 from django.core.serializers.json import DjangoJSONEncoder
-from django.utils.html import format_html
+from django.utils.html import format_html, mark_safe
 from django.utils.translation import ugettext_lazy as _
 
 from is_core.generic_views.inlines.inline_form_views import TabularInlineFormView
 from is_core.main import UIRESTModelISCore
 from is_core.utils.decorators import short_description
 
-from security.models import InputLoggedRequest, OutputLoggedRequest, OutputLoggedRequestRelatedObjects
+from security.models import CommandLog, InputLoggedRequest, OutputLoggedRequest, OutputLoggedRequestRelatedObjects
+
+from ansi2html import Ansi2HTMLConverter
 
 
 def display_json(value):
@@ -100,3 +102,35 @@ class OutputRequestsLogISCore(RequestsLogISCore):
     )
 
     abstract = True
+
+
+class CommandLogISCore(UIRESTModelISCore):
+
+    model = CommandLog
+
+    create_permission = False
+    update_permission = False
+    delete_permission = False
+
+    list_display = ('command_name', 'start', 'stop', 'executed_from_command_line', 'is_successful')
+
+    form_fieldsets = (
+        (None, {
+            'fields': ('command_name', 'command_options', 'output_html'),
+            'class': 'col-sm-6'
+        }),
+        (None, {
+            'fields': ('start', 'stop', 'executed_from_command_line', 'is_successful'),
+            'class': 'col-sm-6'
+        }),
+    )
+
+    abstract = True
+
+    @short_description(_('command output'))
+    def output_html(self, obj=None):
+        if obj and obj.output is not None:
+            conv = Ansi2HTMLConverter()
+            output = mark_safe(conv.convert(obj.output, full=False))
+            return display_as_code(output)
+        return None

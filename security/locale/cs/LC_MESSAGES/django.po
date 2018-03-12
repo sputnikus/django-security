@@ -62,6 +62,10 @@ msgstr "Další informace"
 msgid "Related objects"
 msgstr "Vztažené objekty"
 
+#: cores.py:128 models.py:283
+msgid "command output"
+msgstr "výstup spustitelné úlohy"
+
 #: models.py:115
 msgid "Info"
 msgstr "Info"
@@ -177,6 +181,38 @@ msgstr "výstupní logované dotazy"
 #: models.py:255
 msgid "object"
 msgstr "objekt"
+
+#: models.py:277
+msgid "start"
+msgstr "start"
+
+#: models.py:278
+msgid "stop"
+msgstr "stop"
+
+#: models.py:279
+msgid "command name"
+msgstr "název spustitelné úlohy"
+
+#: models.py:280
+msgid "command options"
+msgstr "parametry spustitelné úlohy"
+
+#: models.py:282
+msgid "executed from command line"
+msgstr "spuštěno z příkazové řádky"
+
+#: models.py:285
+msgid "finished successfully"
+msgstr "úspěšně dokončeno"
+
+#: models.py:288
+msgid "command log"
+msgstr "log spustitelné úlohy"
+
+#: models.py:289
+msgid "command logs"
+msgstr "logy spustitelných úloh"
 
 #: reversion_log/cores.py:25
 msgid "Revisions"

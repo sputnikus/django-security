@@ -258,3 +258,33 @@ class OutputLoggedRequestRelatedObjects(models.Model):
 
         return render_model_object_with_link(request, self.content_object) if self.content_object else None
     display_object.short_description = _('object')
+
+
+class CommandLog(models.Model):
+    """
+    Represents a log of a command run.
+
+    Attributes:
+        start: Date and time when command was started.
+        stop: Date and time when command finished.
+        command_name: Name of the command.
+        command_options: Arguments/options the command was run with.
+        executed_from_command_line: Flag that indicates if command was run from the command line.
+        output: Standard and error output of the command.
+        is_successful: Flag that indicates if command finished successfully.
+    """
+    start = models.DateTimeField(blank=False, null=False, editable=False, verbose_name=_('start'))
+    stop = models.DateTimeField(blank=True, null=True, editable=False, verbose_name=_('stop'))
+    command_name = models.CharField(max_length=250, blank=False, null=False, editable=False, db_index=True,
+                                    verbose_name=_('command name'))
+    command_options = models.TextField(blank=False, null=False, editable=False, verbose_name=_('command options'))
+    executed_from_command_line = models.BooleanField(blank=False, null=False, default=False, editable=False,
+                                                     verbose_name=_('executed from command line'))
+    output = models.TextField(blank=True, null=True, editable=False, verbose_name=_('command output'))
+    is_successful = models.BooleanField(blank=False, null=False, default=False, editable=False,
+                                        verbose_name=_('finished successfully'))
+
+    class Meta:
+        verbose_name = _('command log')
+        verbose_name_plural = _('command logs')
+        ordering = ('-start',)
