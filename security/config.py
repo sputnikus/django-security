@@ -16,6 +16,8 @@ SECURITY_LOG_RESPONSE_BODY_CONTENT_TYPES = getattr(settings, 'SECURITY_LOG_RESPO
 SECURITY_LOG_JSON_STRING_LENGTH = getattr(settings, 'SECURITY_LOG_JSON_PART_LENGTH', 250)
 
 SECURITY_COMMAND_LOG_EXCLUDED_COMMANDS = getattr(
-    settings, 'SECURITY_COMMAND_LOG_EXCLUDED_COMMANDS', ('runserver', 'makemigrations', 'migrate', 'sqlmigrate',
-                                                         'showmigrations')
+    settings, 'SECURITY_COMMAND_LOG_EXCLUDED_COMMANDS', (
+        'runserver', 'makemigrations', 'migrate', 'sqlmigrate', 'showmigrations', 'shell', 'shell_plus', 'test',
+        'help', 'reset_db', 'compilemessages', 'makemessages', 'dumpdata', 'loaddata'
+    )
 )

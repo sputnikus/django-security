@@ -73,6 +73,10 @@ class TeeStringIO(StringIO):
     def isatty(self):
         return True
 
+    def flush(self):
+        for stream in self.streams:
+            stream.flush()
+
 
 class CommandLogger(StringIO):
     """
