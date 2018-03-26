@@ -188,7 +188,11 @@ class LoggedRequest(models.Model):
         super(LoggedRequest, self).save(*args, **kwargs)
 
     def __str__(self):
-        return '#{} ({})'.format(self.pk, self.path)
+        return ' '.join(
+            (force_text(v) for v in (
+                self.slug, self.response_code, self.request_timestamp.replace(tzinfo=None, microsecond=0)
+            ) if v)
+        )
 
     class Meta:
         abstract = True

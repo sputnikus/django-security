@@ -59,7 +59,7 @@ class RequestsLogISCore(UIRESTModelISCore):
 class InputRequestsLogISCore(RequestsLogISCore):
 
     model = InputLoggedRequest
-    list_display = (
+    ui_list_fields = (
         'request_timestamp', 'response_timestamp', 'response_time', 'status', 'response_code', 'host', 'short_path',
         'slug', 'ip', 'user', 'method', 'type', 'short_response_body', 'short_request_body', 'short_queries',
         'short_request_headers'
@@ -86,7 +86,7 @@ class OutputLoggedRequestRelatedObjectsInlineFormView(TabularInlineFormView):
 class OutputRequestsLogISCore(RequestsLogISCore):
 
     model = OutputLoggedRequest
-    list_display = (
+    ui_list_fields = (
         'request_timestamp', 'response_timestamp', 'response_time', 'status', 'response_code', 'host', 'short_path',
         'method', 'slug', 'short_response_body', 'short_request_body', 'input_logged_request', 'short_queries',
         'short_request_headers'
@@ -112,7 +112,7 @@ class CommandLogISCore(UIRESTModelISCore):
     update_permission = False
     delete_permission = False
 
-    list_display = ('command_name', 'start', 'stop', 'executed_from_command_line', 'is_successful')
+    ui_list_fields = ('command_name', 'start', 'stop', 'executed_from_command_line', 'is_successful')
 
     form_fieldsets = (
         (None, {
