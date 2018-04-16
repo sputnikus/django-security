@@ -1,33 +1,27 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+from setuptools import setup, find_packages
+
 from security.version import get_version
 
-try:
-    from setuptools import setup, find_packages
-except ImportError:
-    import ez_setup
-    ez_setup.use_setuptools()
-    from setuptools import setup, find_packages
 
 setup(
-    name='django-security',
+    name='django-security-logger',
     version=get_version(),
     description="Django security library.",
     keywords='django, throttling',
     author='Lubos Matl',
     author_email='matllubos@gmail.com',
     url='https://github.com/matllubos/django-security',
-    license='LGPL',
+    license='MIT',
     package_dir={'security': 'security'},
     include_package_data=True,
     packages=find_packages(),
     classifiers=[
-        'Development Status :: 0 - Beta',
+        'Development Status :: 3 - Alpha',
         'Environment :: Web Environment',
         'Framework :: Django',
         'Intended Audience :: Developers',
         'Intended Audience :: End Users/Desktop',
-        'License :: OSI Approved :: GNU LESSER GENERAL PUBLIC LICENSE (LGPL)',
+        'License :: OSI Approved :: MIT License',
         'Natural Language :: Czech',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
