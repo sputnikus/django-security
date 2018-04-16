@@ -36,7 +36,6 @@ setup(
         'django-chamber>=0.3.6',
         'ansi2html>=1.3.0',
         'django-chamber>=0.4.0',
-        'jsonfield>=1.0.3',
     ],
     zip_safe=False
 )
