@@ -31,7 +31,6 @@ setup(
     install_requires=[
         'django>=1.6',
         'jsonfield>=1.0.3',
-        'django-json-field==0.5.8',
         'django-ipware>=1.0.0',
         'django-chamber>=0.3.6',
         'ansi2html>=1.3.0',
