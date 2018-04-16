@@ -5,10 +5,14 @@ from ipware.ip import get_ip
 from django import http
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from django.core.urlresolvers import get_callable
 from django.db.transaction import get_connection
 from django.urls import is_valid_path
 from django.utils.encoding import force_text
+
+try:
+    from django.core.urlresolvers import get_callable
+except ImportError:
+    from django.urls import get_callable
 
 from .config import (
     SECURITY_DEFAULT_THROTTLING_VALIDATORS_PATH, SECURITY_LOG_IGNORE_IP, SECURITY_THROTTLING_FAILURE_VIEW
@@ -29,7 +33,23 @@ except ImportError:
     raise ImproperlyConfigured('Configuration DEFAULT_THROTTLING_VALIDATORS does not contain valid module')
 
 
-class LogMiddleware(object):
+class MiddlewareMixin:
+
+    def __init__(self, get_response=None):
+        self.get_response = get_response
+        super().__init__()
+
+    def __call__(self, request):
+        response = None
+        if hasattr(self, 'process_request'):
+            response = self.process_request(request)
+        response = response or self.get_response(request)
+        if hasattr(self, 'process_response'):
+            response = self.process_response(request, response)
+        return response
+
+
+class LogMiddleware(MiddlewareMixin):
 
     response_redirect_class = http.HttpResponsePermanentRedirect
 

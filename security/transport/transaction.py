@@ -5,7 +5,7 @@ from django.utils.decorators import ContextDecorator
 from security.models import OutputLoggedRequest
 
 
-class OutputLoggedRequestContext(object):
+class OutputLoggedRequestContext:
     """
     Data structure that stores data for creation OutputLoggedRequest model object
     """
