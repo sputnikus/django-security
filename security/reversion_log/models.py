@@ -10,7 +10,8 @@ class InputRequestRevision(models.Model):
 
     logged_request = models.ForeignKey(InputLoggedRequest, verbose_name=_('logged request'), null=False, blank=False,
                                        on_delete=models.CASCADE)
-    revision = models.OneToOneField(Revision, verbose_name=_('revision'), null=False, blank=False)
+    revision = models.OneToOneField(Revision, verbose_name=_('revision'), null=False, blank=False,
+                                    on_delete=models.CASCADE)
 
     def __str__(self):
         return ' #%s' % self.pk
