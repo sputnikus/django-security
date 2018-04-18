@@ -105,6 +105,7 @@ class InputLoggedRequestManager(models.Manager):
 
 class LoggedRequest(models.Model):
 
+    INCOMPLETE = 0
     DEBUG = 10
     INFO = 20
     WARNING = 30
@@ -112,6 +113,7 @@ class LoggedRequest(models.Model):
     CRITICAL = 50
 
     STATUS_CHOICES = (
+        (INCOMPLETE, _('Incomplete')),
         (INFO, _('Info')),
         (WARNING, _('Warning')),
         (ERROR, _('Error')),
@@ -139,7 +141,8 @@ class LoggedRequest(models.Model):
     response_headers = JSONField(_('response headers'), null=True, blank=True)
     response_body = models.TextField(_('response body'), null=True, blank=True)
 
-    status = models.PositiveSmallIntegerField(_('status'), choices=STATUS_CHOICES, null=False, blank=False)
+    status = models.PositiveSmallIntegerField(_('status'), choices=STATUS_CHOICES, null=False, blank=False,
+                                              default=INCOMPLETE)
     error_description = models.TextField(_('error description'), null=True, blank=True)
     exception_name = models.CharField(_('exception name'), null=True, blank=True, max_length=255)
 
@@ -251,6 +254,7 @@ class OutputLoggedRequest(LoggedRequest):
 
 
 class OutputLoggedRequestRelatedObjects(models.Model):
+
     output_logged_request = models.ForeignKey(OutputLoggedRequest, verbose_name=_('output logged requests'), null=False,
                                               blank=False, related_name='related_objects', on_delete=models.CASCADE)
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)

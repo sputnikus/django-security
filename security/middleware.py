@@ -33,6 +33,7 @@ except ImportError:
     raise ImproperlyConfigured('Configuration DEFAULT_THROTTLING_VALIDATORS does not contain valid module')
 
 
+
 class MiddlewareMixin:
 
     def __init__(self, get_response=None):
@@ -49,15 +50,35 @@ class MiddlewareMixin:
         return response
 
 
+def create_revision_request_log(sender, revision, versions, **kwargs):
+    from security.reversion_log.models import InputRequestRevision
+
+    connection = get_connection()
+    if getattr(connection, 'input_logged_request', False):
+        InputRequestRevision.objects.create(logged_request=connection.input_logged_request, revision=revision)
+
+
+if 'security.reversion_log' in settings.INSTALLED_APPS:
+    try:
+        from reversion.signals import post_revision_commit
+    except ImportError:
+        raise ImproperlyConfigured('For reversion log is necessary install "django-reversion"')
+
+    post_revision_commit.connect(create_revision_request_log)
+
+
 class LogMiddleware(MiddlewareMixin):
 
     response_redirect_class = http.HttpResponsePermanentRedirect
 
     def process_request(self, request):
-        if get_ip(request) not in SECURITY_LOG_IGNORE_IP:
-            request._logged_request = InputLoggedRequest.objects.prepare_from_request(request)
-
         connection = get_connection()
+
+        if get_ip(request) not in SECURITY_LOG_IGNORE_IP:
+            logged_request = InputLoggedRequest.objects.prepare_from_request(request)
+            logged_request.save()
+            connection.input_logged_request = logged_request
+
         logged_requests_list = getattr(connection, 'logged_requests', [])
         logged_requests_list.append([])
         connection.logged_requests = logged_requests_list
@@ -104,16 +125,18 @@ class LogMiddleware(MiddlewareMixin):
         return get_callable(SECURITY_THROTTLING_FAILURE_VIEW)(request, exception)
 
     def process_view(self, request, callback, callback_args, callback_kwargs):
-        if getattr(request, '_logged_request', False):
+        connection = get_connection()
+
+        if getattr(connection, 'input_logged_request', False):
 
             # Exempt all logs
             if getattr(callback, 'log_exempt', False):
-                del request._logged_request
+                del connection.input_logged_request
 
             # TODO: this is not the best solution if the request throw exception inside process_request of some Middleware
             # the bode will be included (But I didn't have better solution now)
             if getattr(callback, 'hide_request_body', False):
-                request._logged_request.request_body = ''
+                connection.input_logged_request.request_body = ''
 
             # Check if throttling is not exempted
             if not getattr(callback, 'throttling_exempt', False):
@@ -124,7 +147,9 @@ class LogMiddleware(MiddlewareMixin):
                     return self.process_exception(request, exception)
 
     def process_response(self, request, response):
-        input_logged_request = getattr(request, '_logged_request', None)
+        connection = get_connection()
+
+        input_logged_request = getattr(connection, 'input_logged_request', None)
         if input_logged_request:
             input_logged_request.update_from_response(response)
             input_logged_request.save()
@@ -135,8 +160,10 @@ class LogMiddleware(MiddlewareMixin):
         return response
 
     def process_exception(self, request, exception):
-        if hasattr(request, '_logged_request'):
-            logged_request = request._logged_request
+        connection = get_connection()
+
+        if hasattr(request, 'input_logged_request'):
+            logged_request = connection.input_logged_request
             logged_request.error_description = traceback.format_exc()
             logged_request.exception_name = exception.__class__.__name__
             if isinstance(exception, ThrottlingException):

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-10-26 23:43+0200\n"
+"POT-Creation-Date: 2018-04-18 11:08+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,43 +18,43 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
 
-#: cores.py:32 models.py:127 models.py:157
+#: cores.py:32 models.py:129 models.py:160
 msgid "queries"
 msgstr "query string"
 
-#: cores.py:36 models.py:134 models.py:182
+#: cores.py:36 models.py:136 models.py:185
 msgid "request body"
 msgstr "tělo dotazu"
 
-#: cores.py:40 models.py:133 models.py:162
+#: cores.py:40 models.py:135 models.py:165
 msgid "request headers"
 msgstr "hlavičky dotazu"
 
-#: cores.py:44 models.py:140 models.py:177
+#: cores.py:44 models.py:142 models.py:180
 msgid "response body"
 msgstr "tělo odpovědi"
 
-#: cores.py:48 models.py:139
+#: cores.py:48 models.py:141
 msgid "response headers"
 msgstr "hlavičky odpovědi"
 
-#: cores.py:52 models.py:143
+#: cores.py:52 models.py:146
 msgid "error description"
 msgstr "popis chyby"
 
-#: cores.py:67 cores.py:94 reversion_log/cores.py:19
+#: cores.py:67 cores.py:94 reversion_log/cores.py:17
 msgid "Request"
 msgstr "Dotaz"
 
-#: cores.py:69 cores.py:96 reversion_log/cores.py:21
+#: cores.py:69 cores.py:96 reversion_log/cores.py:19
 msgid "Response"
 msgstr "Odpověď"
 
-#: cores.py:71 reversion_log/cores.py:23
+#: cores.py:71 reversion_log/cores.py:21
 msgid "User information"
 msgstr "Uživatelské informace"
 
-#: cores.py:72 cores.py:98 reversion_log/cores.py:24
+#: cores.py:72 cores.py:98 reversion_log/cores.py:22
 msgid "Extra information"
 msgstr "Další informace"
 
@@ -62,175 +62,179 @@ msgstr "Další informace"
 msgid "Related objects"
 msgstr "Vztažené objekty"
 
-#: cores.py:128 models.py:283
+#: cores.py:128 models.py:291
 msgid "command output"
 msgstr "výstup spustitelné úlohy"
 
-#: models.py:115
+#: models.py:116
+msgid "Incomplete"
+msgstr "Nedokončený"
+
+#: models.py:117
 msgid "Info"
 msgstr "Info"
 
-#: models.py:116
+#: models.py:118
 msgid "Warning"
 msgstr "Varování"
 
-#: models.py:117
+#: models.py:119
 msgid "Error"
 msgstr "Chyba"
 
-#: models.py:118
+#: models.py:120
 msgid "Debug"
 msgstr "Debug"
 
-#: models.py:119
+#: models.py:121
 msgid "Critical"
 msgstr "Kritické"
 
-#: models.py:122
+#: models.py:124
 msgid "host"
 msgstr "host"
 
-#: models.py:124
+#: models.py:126
 msgid "method"
 msgstr "metoda"
 
-#: models.py:125
+#: models.py:127
 msgid "URL path"
 msgstr "URL cesta"
 
-#: models.py:128
+#: models.py:130
 msgid "HTTPS connection"
 msgstr "HTTPS spojení"
 
-#: models.py:129
+#: models.py:131
 msgid "slug"
 msgstr "slug"
 
-#: models.py:132
+#: models.py:134
 msgid "request timestamp"
 msgstr "čas a datum dotazu"
 
-#: models.py:137
+#: models.py:139
 msgid "response timestamp"
 msgstr "datum a čas odpovědi"
 
-#: models.py:138
+#: models.py:140
 msgid "response code"
 msgstr "kód odpovědi"
 
-#: models.py:142
+#: models.py:144
 msgid "status"
 msgstr "stav"
 
-#: models.py:144
+#: models.py:147
 msgid "exception name"
 msgstr "název výjimky"
 
-#: models.py:167
+#: models.py:170
 msgid "Response time"
 msgstr "Čas odpovědi"
 
-#: models.py:171
+#: models.py:174
 msgid "Path"
 msgstr "Cesta"
 
-#: models.py:199
+#: models.py:211
 msgid "Common request"
 msgstr "Běžný HTTP dotaz"
 
-#: models.py:200
+#: models.py:212
 msgid "Throttled request"
 msgstr "Throttled HTTP dotaz"
 
-#: models.py:201
+#: models.py:213
 msgid "Successful login request"
 msgstr "Úspěšné přihlášení"
 
-#: models.py:202
+#: models.py:214
 msgid "Unsuccessful login request"
 msgstr "Neúspěšné přihlášení"
 
-#: models.py:205
+#: models.py:217
 msgid "user"
 msgstr "uživatel"
 
-#: models.py:206
+#: models.py:218
 msgid "IP address"
 msgstr "IP adresa"
 
-#: models.py:207
+#: models.py:219
 msgid "type"
 msgstr "typ"
 
-#: models.py:227 models.py:234
+#: models.py:239 models.py:246
 msgid "input logged request"
 msgstr "vstupní logovaný dotaz"
 
-#: models.py:228
+#: models.py:240
 msgid "input logged requests"
 msgstr "vstupní logované dotazy"
 
-#: models.py:239
+#: models.py:251
 msgid "output logged request"
 msgstr "výstupní logovaný dotaz"
 
-#: models.py:240 models.py:245
+#: models.py:252 models.py:258
 msgid "output logged requests"
 msgstr "výstupní logované dotazy"
 
-#: models.py:255
+#: models.py:268
 msgid "object"
 msgstr "objekt"
 
-#: models.py:277
+#: models.py:284
 msgid "start"
 msgstr "start"
 
-#: models.py:278
+#: models.py:285
 msgid "stop"
 msgstr "stop"
 
-#: models.py:279
+#: models.py:287
 msgid "command name"
 msgstr "název spustitelné úlohy"
 
-#: models.py:280
+#: models.py:288
 msgid "command options"
 msgstr "parametry spustitelné úlohy"
 
-#: models.py:282
+#: models.py:290
 msgid "executed from command line"
 msgstr "spuštěno z příkazové řádky"
 
-#: models.py:285
+#: models.py:293
 msgid "finished successfully"
 msgstr "úspěšně dokončeno"
 
-#: models.py:288
+#: models.py:296
 msgid "command log"
 msgstr "log spustitelné úlohy"
 
-#: models.py:289
+#: models.py:297
 msgid "command logs"
 msgstr "logy spustitelných úloh"
 
-#: reversion_log/cores.py:25
+#: reversion_log/cores.py:23
 msgid "Revisions"
 msgstr "Revize"
 
-#: reversion_log/models.py:14
+#: reversion_log/models.py:11
 msgid "logged request"
 msgstr "logovaný dotaz"
 
-#: reversion_log/models.py:15
+#: reversion_log/models.py:13
 msgid "revision"
 msgstr "datové změny"
 
-#: reversion_log/models.py:21
+#: reversion_log/models.py:20
 msgid "Logged request revision"
 msgstr "logovaná datová změna"
 
-#: reversion_log/models.py:22
+#: reversion_log/models.py:21
 msgid "Logged requests revisions"
 msgstr "Logované datové změny"
 
