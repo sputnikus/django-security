@@ -20,9 +20,7 @@ from django.utils.timezone import now, utc
 
 from chamber.shortcuts import change_and_save
 
-from .config import (
-    SECURITY_COMMAND_LOG_EXCLUDED_COMMANDS, SECURITY_DEFAULT_THROTTLING_VALIDATORS_PATH
-)
+from .config import settings
 
 
 UNIT_OPTIONS = {
@@ -36,7 +34,7 @@ UNIT_OPTIONS = {
 
 def get_throttling_validators(name):
     try:
-        return getattr(import_module(SECURITY_DEFAULT_THROTTLING_VALIDATORS_PATH), name)
+        return getattr(import_module(settings.DEFAULT_THROTTLING_VALIDATORS_PATH), name)
     except (ImportError, AttributeError):
         raise ImproperlyConfigured('Throttling validator configuration {} is not defined'.format(name))
 
@@ -128,7 +126,7 @@ class CommandLogger(StringIO):
         Runs the command function and returns its return value or re-raises any exceptions. The run of the command will
         not be logged if it is in excluded commands setting.
         """
-        if self.kwargs['command_name'] in SECURITY_COMMAND_LOG_EXCLUDED_COMMANDS:
+        if self.kwargs['command_name'] in settings.COMMAND_LOG_EXCLUDED_COMMANDS:
             return self.command_function()
 
         self._start_intercepting()

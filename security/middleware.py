@@ -3,7 +3,7 @@ import traceback
 from ipware.ip import get_ip
 
 from django import http
-from django.conf import settings
+from django.conf import settings as django_settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db.transaction import get_connection
 from django.urls import is_valid_path
@@ -14,9 +14,7 @@ try:
 except ImportError:
     from django.urls import get_callable
 
-from .config import (
-    SECURITY_DEFAULT_THROTTLING_VALIDATORS_PATH, SECURITY_LOG_IGNORE_IP, SECURITY_THROTTLING_FAILURE_VIEW
-)
+from .config import settings
 from .exception import ThrottlingException
 from .models import InputLoggedRequest
 
@@ -28,7 +26,7 @@ except ImportError:  # For Django < 1.8
 
 
 try:
-    THROTTLING_VALIDATORS = getattr(import_module(SECURITY_DEFAULT_THROTTLING_VALIDATORS_PATH), 'default_validators')
+    THROTTLING_VALIDATORS = getattr(import_module(settings.DEFAULT_THROTTLING_VALIDATORS_PATH), 'default_validators')
 except ImportError:
     raise ImproperlyConfigured('Configuration DEFAULT_THROTTLING_VALIDATORS does not contain valid module')
 
@@ -50,21 +48,24 @@ class MiddlewareMixin:
         return response
 
 
-def create_revision_request_log(sender, revision, versions, **kwargs):
-    from security.reversion_log.models import InputRequestRevision
-
-    connection = get_connection()
-    if getattr(connection, 'input_logged_request', False):
-        InputRequestRevision.objects.create(logged_request=connection.input_logged_request, revision=revision)
-
-
-if 'security.reversion_log' in settings.INSTALLED_APPS:
-    try:
-        from reversion.signals import post_revision_commit
-    except ImportError:
+if 'security.reversion_log' in django_settings.INSTALLED_APPS:
+    if 'reversion' not in  django_settings.INSTALLED_APPS:
         raise ImproperlyConfigured('For reversion log is necessary install "django-reversion"')
 
-    post_revision_commit.connect(create_revision_request_log)
+    # Supports two version of reversion library
+    try:
+        from reversion.signals import post_revision_commit
+
+        def create_revision_request_log(sender, revision, versions, **kwargs):
+            from security.reversion_log.models import InputRequestRevision
+
+            connection = get_connection()
+            if getattr(connection, 'input_logged_request', False):
+                InputRequestRevision.objects.create(logged_request=connection.input_logged_request, revision=revision)
+
+        post_revision_commit.connect(create_revision_request_log)
+    except ImportError:
+        pass
 
 
 class LogMiddleware(MiddlewareMixin):
@@ -74,14 +75,16 @@ class LogMiddleware(MiddlewareMixin):
     def process_request(self, request):
         connection = get_connection()
 
-        if get_ip(request) not in SECURITY_LOG_IGNORE_IP:
-            logged_request = InputLoggedRequest.objects.prepare_from_request(request)
-            logged_request.save()
-            connection.input_logged_request = logged_request
+        if get_ip(request) not in settings.LOG_IGNORE_IP:
+            input_logged_request = InputLoggedRequest.objects.prepare_from_request(request)
+            input_logged_request.save()
+            request.input_logged_request = input_logged_request
+            connection.input_logged_request = input_logged_request
 
         logged_requests_list = getattr(connection, 'logged_requests', [])
         logged_requests_list.append([])
-        connection.logged_requests = logged_requests_list
+        request.output_logged_requests = logged_requests_list
+        connection.output_logged_requests = logged_requests_list
 
         # Return a redirect if necessary
         if self.should_redirect_with_slash(request):
@@ -95,7 +98,7 @@ class LogMiddleware(MiddlewareMixin):
         POST, PUT, or PATCH.
         """
         new_path = request.get_full_path(force_append_slash=True)
-        if settings.DEBUG and request.method in {'POST', 'PUT', 'PATCH'}:
+        if django_settings.DEBUG and request.method in {'POST', 'PUT', 'PATCH'}:
             raise RuntimeError(
                 "You called this URL via %(method)s, but the URL doesn't end "
                 "in a slash and you have SECURITY_APPEND_SLASH set. Django can't "
@@ -113,7 +116,7 @@ class LogMiddleware(MiddlewareMixin):
         Return True if settings.APPEND_SLASH is True and appending a slash to
         the request path turns an invalid path into a valid one.
         """
-        if getattr(settings, 'SECURITY_APPEND_SLASH', True) and not request.get_full_path().endswith('/'):
+        if settings.APPEND_SLASH and not request.get_full_path().endswith('/'):
             urlconf = getattr(request, 'urlconf', None)
             return (
                 not is_valid_path(request.path_info, urlconf) and
@@ -122,7 +125,7 @@ class LogMiddleware(MiddlewareMixin):
         return False
 
     def _render_throttling(self, request, exception):
-        return get_callable(SECURITY_THROTTLING_FAILURE_VIEW)(request, exception)
+        return get_callable(settings.THROTTLING_FAILURE_VIEW)(request, exception)
 
     def process_view(self, request, callback, callback_args, callback_kwargs):
         connection = get_connection()
@@ -155,8 +158,10 @@ class LogMiddleware(MiddlewareMixin):
             input_logged_request.save()
 
         connection = get_connection()
-        logged_requests = connection.logged_requests.pop() if hasattr(connection, 'logged_requests') else ()
-        [logged_request.create(input_logged_request) for logged_request in logged_requests]
+        output_logged_requests = (
+            connection.output_logged_requests.pop() if hasattr(connection, 'output_logged_requests') else ()
+        )
+        [logged_request.create(input_logged_request) for logged_request in output_logged_requests]
         return response
 
     def process_exception(self, request, exception):
