@@ -1,10 +1,11 @@
+import re
 import json
 from json import JSONDecodeError
 
 from ipware.ip import get_ip
 from jsonfield import JSONField
 
-from django.conf import settings
+from django.conf import settings as django_settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
@@ -20,10 +21,7 @@ try:
 except ImportError:
     from django.urls import get_resolver
 
-from security.config import (
-    SECURITY_LOG_JSON_STRING_LENGTH, SECURITY_LOG_REQUEST_BODY_LENGTH, SECURITY_LOG_RESPONSE_BODY_CONTENT_TYPES,
-    SECURITY_LOG_RESPONSE_BODY_LENGTH
-)
+from security.config import settings
 from security.utils import get_headers, remove_nul_from_string
 
 
@@ -43,10 +41,6 @@ def display_json(value, indent=4):
     return json.dumps(value, indent=indent, ensure_ascii=False, cls=DjangoJSONEncoder)
 
 
-# Prior to Django 1.5, the AUTH_USER_MODEL setting does not exist.
-AUTH_USER_MODEL = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
-
-
 def get_full_host(request):
     host = request.META['SERVER_NAME']
     port = request.META['SERVER_PORT']
@@ -56,29 +50,49 @@ def get_full_host(request):
         return host
 
 
+def hide_sensitive_data_body(content):
+    GROUPS_PATTERN = re.compile(r'\([^)]*\)')
+
+    for pattern in settings.HIDE_SENSITIVE_DATA_PATTERNS.get('BODY', ()):
+        subpattern = (
+            GROUPS_PATTERN.sub(settings.SENSITIVE_DATA_REPLACEMENT, pattern)
+            if GROUPS_PATTERN.search(pattern) else settings.SENSITIVE_DATA_REPLACEMENT
+        )
+        content = re.sub(pattern, subpattern, content, re.IGNORECASE)
+    return content
+
+
+def hide_sensitive_data_headers(headers):
+    for pattern in settings.HIDE_SENSITIVE_DATA_PATTERNS.get('HEADERS', ()):
+        for header_name, header in headers.items():
+            if re.match(pattern, header_name, re.IGNORECASE):
+                headers[header_name] = settings.SENSITIVE_DATA_REPLACEMENT
+    return headers
+
+
 def truncate_json_data(data):
     if isinstance(data, dict):
         return {key: truncate_json_data(val) for key, val in data.items()}
     elif isinstance(data, list):
         return [truncate_json_data(val) for val in data]
     elif isinstance(data, str):
-        return truncatechars(data, SECURITY_LOG_JSON_STRING_LENGTH)
+        return truncatechars(data, settings.LOG_JSON_STRING_LENGTH)
     else:
         return data
 
 
 def truncate_body(content):
     content = force_text(content, errors='replace')
-    if len(content) > SECURITY_LOG_REQUEST_BODY_LENGTH:
+    if len(content) > settings.LOG_REQUEST_BODY_LENGTH:
         try:
             json_content = json.loads(content)
             return (
                 json.dumps(truncate_json_data(json_content))
                 if isinstance(json_content, (dict, list))
-                else content[:SECURITY_LOG_REQUEST_BODY_LENGTH + 1]
+                else content[:settings.LOG_REQUEST_BODY_LENGTH + 1]
             )
         except JSONDecodeError:
-            return content[:SECURITY_LOG_REQUEST_BODY_LENGTH + 1]
+            return content[:settings.LOG_REQUEST_BODY_LENGTH + 1]
     else:
         return content
 
@@ -91,7 +105,7 @@ class InputLoggedRequestManager(models.Manager):
     def prepare_from_request(self, request):
         user = hasattr(request, 'user') and request.user.is_authenticated and request.user or None
         path = truncatechars(request.path, 200)
-        request_body = truncatechars(truncate_body(request.body), SECURITY_LOG_REQUEST_BODY_LENGTH)
+        request_body = truncatechars(truncate_body(request.body), settings.LOG_REQUEST_BODY_LENGTH)
         try:
             slug = resolve(request.path_info, getattr(request, 'urlconf', None)).view_name
         except Resolver404:
@@ -186,8 +200,20 @@ class LoggedRequest(models.Model):
     short_request_body.filter_by = 'request_body'
 
     def save(self, *args, **kwargs):
-        self.request_body = remove_nul_from_string(self.request_body) if self.request_body else self.request_body
-        self.response_body = remove_nul_from_string(self.response_body) if self.response_body else self.response_body
+        self.request_body = (
+            hide_sensitive_data_body(remove_nul_from_string(self.request_body)) if self.request_body
+            else self.request_body
+        )
+        self.response_body = (
+            hide_sensitive_data_body(remove_nul_from_string(self.response_body)) if self.response_body
+            else self.response_body
+        )
+        self.request_headers = (
+            hide_sensitive_data_headers(self.request_headers) if self.request_headers else self.request_headers
+        )
+        self.response_headers = (
+            hide_sensitive_data_headers(self.response_headers) if self.response_headers else self.response_headers
+        )
         super(LoggedRequest, self).save(*args, **kwargs)
 
     def __str__(self):
@@ -214,7 +240,8 @@ class InputLoggedRequest(LoggedRequest):
         (UNSUCCESSFUL_LOGIN_REQUEST, _('Unsuccessful login request'))
     )
 
-    user = models.ForeignKey(AUTH_USER_MODEL, verbose_name=_('user'), null=True, blank=True, on_delete=models.SET_NULL)
+    user = models.ForeignKey(django_settings.AUTH_USER_MODEL, verbose_name=_('user'), null=True, blank=True,
+                             on_delete=models.SET_NULL)
     ip = models.GenericIPAddressField(_('IP address'), null=False, blank=False)
     type = models.PositiveSmallIntegerField(_('type'), choices=TYPE_CHOICES, default=COMMON_REQUEST, null=False,
                                             blank=False)
@@ -228,8 +255,8 @@ class InputLoggedRequest(LoggedRequest):
         self.response_headers = dict(response.items())
 
         if (not response.streaming and
-                response.get('content-type', '').split(';')[0] in SECURITY_LOG_RESPONSE_BODY_CONTENT_TYPES):
-            response_body = truncatechars(truncate_body(response.content), SECURITY_LOG_RESPONSE_BODY_LENGTH)
+                response.get('content-type', '').split(';')[0] in settings.LOG_RESPONSE_BODY_CONTENT_TYPES):
+            response_body = truncatechars(truncate_body(response.content), settings.LOG_RESPONSE_BODY_LENGTH)
         else:
             response_body = ''
 
