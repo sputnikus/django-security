@@ -22,7 +22,7 @@ except ImportError:
     from django.urls import get_resolver
 
 from security.config import settings
-from security.utils import get_headers, remove_nul_from_string
+from security.utils import get_headers, remove_nul_from_string, regex_sub_groups_global
 
 
 try:
@@ -51,14 +51,8 @@ def get_full_host(request):
 
 
 def hide_sensitive_data_body(content):
-    GROUPS_PATTERN = re.compile(r'\([^)]*\)')
-
     for pattern in settings.HIDE_SENSITIVE_DATA_PATTERNS.get('BODY', ()):
-        subpattern = (
-            GROUPS_PATTERN.sub(settings.SENSITIVE_DATA_REPLACEMENT, pattern)
-            if GROUPS_PATTERN.search(pattern) else settings.SENSITIVE_DATA_REPLACEMENT
-        )
-        content = re.sub(pattern, subpattern, content, re.IGNORECASE)
+        content = regex_sub_groups_global(pattern, settings.SENSITIVE_DATA_REPLACEMENT, content)
     return content
 
 
@@ -97,6 +91,19 @@ def truncate_body(content):
         return content
 
 
+def clean_body(body):
+    cleaned_body = truncatechars(
+        truncate_body(body), settings.LOG_REQUEST_BODY_LENGTH + len(settings.SENSITIVE_DATA_REPLACEMENT)
+    )
+    cleaned_body = hide_sensitive_data_body(remove_nul_from_string(cleaned_body)) if cleaned_body else cleaned_body
+    cleaned_body = truncatechars(cleaned_body, settings.LOG_REQUEST_BODY_LENGTH)
+    return cleaned_body
+
+
+def clean_headers(headers):
+    return hide_sensitive_data_headers(headers) if headers else headers
+
+
 class InputLoggedRequestManager(models.Manager):
     """
     Create new LoggedRequest instance from HTTP request
@@ -105,16 +112,19 @@ class InputLoggedRequestManager(models.Manager):
     def prepare_from_request(self, request):
         user = hasattr(request, 'user') and request.user.is_authenticated and request.user or None
         path = truncatechars(request.path, 200)
-        request_body = truncatechars(truncate_body(request.body), settings.LOG_REQUEST_BODY_LENGTH)
+
+
         try:
             slug = resolve(request.path_info, getattr(request, 'urlconf', None)).view_name
         except Resolver404:
             slug = None
 
-        return self.model(request_headers=get_headers(request), request_body=request_body, user=user,
-                          method=request.method.upper()[:7], host=get_full_host(request),
-                          path=path, queries=request.GET.dict(), is_secure=request.is_secure(),
-                          ip=get_ip(request), request_timestamp=timezone.now(), slug=slug)
+        return self.model(
+            request_headers=clean_headers(get_headers(request)), request_body=clean_body(request.body), user=user,
+            method=request.method.upper()[:7], host=get_full_host(request),
+            path=path, queries=request.GET.dict(), is_secure=request.is_secure(),
+            ip=get_ip(request), request_timestamp=timezone.now(), slug=slug
+        )
 
 
 class LoggedRequest(models.Model):
@@ -199,23 +209,6 @@ class LoggedRequest(models.Model):
     short_request_body.short_description = _('request body')
     short_request_body.filter_by = 'request_body'
 
-    def save(self, *args, **kwargs):
-        self.request_body = (
-            hide_sensitive_data_body(remove_nul_from_string(self.request_body)) if self.request_body
-            else self.request_body
-        )
-        self.response_body = (
-            hide_sensitive_data_body(remove_nul_from_string(self.response_body)) if self.response_body
-            else self.response_body
-        )
-        self.request_headers = (
-            hide_sensitive_data_headers(self.request_headers) if self.request_headers else self.request_headers
-        )
-        self.response_headers = (
-            hide_sensitive_data_headers(self.response_headers) if self.response_headers else self.response_headers
-        )
-        super(LoggedRequest, self).save(*args, **kwargs)
-
     def __str__(self):
         return ' '.join(
             (force_text(v) for v in (
@@ -252,11 +245,11 @@ class InputLoggedRequest(LoggedRequest):
         self.response_timestamp = timezone.now()
         self.status = self.get_status(response.status_code)
         self.response_code = response.status_code
-        self.response_headers = dict(response.items())
+        self.response_headers = clean_headers(dict(response.items()))
 
         if (not response.streaming and
                 response.get('content-type', '').split(';')[0] in settings.LOG_RESPONSE_BODY_CONTENT_TYPES):
-            response_body = truncatechars(truncate_body(response.content), settings.LOG_RESPONSE_BODY_LENGTH)
+            response_body = clean_body(response.content)
         else:
             response_body = ''
 

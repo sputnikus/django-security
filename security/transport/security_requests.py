@@ -6,7 +6,7 @@ from django.utils import timezone
 from django.utils.encoding import force_text
 
 from security.config import settings
-from security.models import LoggedRequest, OutputLoggedRequest
+from security.models import LoggedRequest, OutputLoggedRequest, clean_body, clean_headers
 
 from .transaction import log_output_request
 
@@ -72,16 +72,16 @@ class SecuritySession(Session):
             }
             send_kwargs.update(settings)
             logged_kwargs.update({
-                'request_headers': dict(prep.headers.items()),
-                'request_body': prepare_request_body(prep),
+                'request_headers': clean_headers(dict(prep.headers.items())),
+                'request_body': clean_body(prepare_request_body(prep)),
             })
             resp = self.send(prep, **send_kwargs)
 
             logged_kwargs.update({
                 'response_timestamp': timezone.now(),
                 'response_code': resp.status_code,
-                'response_headers': dict(resp.headers.items()),
-                'response_body': prepare_response_body(resp),
+                'response_headers': clean_headers(dict(resp.headers.items())),
+                'response_body': clean_body(prepare_response_body(resp)),
                 'status': LoggedRequest.get_status(resp.status_code)
             })
             return resp
