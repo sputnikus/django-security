@@ -136,7 +136,6 @@ class LogMiddleware(MiddlewareMixin):
             if getattr(callback, 'log_exempt', False):
                 del connection.input_logged_request
 
-            # TODO: this is not the best solution if the request throw exception inside process_request of some Middleware
             # the bode will be included (But I didn't have better solution now)
             if getattr(callback, 'hide_request_body', False):
                 connection.input_logged_request.request_body = ''

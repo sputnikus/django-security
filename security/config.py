@@ -19,8 +19,8 @@ DEFAULTS = {
     ),
     'HIDE_SENSITIVE_DATA_PATTERNS': {
         'BODY': (
-            r'\"password\"\s*:\s*\"([^\"])*\"',
-            r'\<password\>([^\<])\</password\>',
+            r'"password"\s*:\s*"((?:\\"|[^"])*)',
+            r'<password>([^<]*)',
             r'password=([^&]*)',
             r'csrfmiddlewaretoken=([^&]*)',
         ),

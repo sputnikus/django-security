@@ -247,3 +247,15 @@ class PurgeLogsBaseCommand(BaseCommand):
                     qs.delete()
                 except IOError as ex:
                     self.stderr.write(force_text(ex))
+
+
+def regex_sub_groups_global(pattern, repl, string):
+    """
+    Globally replace all groups inside pattern with `repl`.
+    If `pattern` doesn't have groups the whole match is replaced.
+    """
+    for search in reversed(list(re.finditer(pattern, string))):
+        for i in range(len(search.groups()), 0 if search.groups() else -1, -1):
+            start, end = search.span(i)
+            string = string[:start] + repl + string[end:]
+    return string
