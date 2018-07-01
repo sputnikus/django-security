@@ -15,6 +15,7 @@ from django.urls.exceptions import Resolver404
 from django.utils import timezone
 from django.utils.encoding import force_text
 from django.utils.translation import ugettext_lazy as _
+from django.utils.timezone import localtime
 
 try:
     from django.core.urlresolvers import get_resolver
@@ -212,7 +213,7 @@ class LoggedRequest(models.Model):
     def __str__(self):
         return ' '.join(
             (force_text(v) for v in (
-                self.slug, self.response_code, self.request_timestamp.replace(tzinfo=None, microsecond=0)
+                self.slug, self.response_code, localtime(self.request_timestamp.replace(microsecond=0))
             ) if v)
         )
 
