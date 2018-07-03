@@ -86,11 +86,8 @@ callcommand:
 runserver:
 	$(PYTHON_BIN)/python manage.py runserver --insecure $(DJANGO_POSTFIX)
 
-install: cleanvar bootstrap initlog linklibrary initdb syncdb initdata initenv
+install: cleanvar bootstrap initlog initdb syncdb initdata initenv
 
 update: clean cleanvirtualenv cleanjs bootstrap syncdb initenv
 
 include build/Makefile.$(OS)
-
-linklibrary:
-	ln -sf $$(pwd)/../security/ $$($(PYTHON_BIN)/python -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())");

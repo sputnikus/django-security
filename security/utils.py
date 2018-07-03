@@ -80,6 +80,7 @@ class CommandLogger(StringIO):
     """
     A helper class that runs a django command and logs details about its run into DB.
     """
+
     def __init__(self, command_function, stdout=None, stderr=None, **kwargs):
         """
         Initializes the command logger.
