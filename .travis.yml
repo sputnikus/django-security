@@ -1,0 +1,17 @@
+language: python
+python:
+  - "3.5"
+  - "3.6"
+
+env:
+  - DJANGO_VERSION=1.11
+  - DJANGO_VERSION=2.0
+
+install:
+  - cd example
+  - pip install -q Django==$DJANGO_VERSION
+  - pip install -r requirements/base.txt
+
+# command to run tests
+script:
+   coverage run --omit */site-packages/*,*/migrations/*,*/lib/* manage.py test test_security.tests --settings=dj.settings.settings -v 2
