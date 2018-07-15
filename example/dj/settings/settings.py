@@ -14,7 +14,7 @@ DATABASES = {
     },
 }
 
-ROOT_URLCONF = 'urls'
+ROOT_URLCONF = 'dj.urls'
 
 STATIC_ROOT = ''
 
