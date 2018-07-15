@@ -3,7 +3,7 @@
 Throttling
 ==========
 
-In terms of ``django-security-logger`` throttling is a process responsible for regulating the rate of incoming HTTP requests. There are many ways how to restricts number of requests it may depend on concrete view. The simpliest throttling is restrict maximum number of request from one IP address per unit of time.
+In terms of ``django-security-logger`` throttling is a process responsible for regulating the rate of incoming HTTP requests. There are many ways how to restrict number of requests that may depend on a concrete view. The simplest throttling is to restrict maximum number of request from one IP address per unit of time.
 
 
 Default configuration
