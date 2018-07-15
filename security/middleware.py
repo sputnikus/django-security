@@ -79,10 +79,10 @@ class LogMiddleware(MiddlewareMixin):
             request.input_logged_request = input_logged_request
             connection.input_logged_request = input_logged_request
 
-        logged_requests_list = getattr(connection, 'logged_requests', [])
-        logged_requests_list.append([])
-        request.output_logged_requests = logged_requests_list
-        connection.output_logged_requests = logged_requests_list
+        output_logged_requests = getattr(connection, 'output_logged_requests', [])
+        output_logged_requests.append([])
+        request.output_logged_requests = output_logged_requests
+        connection.output_logged_requests = output_logged_requests
 
         # Return a redirect if necessary
         if self.should_redirect_with_slash(request):
