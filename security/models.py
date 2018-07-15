@@ -222,6 +222,7 @@ class LoggedRequest(models.Model):
 
 
 class InputLoggedRequest(LoggedRequest):
+
     COMMON_REQUEST = 1
     THROTTLED_REQUEST = 2
     SUCCESSFUL_LOGIN_REQUEST = 3

@@ -10,7 +10,7 @@ setup(
     keywords='django, throttling',
     author='Lubos Matl',
     author_email='matllubos@gmail.com',
-    url='https://github.com/matllubos/django-security',
+    url='https://github.com/druids/django-security',
     license='MIT',
     package_dir={'security': 'security'},
     include_package_data=True,
@@ -32,9 +32,9 @@ setup(
         'django>=1.6',
         'jsonfield>=1.0.3',
         'django-ipware>=1.0.0',
-        'django-chamber>=0.3.6',
         'ansi2html>=1.3.0',
         'django-chamber>=0.4.0',
+        'attrdict>=2.0.0',
     ],
     zip_safe=False
 )

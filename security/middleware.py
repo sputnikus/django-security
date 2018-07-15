@@ -18,12 +18,10 @@ from .config import settings
 from .exception import ThrottlingException
 from .models import InputLoggedRequest
 
-
 try:
     from importlib import import_module
 except ImportError:  # For Django < 1.8
     from django.utils.importlib import import_module
-
 
 try:
     THROTTLING_VALIDATORS = getattr(import_module(settings.DEFAULT_THROTTLING_VALIDATORS_PATH), 'default_validators')
@@ -49,7 +47,7 @@ class MiddlewareMixin:
 
 
 if 'security.reversion_log' in django_settings.INSTALLED_APPS:
-    if 'reversion' not in  django_settings.INSTALLED_APPS:
+    if 'reversion' not in django_settings.INSTALLED_APPS:
         raise ImproperlyConfigured('For reversion log is necessary install "django-reversion"')
 
     # Supports two version of reversion library
