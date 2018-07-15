@@ -34,17 +34,17 @@ class AtomicLog(ContextDecorator):
 
     def __enter__(self):
         connection = get_connection(self.using)
-        logged_requests_list = getattr(connection, 'logged_requests', [])
-        logged_requests_list.append([])
-        connection.logged_requests = logged_requests_list
+        output_logged_requests = getattr(connection, 'output_logged_requests', [])
+        output_logged_requests.append([])
+        connection.output_logged_requests = output_logged_requests
 
     def __exit__(self, exc_type, exc_value, traceback):
         connection = get_connection(self.using)
-        logged_requests = connection.logged_requests.pop()
-        if connection.logged_requests:
-            connection.logged_requests[-1] += logged_requests
+        output_logged_requests = connection.output_logged_requests.pop()
+        if connection.output_logged_requests:
+            connection.output_logged_requests[-1] += output_logged_requests
         else:
-            [logged_request.create() for logged_request in logged_requests]
+            [output_logged_request.create() for output_logged_request in output_logged_requests]
 
 
 def atomic_log(using=None):
@@ -66,8 +66,8 @@ def log_output_request(data, related_objects=None, using=None):
     :param using: database alias
     """
     if is_active_logged_requests(using):
-        logged_requests = get_connection(using).logged_requests[-1]
-        logged_requests.append(OutputLoggedRequestContext(data, related_objects))
+        output_logged_requests = get_connection(using).output_logged_requests[-1]
+        output_logged_requests.append(OutputLoggedRequestContext(data, related_objects))
     else:
         output_logged_request = OutputLoggedRequest.objects.create(**data)
         if related_objects:
@@ -79,4 +79,4 @@ def is_active_logged_requests(using=None):
     :param using: database alias
     :return: True if block of code is surrounded with atomic_log operator
     """
-    return hasattr(get_connection(using), 'logged_requests') and get_connection(using).logged_requests
+    return hasattr(get_connection(using), 'output_logged_requests') and get_connection(using).output_logged_requests

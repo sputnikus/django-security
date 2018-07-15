@@ -2,7 +2,7 @@
 Django-security-logger's documentation
 ======================================
 
-Django-security-logger is library for logging input and output request. Library can be used with django-reversion to log which data was changed in a request.
+Django-security-logger is library for logging input, output request and Django commands. Library can be used with django-reversion to log which data was changed in a request.
 The library provides throttling security mechanism.
 
 Project Home
