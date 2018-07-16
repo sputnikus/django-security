@@ -23,11 +23,15 @@ DEFAULTS = {
             r'<password>([^<]*)',
             r'password=([^&]*)',
             r'csrfmiddlewaretoken=([^&]*)',
+            r'(?i)content-disposition: form-data; name="password"\r\n\r\n.*'
         ),
         'HEADERS': (
             r'Authorization',
             r'X_Authorization',
             r'Cookie',
+            r'.*token.*',
+        ),
+        'QUERIES': (
             r'.*token.*',
         ),
     },

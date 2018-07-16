@@ -1,5 +1,6 @@
+import sys
+
 from argparse import ArgumentParser
-from copy import copy
 
 import django
 from django.core.management import call_command as call_command_original
@@ -26,18 +27,17 @@ def execute_from_command_line(argv=None):
     ).run()
 
 
-def call_command(command_name, *args, **options):
-    original_options = copy(options)
-    stdout = options.pop('stdout')
-    stderr = options.pop('stderr')
+def call_command(command_name, stdout=None, stderr=None, *args, **options):
+    stdout = sys.stdout if stdout is None else stdout
+    stderr = sys.stderr if stderr is None else stderr
 
     from security.utils import CommandLogger
     return CommandLogger(
-        command_function=lambda: call_command_original(command_name, *args, **options),
+        command_function=lambda: call_command_original(command_name, stdout=stdout, stderr=stderr, *args, **options),
         stdout=stdout,
         stderr=stderr,
         command_name=command_name,
         command_options=', '.join(
-            list(args)+['{}={}'.format(k, v) for k,v in original_options.items()]
+            list(args)+['{}={}'.format(k, v) for k, v in options.items()]
         )
     ).run()

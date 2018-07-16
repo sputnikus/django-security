@@ -14,4 +14,4 @@ install:
 
 # command to run tests
 script:
-   coverage run --omit */site-packages/*,*/migrations/*,*/lib/* manage.py test test_security.tests --settings=dj.settings.settings -v 2
+   coverage run --omit */site-packages/*,*/migrations/*,*/lib/* manage.py test apps.test_security.tests --settings=settings.settings -v 2

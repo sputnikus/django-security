@@ -17,6 +17,8 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_text
 from django.utils.timezone import now, utc
+from django.urls import resolve
+from django.urls.exceptions import Resolver404
 
 from chamber.shortcuts import change_and_save
 
@@ -260,3 +262,10 @@ def regex_sub_groups_global(pattern, repl, string):
             start, end = search.span(i)
             string = string[:start] + repl + string[end:]
     return string
+
+
+def get_view_from_request_or_none(request):
+    try:
+        return resolve(request.path).func
+    except Resolver404:
+        return None

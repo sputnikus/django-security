@@ -6,28 +6,18 @@ from django import http
 from django.conf import settings as django_settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db.transaction import get_connection
-from django.urls import is_valid_path
+from django.urls import is_valid_path, get_callable, resolve
 from django.utils.encoding import force_text
-
-try:
-    from django.core.urlresolvers import get_callable
-except ImportError:
-    from django.urls import get_callable
 
 from .config import settings
 from .exception import ThrottlingException
 from .models import InputLoggedRequest
+from .utils import get_throttling_validators, get_view_from_request_or_none
 
 try:
     from importlib import import_module
 except ImportError:  # For Django < 1.8
     from django.utils.importlib import import_module
-
-try:
-    THROTTLING_VALIDATORS = getattr(import_module(settings.DEFAULT_THROTTLING_VALIDATORS_PATH), 'default_validators')
-except ImportError:
-    raise ImproperlyConfigured('Configuration DEFAULT_THROTTLING_VALIDATORS does not contain valid module')
-
 
 
 class MiddlewareMixin:
@@ -73,8 +63,11 @@ class LogMiddleware(MiddlewareMixin):
     def process_request(self, request):
         connection = get_connection()
 
-        if get_ip(request) not in settings.LOG_IGNORE_IP:
+        view = get_view_from_request_or_none(request)
+        if get_ip(request) not in settings.LOG_IGNORE_IP and not getattr(view, 'log_exempt', False):
             input_logged_request = InputLoggedRequest.objects.prepare_from_request(request)
+            if getattr(view, 'hide_request_body', False):
+                input_logged_request.request_body = ''
             input_logged_request.save()
             request.input_logged_request = input_logged_request
             connection.input_logged_request = input_logged_request
@@ -126,46 +119,33 @@ class LogMiddleware(MiddlewareMixin):
         return get_callable(settings.THROTTLING_FAILURE_VIEW)(request, exception)
 
     def process_view(self, request, callback, callback_args, callback_kwargs):
-        connection = get_connection()
+        if getattr(request, 'input_logged_request', False):
 
-        if getattr(connection, 'input_logged_request', False):
+            throttling_validators = getattr(callback, 'throttling_validators', None)
+            if throttling_validators is None:
+                throttling_validators = get_throttling_validators('default_validators')
 
-            # Exempt all logs
-            if getattr(callback, 'log_exempt', False):
-                del connection.input_logged_request
-
-            # the bode will be included (But I didn't have better solution now)
-            if getattr(callback, 'hide_request_body', False):
-                connection.input_logged_request.request_body = ''
-
-            # Check if throttling is not exempted
-            if not getattr(callback, 'throttling_exempt', False):
-                try:
-                    for validator in THROTTLING_VALIDATORS:
-                        validator.validate(request)
-                except ThrottlingException as exception:
-                    return self.process_exception(request, exception)
+            try:
+                for validator in throttling_validators:
+                    validator.validate(request)
+            except ThrottlingException as exception:
+                return self.process_exception(request, exception)
 
     def process_response(self, request, response):
-        connection = get_connection()
-
-        input_logged_request = getattr(connection, 'input_logged_request', None)
+        input_logged_request = getattr(request, 'input_logged_request', None)
         if input_logged_request:
             input_logged_request.update_from_response(response)
             input_logged_request.save()
 
-        connection = get_connection()
         output_logged_requests = (
-            connection.output_logged_requests.pop() if hasattr(connection, 'output_logged_requests') else ()
+            request.output_logged_requests.pop() if hasattr(request, 'output_logged_requests') else ()
         )
         [logged_request.create(input_logged_request) for logged_request in output_logged_requests]
         return response
 
     def process_exception(self, request, exception):
-        connection = get_connection()
-
         if hasattr(request, 'input_logged_request'):
-            logged_request = connection.input_logged_request
+            logged_request = request.input_logged_request
             logged_request.error_description = traceback.format_exc()
             logged_request.exception_name = exception.__class__.__name__
             if isinstance(exception, ThrottlingException):

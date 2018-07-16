@@ -5,12 +5,11 @@
 
 SHELL = bash
 
-DJANGO_DIR = dj
 VIRTUAL_ENV = var/ve
 LOCALPATH = $(CURDIR)
-PYTHONPATH = $(LOCALPATH)/$(DJANGO_DIR)
+PYTHONPATH = $(LOCALPATH)
 SETTINGS = settings
-DJANGO_SETTINGS_MODULE = $(DJANGO_DIR).settings.$(SETTINGS)
+DJANGO_SETTINGS_MODULE = settings.$(SETTINGS)
 DJANGO_POSTFIX = --settings=$(DJANGO_SETTINGS_MODULE) --pythonpath=$(PYTHONPATH)
 PYTHON_BIN = $(VIRTUAL_ENV)/bin
 PYTHON = python3.6
@@ -23,7 +22,7 @@ INIT_DATA_PATH = data
 INIT_DATA_FILE = $(INIT_DATA_PATH)/init.json
 INIT_DATA_MEDIA = $(INIT_DATA_PATH)/media
 
-test_modules = test_security.tests
+test_modules = apps.test_security.tests
 
 clean:
 	find . -name "*.pyc" -delete;
@@ -48,8 +47,7 @@ bootstrap: initvirtualenv pip
 reinstallvirtualenv: cleanvirtualenv bootstrap initvirtualenv initenv
 
 test: clean
-	$(PYTHON_BIN)/coverage run --rcfile=$(LOCALPATH)/../.coveragerc $(LOCALPATH)/manage.py test $(test_modules)\
-	 $(DJANGO_POSTFIX) -v 2 --noinput $(extra)
+	$(PYTHON_BIN)/coverage run $(LOCALPATH)/manage.py test $(test_modules) $(DJANGO_POSTFIX) -v 2 --noinput $(extra)
 
 htmlcoverage: test
 	$(PYTHON_BIN)/coverage html -d $(LOCALPATH)/var/reports/htmlcov --rcfile=$(LOCALPATH)/../.coveragerc
@@ -89,5 +87,3 @@ runserver:
 install: cleanvar bootstrap initlog initdb syncdb initdata initenv
 
 update: clean cleanvirtualenv cleanjs bootstrap syncdb initenv
-
-include build/Makefile.$(OS)

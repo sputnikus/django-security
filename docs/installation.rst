@@ -59,11 +59,11 @@ Setup
 
 .. attribute:: SECURITY_LOG_REQUEST_BODY_LENGTH
 
-  Maximal length of logged request body. More chars than defined are truncated. Default value is ``1000``.
+  Maximal length of logged request body. More chars than defined are truncated. Default value is ``1000``. If you set ``None`` value the request body will not be truncated.
 
 .. attribute:: SECURITY_LOG_RESPONSE_BODY_LENGTH
 
-  Maximal length of logged response body. More chars than defined are truncated. Default value is ``1000``.
+  Maximal length of logged response body. More chars than defined are truncated. Default value is ``1000``. If you set ``None`` value the response body will not be truncated.
 
 .. attribute:: SECURITY_LOG_RESPONSE_BODY_CONTENT_TYPES
 
@@ -71,7 +71,7 @@ Setup
 
 .. attribute:: SECURITY_LOG_JSON_STRING_LENGTH
 
-  If request/response body are in JSON format and body is longer than allowed the truncating is done with a smarter way. String JSON values longer than value of this setting are truncated. Default value is ``250``.
+  If request/response body are in JSON format and body is longer than allowed the truncating is done with a smarter way. String JSON values longer than value of this setting are truncated. Default value is ``250``. If you set ``None`` value this method will not be used.
 
 .. attribute:: SECURITY_COMMAND_LOG_EXCLUDED_COMMANDS
 

@@ -3,7 +3,7 @@ import os
 
 
 PROJECT_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), '..', '..')
+    os.path.join(os.path.dirname(__file__), '..')
 )
 
 DEBUG = False
@@ -84,13 +84,8 @@ STATICFILES_FINDERS = (
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = 'xe8vyy&0cw*&za++fq(%w6cx=)k53*m-@$1&pst=*oe(b#zgo+'
 
-# List of callables that know how to import templates from various sources.
-TEMPLATE_LOADERS = (
-    'django.template.loaders.filesystem.Loader',
-    'django.template.loaders.app_directories.Loader',
-)
 
-MIDDLEWARE = MIDDLEWARE_CLASSES = (
+MIDDLEWARE = (
     'reversion.middleware.RevisionMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -101,27 +96,14 @@ MIDDLEWARE = MIDDLEWARE_CLASSES = (
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
 
-TEMPLATE_CONTEXT_PROCESSORS = (
-    'django.core.context_processors.i18n',
-    'django.core.context_processors.request',
-    'django.core.context_processors.media',
-    'django.core.context_processors.static',
-    'django.core.context_processors.request',
-    'django.core.context_processors.debug',
-    'django.contrib.messages.context_processors.messages',
-)
-
 INTERNAL_IPS = ('127.0.0.1',)
 
 # Python dotted path to the WSGI application used by Django's runserver.
-WSGI_APPLICATION = 'dj.wsgi.application'
-
-TEMPLATE_DIRS = (
-    os.path.join(PROJECT_DIR, 'templates'),
-)
+WSGI_APPLICATION = 'wsgi.application'
 
 INSTALLED_APPS = (
     'django.contrib.auth',
+    'django.contrib.admin',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.sites',
@@ -133,7 +115,7 @@ INSTALLED_APPS = (
     'security',
     'security.reversion_log',
     'reversion',
-    'test_security',
+    'apps.test_security',
 )
 
 # A sample logging configuration. The only tangible logging
@@ -174,3 +156,16 @@ LOGGING = {
         },
     }
 }
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [os.path.join(PROJECT_DIR, 'templates')],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.contrib.auth.context_processors.auth',
+            ]
+        }
+    }
+]
