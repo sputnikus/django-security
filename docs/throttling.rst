@@ -47,8 +47,8 @@ Because throttling can be different per view, there are decorators for changing 
 
 * ``security.decorators.throttling_exempt()`` - marks a view function as being exempt from the throttling protection.
 * ``security.decorators.throttling_exempt_all()`` - marks a view class as being exempt from the throttling protection.
-* ``security.decorators.throttling(*validators, keep_default=False)`` - overrides default throttling validators for view function. You can keep default throttling validators with set ``keep_default`` to the ``True`` value.
-* ``security.decorators.throttling_all(*validators, keep_default=False)`` - overrides default throttling validators for view class. You can keep default throttling validators with set ``keep_default`` to the ``True`` value.
+* ``security.decorators.throttling(*validators, keep_default=True)`` - add throttling validators for view function. You can remove default throttling validators with set ``keep_default`` to the ``False`` value.
+* ``security.decorators.throttling_all(*validators, keep_default=True)`` - add throttling validators for view class. You can remove default throttling validators with set ``keep_default`` to the ``False`` value.
 
 View
 ----
