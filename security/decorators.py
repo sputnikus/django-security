@@ -16,17 +16,18 @@ def add_attribute_wrapper(name, value):
     return decorator
 
 
-def throttling(*validators, keep_default=False):
+def throttling(*validators, keep_default=True):
     """
     Adds throttling validators to a function.
     """
+
     throttling_validators = list(validators)
     if keep_default:
         throttling_validators += list(get_throttling_validators('default_validators'))
     return add_attribute_wrapper('throttling_validators', throttling_validators)
 
 
-def throttling_all(*validators, keep_default=False):
+def throttling_all(*validators, keep_default=True):
     """
     Adds throttling validators to a class.
     """
