@@ -2,30 +2,7 @@ from functools import wraps
 
 from django.utils.decorators import available_attrs
 
-
-def throttling(*validators):
-    """
-    Adds throttling validators to a function.
-    """
-    def decorator(view_func):
-
-        def _throttling(self, *args, **kwargs):
-            [v.validate(self.request) for v in validators]
-            return view_func(self, *args, **kwargs)
-        return wraps(view_func, assigned=available_attrs(view_func))(_throttling)
-
-    return decorator
-
-
-def throttling_all(*validators):
-    """
-    Adds throttling validators to a class.
-    """
-    def decorator(klass):
-        dispatch = getattr(klass, 'dispatch')
-        setattr(klass, 'dispatch', throttling(*validators)(dispatch))
-        return klass
-    return decorator
+from .utils import get_throttling_validators
 
 
 def add_attribute_wrapper(name, value):
@@ -39,11 +16,32 @@ def add_attribute_wrapper(name, value):
     return decorator
 
 
+def throttling(*validators, keep_default=False):
+    """
+    Adds throttling validators to a function.
+    """
+    throttling_validators = list(validators)
+    if keep_default:
+        throttling_validators += list(get_throttling_validators('default_validators'))
+    return add_attribute_wrapper('throttling_validators', throttling_validators)
+
+
+def throttling_all(*validators, keep_default=False):
+    """
+    Adds throttling validators to a class.
+    """
+    def decorator(klass):
+        dispatch = getattr(klass, 'dispatch')
+        setattr(klass, 'dispatch', throttling(*validators, keep_default=keep_default)(dispatch))
+        return klass
+    return decorator
+
+
 def throttling_exempt():
     """
     Marks a function as being exempt from the throttling protection.
     """
-    return add_attribute_wrapper('throttling_exempt', True)
+    return add_attribute_wrapper('throttling_validators', ())
 
 
 def throttling_exempt_all(klass):

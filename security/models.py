@@ -65,6 +65,14 @@ def hide_sensitive_data_headers(headers):
     return headers
 
 
+def hide_sensitive_data_queries(queries):
+    for pattern in settings.HIDE_SENSITIVE_DATA_PATTERNS.get('QUERIES', ()):
+        for query_name, query in queries.items():
+            if re.match(pattern, query_name, re.IGNORECASE):
+                queries[query_name] = settings.SENSITIVE_DATA_REPLACEMENT
+    return queries
+
+
 def truncate_json_data(data):
     if isinstance(data, dict):
         return {key: truncate_json_data(val) for key, val in data.items()}
@@ -76,33 +84,37 @@ def truncate_json_data(data):
         return data
 
 
-def truncate_body(content):
+def truncate_body(content, max_lenght):
     content = force_text(content, errors='replace')
-    if len(content) > settings.LOG_REQUEST_BODY_LENGTH:
+    if len(content) > max_lenght:
         try:
             json_content = json.loads(content)
             return (
                 json.dumps(truncate_json_data(json_content))
-                if isinstance(json_content, (dict, list))
-                else content[:settings.LOG_REQUEST_BODY_LENGTH + 1]
+                if isinstance(json_content, (dict, list)) and settings.LOG_JSON_STRING_LENGTH is not None
+                else content[:max_lenght + 1]
             )
         except JSONDecodeError:
-            return content[:settings.LOG_REQUEST_BODY_LENGTH + 1]
+            return content[:max_lenght + 1]
     else:
         return content
 
 
-def clean_body(body):
+def clean_body(body, max_lenght):
     cleaned_body = truncatechars(
-        truncate_body(body), settings.LOG_REQUEST_BODY_LENGTH + len(settings.SENSITIVE_DATA_REPLACEMENT)
-    )
+        truncate_body(body, max_lenght), max_lenght + len(settings.SENSITIVE_DATA_REPLACEMENT)
+    ) if max_lenght is not None else str(body)
     cleaned_body = hide_sensitive_data_body(remove_nul_from_string(cleaned_body)) if cleaned_body else cleaned_body
-    cleaned_body = truncatechars(cleaned_body, settings.LOG_REQUEST_BODY_LENGTH)
+    cleaned_body = truncatechars(cleaned_body, max_lenght) if max_lenght else cleaned_body
     return cleaned_body
 
 
 def clean_headers(headers):
     return hide_sensitive_data_headers(headers) if headers else headers
+
+
+def clean_queries(queries):
+    return hide_sensitive_data_queries(queries) if queries else queries
 
 
 class InputLoggedRequestManager(models.Manager):
@@ -114,17 +126,23 @@ class InputLoggedRequestManager(models.Manager):
         user = hasattr(request, 'user') and request.user.is_authenticated and request.user or None
         path = truncatechars(request.path, 200)
 
-
         try:
             slug = resolve(request.path_info, getattr(request, 'urlconf', None)).view_name
         except Resolver404:
             slug = None
 
         return self.model(
-            request_headers=clean_headers(get_headers(request)), request_body=clean_body(request.body), user=user,
-            method=request.method.upper()[:7], host=get_full_host(request),
-            path=path, queries=request.GET.dict(), is_secure=request.is_secure(),
-            ip=get_ip(request), request_timestamp=timezone.now(), slug=slug
+            request_headers=clean_headers(get_headers(request)),
+            request_body=clean_body(request.body, settings.LOG_REQUEST_BODY_LENGTH),
+            user=user,
+            method=request.method.upper()[:7],
+            host=get_full_host(request),
+            path=path,
+            queries=clean_queries(request.GET.dict()),
+            is_secure=request.is_secure(),
+            ip=get_ip(request),
+            request_timestamp=timezone.now(),
+            slug=slug
         )
 
 
@@ -249,9 +267,10 @@ class InputLoggedRequest(LoggedRequest):
         self.response_code = response.status_code
         self.response_headers = clean_headers(dict(response.items()))
 
-        if (not response.streaming and
+
+        if (not response.streaming and settings.LOG_RESPONSE_BODY_CONTENT_TYPES is not None and
                 response.get('content-type', '').split(';')[0] in settings.LOG_RESPONSE_BODY_CONTENT_TYPES):
-            response_body = clean_body(response.content)
+            response_body = clean_body(response.content, settings.LOG_RESPONSE_BODY_LENGTH)
         else:
             response_body = ''
 

@@ -1,12 +1,11 @@
 from requests import *
 from urllib.parse import parse_qs, urlparse
 
-from django.template.defaultfilters import truncatechars
 from django.utils import timezone
 from django.utils.encoding import force_text
 
 from security.config import settings
-from security.models import LoggedRequest, OutputLoggedRequest, clean_body, clean_headers
+from security.models import LoggedRequest, clean_body, clean_headers, clean_queries
 
 from .transaction import log_output_request
 
@@ -23,14 +22,8 @@ def stringify_dict(d):
     return {k: stringify(v) for k, v in d.items()}
 
 
-def prepare_request_body(prep):
-    return (truncatechars(force_text(prep.body, errors='replace'),
-                          settings.LOG_REQUEST_BODY_LENGTH) if prep.body else '')
-
-
-def prepare_response_body(resp):
-    return (truncatechars(force_text(resp.content[:settings.LOG_RESPONSE_BODY_LENGTH + 1], errors='replace'),
-                          settings.LOG_RESPONSE_BODY_LENGTH) if resp.content else '')
+def prepare_body(body):
+    return force_text(body, errors='replace')
 
 
 class SecuritySession(Session):
@@ -49,7 +42,7 @@ class SecuritySession(Session):
             'host': parsed_url.netloc,
             'path': parsed_url.path,
             'method': method.upper(),
-            'queries': params or parse_qs(parsed_url.query),
+            'queries': clean_queries(params or parse_qs(parsed_url.query)),
             'slug': slug or self.slug,
             'request_timestamp': timezone.now(),
         }
@@ -62,7 +55,7 @@ class SecuritySession(Session):
             )
             prep = self.prepare_request(req)
             proxies = proxies or {}
-            settings = self.merge_environment_settings(
+            request_settings = self.merge_environment_settings(
                 prep.url, proxies, stream, verify, cert
             )
             # Send the request.
@@ -70,10 +63,10 @@ class SecuritySession(Session):
                 'timeout': timeout,
                 'allow_redirects': allow_redirects,
             }
-            send_kwargs.update(settings)
+            send_kwargs.update(request_settings)
             logged_kwargs.update({
                 'request_headers': clean_headers(dict(prep.headers.items())),
-                'request_body': clean_body(prepare_request_body(prep)),
+                'request_body': clean_body(prepare_body(prep.body), settings.LOG_REQUEST_BODY_LENGTH),
             })
             resp = self.send(prep, **send_kwargs)
 
@@ -81,7 +74,7 @@ class SecuritySession(Session):
                 'response_timestamp': timezone.now(),
                 'response_code': resp.status_code,
                 'response_headers': clean_headers(dict(resp.headers.items())),
-                'response_body': clean_body(prepare_response_body(resp)),
+                'response_body': clean_body(prepare_body(resp.content), settings.LOG_RESPONSE_BODY_LENGTH),
                 'status': LoggedRequest.get_status(resp.status_code)
             })
             return resp

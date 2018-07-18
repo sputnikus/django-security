@@ -24,6 +24,11 @@ class ThrottlingValidator:
     def _validate(self, request):
         raise NotImplemented
 
+    def __repr__(self):
+        return '<{} (timeframe={}, throttle_at={}, description={})>'.format(
+            self.__class__.__name__, self.timeframe, self.throttle_at, self.description
+        )
+
 
 class PerRequestThrottlingValidator(ThrottlingValidator):
 

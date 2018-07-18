@@ -1,4 +1,4 @@
-from dj.settings.base import *  # pylint: disable=E0401
+from settings.base import *  # pylint: disable=E0401
 
 
 DEBUG = TEMPLATE_DEBUG = THUMBNAIL_DEBUG = True
@@ -14,7 +14,7 @@ DATABASES = {
     },
 }
 
-ROOT_URLCONF = 'dj.urls'
+ROOT_URLCONF = 'urls'
 
 STATIC_ROOT = ''
 

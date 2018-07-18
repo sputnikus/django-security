@@ -88,10 +88,13 @@ Because some sensitive data inside requests and responses should not be stored (
             r'Cookie',
             r'.*token.*',
         ),
+        'QUERIES': (
+            r'.*token.*',
+        ),
     }
 
-Patterns are split to two groups ``BODY`` and ``HEADERS``.
-There are names of HTTP headers, whose values will be replaced by the replacement. The search is case insensitive.
+Patterns are split to two groups ``BODY``, ``HEADERS`` and ``QUERIES``.
+There are names of HTTP headers and queries, whose values will be replaced by the replacement. The search is case insensitive.
 ``BODY`` is a little bit complicated. If regex groups are used in the pattern only these groups will be replaced with the replacement. If no groups are used, the whole pattern will be replaced.
 
 Commands log
