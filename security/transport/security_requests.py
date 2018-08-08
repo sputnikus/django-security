@@ -28,9 +28,9 @@ def prepare_body(body):
 
 class SecuritySession(Session):
 
-    def __init__(self, *args, **kwargs):
-        super(SecuritySession, self).__init__(*args, **kwargs)
-        self.slug = None
+    def __init__(self, slug=None):
+        super(SecuritySession, self).__init__()
+        self.slug = slug
 
     def request(self, method, url, params=None, data=None, headers=None, cookies=None, files=None, auth=None,
                 timeout=None, allow_redirects=True, proxies=None, hooks=None, stream=None, verify=None, cert=None,
