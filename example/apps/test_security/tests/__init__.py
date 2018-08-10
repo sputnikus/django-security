@@ -273,16 +273,6 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         assert_not_in('"password": "[Filtered]"', responses.calls[0].request.body)
 
     @responses.activate
-    def test_response_sensitive_data_body_in_json_should_be_hidden(self):
-        responses.add(responses.POST, 'http://test.cz', body='test')
-        requests.post('http://test.cz', data=json.dumps({'password': 'secret-password'}))
-        output_logged_request = OutputLoggedRequest.objects.get()
-        assert_in('"password": "[Filtered]"', output_logged_request.request_body)
-        assert_not_in('"password": "secret-password"', output_logged_request.request_body)
-        assert_in('"password": "secret-password"', responses.calls[0].request.body)
-        assert_not_in('"password": "[Filtered]"', responses.calls[0].request.body)
-
-    @responses.activate
     def test_response_sensitive_headers_should_be_hidden(self):
         responses.add(responses.POST, 'http://test.cz', body='test')
         requests.post('http://test.cz', headers={'token': 'secret'})
@@ -312,4 +302,3 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         requests.post('http://test.cz?a=1&a=2', params={'b': '6', 'a': '3', 'c': ['5']})
         output_logged_request = OutputLoggedRequest.objects.get()
         assert_equal(output_logged_request.queries, {'b': '6', 'a': ['3', '1', '2'], 'c': '5'})
-
