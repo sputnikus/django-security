@@ -34,6 +34,10 @@ UNIT_OPTIONS = {
 }
 
 
+def is_base_collection(v):
+    return isinstance(v, (list, tuple, set))
+
+
 def get_throttling_validators(name):
     try:
         return getattr(import_module(settings.DEFAULT_THROTTLING_VALIDATORS_PATH), name)

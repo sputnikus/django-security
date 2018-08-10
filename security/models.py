@@ -23,7 +23,7 @@ except ImportError:
     from django.urls import get_resolver
 
 from security.config import settings
-from security.utils import get_headers, remove_nul_from_string, regex_sub_groups_global
+from security.utils import get_headers, remove_nul_from_string, regex_sub_groups_global, is_base_collection
 
 
 try:
@@ -58,6 +58,7 @@ def hide_sensitive_data_body(content):
 
 
 def hide_sensitive_data_headers(headers):
+    headers = dict(headers)
     for pattern in settings.HIDE_SENSITIVE_DATA_PATTERNS.get('HEADERS', ()):
         for header_name, header in headers.items():
             if re.match(pattern, header_name, re.IGNORECASE):
@@ -66,10 +67,14 @@ def hide_sensitive_data_headers(headers):
 
 
 def hide_sensitive_data_queries(queries):
+    queries = dict(queries)
     for pattern in settings.HIDE_SENSITIVE_DATA_PATTERNS.get('QUERIES', ()):
         for query_name, query in queries.items():
             if re.match(pattern, query_name, re.IGNORECASE):
-                queries[query_name] = settings.SENSITIVE_DATA_REPLACEMENT
+                queries[query_name] = (
+                    len(query) * [settings.SENSITIVE_DATA_REPLACEMENT] if is_base_collection(query)
+                    else settings.SENSITIVE_DATA_REPLACEMENT
+                )
     return queries
 
 
