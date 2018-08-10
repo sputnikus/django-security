@@ -6,6 +6,7 @@ from django.utils.encoding import force_text
 
 from security.config import settings
 from security.models import LoggedRequest, clean_body, clean_headers, clean_queries
+from security.utils import is_base_collection
 
 from .transaction import log_output_request
 
@@ -26,6 +27,33 @@ def prepare_body(body):
     return force_text(body, errors='replace')
 
 
+def flat_params(params):
+    return {
+        k: v[0] if is_base_collection(v) and len(v) == 1 else v
+        for k, v in params.items()
+    }
+
+
+def list_params(params):
+    return {
+        k: list(v) if is_base_collection(v) else [v]
+        for k, v in params.items()
+    }
+
+
+def get_logged_params(url, params):
+    params = list_params(params or {})
+    parsed_params = parse_qs(urlparse(url).query)
+
+    for k, v in parsed_params.items():
+        if k not in params:
+            params[k] = v
+        else:
+            params[k] += v
+
+    return flat_params(params)
+
+
 class SecuritySession(Session):
 
     def __init__(self, *args, **kwargs):
@@ -42,7 +70,7 @@ class SecuritySession(Session):
             'host': parsed_url.netloc,
             'path': parsed_url.path,
             'method': method.upper(),
-            'queries': clean_queries(params or parse_qs(parsed_url.query)),
+            'queries': clean_queries(get_logged_params(url, params)),
             'slug': slug or self.slug,
             'request_timestamp': timezone.now(),
         }
