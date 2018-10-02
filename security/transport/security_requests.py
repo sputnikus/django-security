@@ -56,13 +56,14 @@ def get_logged_params(url, params):
 
 class SecuritySession(Session):
 
-    def __init__(self, slug=None):
+    def __init__(self, slug=None, related_objects=None):
         super(SecuritySession, self).__init__()
         self.slug = slug
+        self.related_objects = related_objects
 
     def request(self, method, url, params=None, data=None, headers=None, cookies=None, files=None, auth=None,
                 timeout=None, allow_redirects=True, proxies=None, hooks=None, stream=None, verify=None, cert=None,
-                json=None, slug=None, related_objects=()):
+                json=None, slug=None, related_objects=None):
 
         parsed_url = urlparse(url)
         logged_kwargs = {
@@ -114,7 +115,9 @@ class SecuritySession(Session):
             })
             raise
         finally:
-            log_output_request(stringify_dict(logged_kwargs), related_objects)
+            log_output_request(
+                stringify_dict(logged_kwargs), self.related_objects if related_objects is None else related_objects
+            )
 
 
 def request(method, url, **kwargs):
