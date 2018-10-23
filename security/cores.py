@@ -25,9 +25,7 @@ class RequestsLogISCore(UIRESTModelISCore):
 
     abstract = True
 
-    create_permission = False
-    update_permission = False
-    delete_permission = False
+    can_create = can_update = can_delete = False
 
     @short_description(_('queries'))
     def queries_code(self, obj=None):
