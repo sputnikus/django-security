@@ -53,7 +53,11 @@ Setup
 
   Path to the view that returns throttling failure. Default value is ``'security.views.throttling_failure_view'``.
 
-.. attribute:: SECURITY_LOG_IGNORE_IP
+.. attribute:: SECURITY_LOG_REQUEST_IGNORE_URL_PATHS
+
+  Set of URL paths that are omitted from logging.
+
+.. attribute:: SECURITY_LOG_REQUEST_IGNORE_IP
 
   Tuple of IP addresses that are omitted from logging.
 

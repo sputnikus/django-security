@@ -60,8 +60,14 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         assert_http_not_found(self.get('/404/'))
         assert_equal(InputLoggedRequest.objects.first().status, InputLoggedRequest.WARNING)
 
-    @override_settings(SECURITY_LOG_IGNORE_IP=('127.0.0.1',))
+    @override_settings(SECURITY_LOG_REQUEST_IGNORE_IP=('127.0.0.1',))
     def test_ignored_client_ip_should_not_be_logged(self):
+        assert_equal(InputLoggedRequest.objects.count(), 0)
+        self.get('/')
+        assert_equal(InputLoggedRequest.objects.count(), 0)
+
+    @override_settings(SECURITY_LOG_REQUEST_IGNORE_URL_PATHS=('/',))
+    def test_ignored_request_path_should_not_be_logged(self):
         assert_equal(InputLoggedRequest.objects.count(), 0)
         self.get('/')
         assert_equal(InputLoggedRequest.objects.count(), 0)

@@ -197,25 +197,28 @@ class PurgeLogsBaseCommand(BaseCommand):
             del obj_data['pk']
         return data
 
-    def backup_to_file(self, qs, path):
-        self.stdout.write('Backing up old logs')
-
+    def backup_logs_and_clean_data(self, qs, backup_path):
         for timestamp in qs.datetimes(self.get_timestamp_field(), 'day'):
             min_timestamp = datetime.combine(timestamp, time.min).replace(tzinfo=utc)
             max_timestamp = datetime.combine(timestamp, time.max).replace(tzinfo=utc)
-            file_qs = qs.filter(**{'{}__range'.format(self.get_timestamp_field()):(min_timestamp, max_timestamp)})
+            qs_filtered_by_day = qs.filter(
+                **{'{}__range'.format(self.get_timestamp_field()): (min_timestamp, max_timestamp)})
 
-            log_file_path = os.path.abspath(os.path.join(path, force_text(timestamp.date())))
+            if backup_path:
+                log_file_path = os.path.abspath(os.path.join(backup_path, force_text(timestamp.date())))
 
-            if os.path.isfile('{}.json.zip'.format(log_file_path)):
-                i = 0
-                while os.path.isfile('{}({}).json.zip'.format(log_file_path, i)):
-                    i += 1
-                log_file_path = '{}({})'.format(log_file_path, i)
+                if os.path.isfile('{}.json.zip'.format(log_file_path)):
+                    i = 0
+                    while os.path.isfile('{}({}).json.zip'.format(log_file_path, i)):
+                        i += 1
+                    log_file_path = '{}({})'.format(log_file_path, i)
 
-            self.stdout.write(4 * ' ' + log_file_path)
-            with gzip.open('{}.json.zip'.format(log_file_path), 'wb') as file_out:
-                file_out.write(force_bytes(json.dumps(self.serialize(file_qs), cls=DjangoJSONEncoder, indent=5)))
+                self.stdout.write(4 * ' ' + 'generate backup file: ' + log_file_path)
+                with gzip.open('{}.json.zip'.format(log_file_path), 'wb') as file_out:
+                    file_out.write(
+                        force_bytes(json.dumps(self.serialize(qs_filtered_by_day), cls=DjangoJSONEncoder, indent=5)))
+            self.stdout.write(4 * ' ' + 'clean logs for day {}'.format(timestamp.date()))
+            qs_filtered_by_day.delete()
 
     def handle(self, expiration, **options):
         # Check we have the correct values
@@ -230,7 +233,7 @@ class PurgeLogsBaseCommand(BaseCommand):
             raise CommandError('Invalid expiration format')
 
         model = self.get_model()
-        qs = model.objects.filter(**{'{}__lte'.format(self.get_timestamp_field()):UNIT_OPTIONS[unit](amount)})
+        qs = model.objects.filter(**{'{}__lte'.format(self.get_timestamp_field()): UNIT_OPTIONS[unit](amount)})
 
         if qs.count() == 0:
             self.stdout.write('There are no logs to delete.')
@@ -248,10 +251,8 @@ class PurgeLogsBaseCommand(BaseCommand):
 
             if confirm == 'yes':
                 try:
-                    if options.get('backup'):
-                        self.backup_to_file(qs, options.get('backup'))
-                    self.stdout.write('Removing data')
-                    qs.delete()
+                    self.stdout.write('Clean data')
+                    self.backup_logs_and_clean_data(qs, options.get('backup'))
                 except IOError as ex:
                     self.stderr.write(force_text(ex))
 
