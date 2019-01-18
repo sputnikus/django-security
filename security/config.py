@@ -6,7 +6,8 @@ from attrdict import AttrDict
 DEFAULTS = {
     'DEFAULT_THROTTLING_VALIDATORS_PATH': 'security.default_validators',
     'THROTTLING_FAILURE_VIEW': 'security.views.throttling_failure_view',
-    'LOG_IGNORE_IP': (),
+    'LOG_REQUEST_IGNORE_IP': (),
+    'LOG_REQUEST_IGNORE_URL_PATHS': (),
     'LOG_REQUEST_BODY_LENGTH': 1000,
     'LOG_RESPONSE_BODY_LENGTH': 1000,
     'LOG_RESPONSE_BODY_CONTENT_TYPES':  (

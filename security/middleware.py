@@ -64,7 +64,9 @@ class LogMiddleware(MiddlewareMixin):
         connection = get_connection()
 
         view = get_view_from_request_or_none(request)
-        if get_ip(request) not in settings.LOG_IGNORE_IP and not getattr(view, 'log_exempt', False):
+        if (get_ip(request) not in settings.LOG_REQUEST_IGNORE_IP 
+               and request.path not in settings.LOG_REQUEST_IGNORE_URL_PATHS
+               and not getattr(view, 'log_exempt', False)):
             input_logged_request = InputLoggedRequest.objects.prepare_from_request(request)
             if getattr(view, 'hide_request_body', False):
                 input_logged_request.request_body = ''
