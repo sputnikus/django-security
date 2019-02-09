@@ -24,7 +24,8 @@ DEFAULTS = {
             r'<password>([^<]*)',
             r'password=([^&]*)',
             r'csrfmiddlewaretoken=([^&]*)',
-            r'(?i)content-disposition: form-data; name="password"\r\n\r\n.*'
+            r'(?i)content-disposition: form-data; name="password"\r\n\r\n.*',
+            r'"access_key": "([^"]*)',
         ),
         'HEADERS': (
             r'Authorization',

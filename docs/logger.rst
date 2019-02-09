@@ -52,10 +52,10 @@ Logging of output requests is a little bit complicated and is related to the way
 requests
 ^^^^^^^^
 
-First way is for logging simple HTTP requests with using ``requests`` library. You only have to use ``import requests`` instead of ``from security.transport import security_requests as requests``. There is same methods (get, post, put, ..) as in requests library. Every method has two extra optional parameters:
+The first method is used for logging simple HTTP requests using ``requests`` library. The only change necessary is to import ``from security.transport import security_requests as requests`` instead of ``import requests``. Same methods (get, post, put, ..) are available as in the requests library. Every method has two extra optional parameters:
 
-* ``slug`` - text slug that is stored with the logged request to tag concrete logged value.
-* ``related_objects`` - list or tuple of related objects that will be related with output logged request.
+* ``slug`` - text slug that is stored with the logged request to tag concrete logged value
+* ``related_objects`` - list or tuple of related objects that will be related with output logged request
 
 suds
 ^^^^
@@ -81,6 +81,8 @@ Because some sensitive data inside requests and responses should not be stored (
             r'<password>([^<]*)',
             r'password=([^&]*)',
             r'csrfmiddlewaretoken=([^&]*)',
+            r'(?i)content-disposition: form-data; name="password"\r\n\r\n.*',
+            r'"access_key": "([^"]*)',
         ),
         'HEADERS': (
             r'Authorization',
