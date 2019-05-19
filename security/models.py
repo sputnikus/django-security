@@ -42,15 +42,6 @@ def display_json(value, indent=4):
     return json.dumps(value, indent=indent, ensure_ascii=False, cls=DjangoJSONEncoder)
 
 
-def get_full_host(request):
-    host = request.META['SERVER_NAME']
-    port = request.META['SERVER_PORT']
-    if (request.is_secure() and port != '443') or (not request.is_secure() and port != '80'):
-        return '{}:{}'.format(host, port)
-    else:
-        return host
-
-
 def hide_sensitive_data_body(content):
     for pattern in settings.HIDE_SENSITIVE_DATA_PATTERNS.get('BODY', ()):
         content = regex_sub_groups_global(pattern, settings.SENSITIVE_DATA_REPLACEMENT, content)
@@ -141,7 +132,7 @@ class InputLoggedRequestManager(models.Manager):
             request_body=clean_body(request.body, settings.LOG_REQUEST_BODY_LENGTH),
             user=user,
             method=request.method.upper()[:7],
-            host=get_full_host(request),
+            host=request.get_host(),
             path=path,
             queries=clean_queries(request.GET.dict()),
             is_secure=request.is_secure(),
