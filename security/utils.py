@@ -12,13 +12,15 @@ from six.moves import input
 
 from django.core import serializers
 from django.core.exceptions import ImproperlyConfigured
+from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand
 from django.core.serializers.json import DjangoJSONEncoder
-from django.utils import timezone
-from django.utils.encoding import force_bytes, force_text
-from django.utils.timezone import now, utc
 from django.urls import resolve
 from django.urls.exceptions import Resolver404
+from django.utils import timezone
+from django.utils.encoding import force_bytes, force_text
+from django.utils.module_loading import import_string
+from django.utils.timezone import now, utc
 
 from .config import settings
 
@@ -30,6 +32,8 @@ UNIT_OPTIONS = {
     'm': lambda amount: timezone.now() - timedelta(days=(30 * amount)),  # 30-day month
     'y': lambda amount: timezone.now() - timedelta(weeks=(52 * amount)),  # 364-day year
 }
+
+storage = import_string(settings.BACKUP_STORAGE_CLASS)()
 
 
 def is_base_collection(v):
@@ -202,18 +206,21 @@ class PurgeLogsBaseCommand(BaseCommand):
                 **{'{}__range'.format(self.get_timestamp_field()): (min_timestamp, max_timestamp)})
 
             if backup_path:
-                log_file_path = os.path.abspath(os.path.join(backup_path, force_text(timestamp.date())))
+                log_file_path = os.path.join(backup_path, force_text(timestamp.date()))
 
-                if os.path.isfile('{}.json.zip'.format(log_file_path)):
+                if storage.exists('{}.json.zip'.format(log_file_path)):
                     i = 0
-                    while os.path.isfile('{}({}).json.zip'.format(log_file_path, i)):
+                    while storage.exists('{}({}).json.zip'.format(log_file_path, i)):
                         i += 1
                     log_file_path = '{}({})'.format(log_file_path, i)
 
                 self.stdout.write(4 * ' ' + 'generate backup file: ' + log_file_path)
-                with gzip.open('{}.json.zip'.format(log_file_path), 'wb') as file_out:
-                    file_out.write(
-                        force_bytes(json.dumps(self.serialize(qs_filtered_by_day), cls=DjangoJSONEncoder, indent=5)))
+                storage.save(
+                    '{}.json.zip'.format(log_file_path),
+                    ContentFile(gzip.compress(
+                        force_bytes(json.dumps(self.serialize(qs_filtered_by_day), cls=DjangoJSONEncoder, indent=5)),
+                    )),
+                )
             self.stdout.write(4 * ' ' + 'clean logs for day {}'.format(timestamp.date()))
             qs_filtered_by_day.delete()
 
