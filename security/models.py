@@ -241,12 +241,16 @@ class InputLoggedRequest(LoggedRequest):
     THROTTLED_REQUEST = 2
     SUCCESSFUL_LOGIN_REQUEST = 3
     UNSUCCESSFUL_LOGIN_REQUEST = 4
+    SUCCESSFUL_2FA_CODE_VERIFICATION_REQUEST = 5
+    UNSUCCESSFUL_2FA_CODE_VERIFICATION_REQUEST = 6
 
     TYPE_CHOICES = (
         (COMMON_REQUEST, _('Common request')),
         (THROTTLED_REQUEST, _('Throttled request')),
         (SUCCESSFUL_LOGIN_REQUEST, _('Successful login request')),
-        (UNSUCCESSFUL_LOGIN_REQUEST, _('Unsuccessful login request'))
+        (UNSUCCESSFUL_LOGIN_REQUEST, _('Unsuccessful login request')),
+        (SUCCESSFUL_2FA_CODE_VERIFICATION_REQUEST, _('Successful two factor code verification request')),
+        (UNSUCCESSFUL_2FA_CODE_VERIFICATION_REQUEST, _('Unsuccessful two factor code verification request')),
     )
 
     user = models.ForeignKey(django_settings.AUTH_USER_MODEL, verbose_name=_('user'), null=True, blank=True,
@@ -262,7 +266,6 @@ class InputLoggedRequest(LoggedRequest):
         self.status = self.get_status(response.status_code)
         self.response_code = response.status_code
         self.response_headers = clean_headers(dict(response.items()))
-
 
         if (not response.streaming and settings.LOG_RESPONSE_BODY_CONTENT_TYPES is not None and
                 response.get('content-type', '').split(';')[0] in settings.LOG_RESPONSE_BODY_CONTENT_TYPES):
