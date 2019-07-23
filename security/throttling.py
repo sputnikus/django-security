@@ -43,27 +43,43 @@ class PerRequestThrottlingValidator(ThrottlingValidator):
         return count_same_requests <= self.throttle_at
 
 
-class UnsuccessfulLoginThrottlingValidator(ThrottlingValidator):
+class LoginThrottlingValidator(ThrottlingValidator):
+
+    def _validate(self, request):
+        count_same_requests = InputLoggedRequest.objects.filter(
+            ip=get_ip(request), path=request.path,
+            request_timestamp__gte=timezone.now() - timedelta(seconds=self.timeframe),
+            type=self.type).count()
+        return count_same_requests <= self.throttle_at
+
+
+class UnsuccessfulLoginThrottlingValidator(LoginThrottlingValidator):
+
+    type = InputLoggedRequest.UNSUCCESSFUL_LOGIN_REQUEST
 
     def __init__(self, timeframe, throttle_at, description=_('Too many login attempts')):
-        super(UnsuccessfulLoginThrottlingValidator, self).__init__(timeframe, throttle_at, description)
-
-    def _validate(self, request):
-        count_same_requests = InputLoggedRequest.objects.filter(
-            ip=get_ip(request), path=request.path,
-            request_timestamp__gte=timezone.now() - timedelta(seconds=self.timeframe),
-            type=InputLoggedRequest.UNSUCCESSFUL_LOGIN_REQUEST).count()
-        return count_same_requests <= self.throttle_at
+        super().__init__(timeframe, throttle_at, description)
 
 
-class SuccessfulLoginThrottlingValidator(ThrottlingValidator):
+class SuccessfulLoginThrottlingValidator(LoginThrottlingValidator):
 
-    def __init__(self, timeframe, throttle_at, description=_('You are logged too much times')):
-        super(SuccessfulLoginThrottlingValidator, self).__init__(timeframe, throttle_at, description)
+    type = InputLoggedRequest.SUCCESSFUL_LOGIN_REQUEST
 
-    def _validate(self, request):
-        count_same_requests = InputLoggedRequest.objects.filter(
-            ip=get_ip(request), path=request.path,
-            request_timestamp__gte=timezone.now() - timedelta(seconds=self.timeframe),
-            type=InputLoggedRequest.SUCCESSFUL_LOGIN_REQUEST).count()
-        return count_same_requests <= self.throttle_at
+    def __init__(self, timeframe, throttle_at, description=_('You have logged in too many times')):
+        super().__init__(timeframe, throttle_at, description)
+
+
+class UnSuccessfulTwoFactorCodeVerificationThrottlingValidator(LoginThrottlingValidator):
+
+    type = InputLoggedRequest.UNSUCCESSFUL_2FA_CODE_VERIFICATION_REQUEST
+
+    def __init__(self, timeframe, throttle_at, description=_('Too many login attempts')):
+        super().__init__(timeframe, throttle_at, description)
+
+
+class SuccessfulTwoFactorCodeVerificationThrottlingValidator(LoginThrottlingValidator):
+
+    type = InputLoggedRequest.SUCCESSFUL_2FA_CODE_VERIFICATION_REQUEST
+
+    def __init__(self, timeframe, throttle_at, description=_('You have logged in too many times')):
+        super().__init__(timeframe, throttle_at, description)
