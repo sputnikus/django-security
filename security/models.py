@@ -234,6 +234,9 @@ class LoggedRequest(models.Model):
     class Meta:
         abstract = True
 
+    class UIMeta:
+        default_ui_filter_by = 'id'
+
 
 class InputLoggedRequest(LoggedRequest):
 
