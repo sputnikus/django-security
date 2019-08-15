@@ -4,6 +4,8 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.utils.html import format_html, mark_safe
 from django.utils.translation import ugettext_lazy as _
 
+from pyston.paginator import BaseOffsetPaginatorWithoutTotal
+
 from is_core.generic_views.inlines.inline_form_views import TabularInlineFormView
 from is_core.main import UIRESTModelISCore
 from is_core.utils.decorators import short_description
@@ -26,6 +28,8 @@ class RequestsLogISCore(UIRESTModelISCore):
     abstract = True
 
     can_create = can_update = can_delete = False
+
+    rest_paginator = BaseOffsetPaginatorWithoutTotal
 
     @short_description(_('queries'))
     def queries_code(self, obj=None):
