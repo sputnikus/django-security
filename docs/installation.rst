@@ -92,3 +92,7 @@ Setup
 .. attribute:: SECURITY_APPEND_SLASH
 
   Setting same as Django setting ``APPEND_SLASH``. Default value is ``True``.
+
+.. attribute:: SECURITY_CELERY_STALE_TASK_TIME_LIMIT_MINUTES
+
+  Default wait timeout to set not triggered task to the failed state. Default value is ``60``.

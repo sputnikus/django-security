@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-07-19 09:33+0200\n"
+"POT-Creation-Date: 2019-08-15 18:42+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -57,6 +57,9 @@ msgstr "výstup spustitelné úlohy"
 msgid "Incomplete"
 msgstr "Nedokončený"
 
+msgid "Debug"
+msgstr "Debug"
+
 msgid "Info"
 msgstr "Info"
 
@@ -65,9 +68,6 @@ msgstr "Varování"
 
 msgid "Error"
 msgstr "Chyba"
-
-msgid "Debug"
-msgstr "Debug"
 
 msgid "Critical"
 msgstr "Kritické"
@@ -173,6 +173,39 @@ msgstr "log spustitelné úlohy"
 
 msgid "command logs"
 msgstr "logy spustitelných úloh"
+
+msgid "Waiting"
+msgstr "Čeká"
+
+msgid "Active"
+msgstr "Aktivní"
+
+msgid "Succeeded"
+msgstr "Dokončený"
+
+msgid "Failed"
+msgstr "Chyba"
+
+msgid "Retried"
+msgstr "Opakovaný"
+
+msgid "task name"
+msgstr "název úlohy"
+
+msgid "state"
+msgstr "stav"
+
+msgid "error message"
+msgstr "zpráva chyby"
+
+msgid "queue name"
+msgstr "název fronty"
+
+msgid "celery task"
+msgstr "celery úloha"
+
+msgid "celery tasks"
+msgstr "celery úlohy"
 
 msgid "Revisions"
 msgstr "Revize"

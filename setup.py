@@ -33,8 +33,9 @@ setup(
         'jsonfield>=1.0.3',
         'django-ipware>=1.0.0',
         'ansi2html>=1.3.0',
-        'django-chamber>=0.4.0',
+        'django-chamber>=0.5.3',
         'attrdict>=2.0.0',
+        'django-choice-enumfields>=1.0.3',
     ],
     zip_safe=False
 )

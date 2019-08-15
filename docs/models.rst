@@ -210,3 +210,31 @@ Models
   .. attribute:: is_successful
 
     Flag that indicates if command finished successfully.
+
+.. class:: security.models.CeleryTaskLog
+
+  Represents a log of a command run.
+
+  .. attribute:: start
+
+    Date and time when task was started.
+
+  .. attribute:: stop
+
+    Date and time when task finished.
+
+  .. attribute:: name
+
+    Name of the task.
+
+  .. attribute:: state
+
+    State of the task (WAITING, ACTIVE, SUCCEEDED, FAILED, RETRIED).
+
+  .. attribute:: error_message
+
+    Exception message when task fails.
+
+  .. attribute:: queue_name
+
+    Name of the task queue.
