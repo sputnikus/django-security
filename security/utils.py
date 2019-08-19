@@ -20,8 +20,6 @@ from django.utils.timezone import now, utc
 from django.urls import resolve
 from django.urls.exceptions import Resolver404
 
-from chamber.shortcuts import change_and_save
-
 from .config import settings
 
 
@@ -159,8 +157,7 @@ class CommandLogger(StringIO):
 
     def _finish(self, success=False):
         if self.command_log.stop is None:
-            change_and_save(
-                self.command_log,
+            self.command_log.change_and_save(
                 output=self.output.getvalue(),
                 stop=now(),
                 is_successful=success

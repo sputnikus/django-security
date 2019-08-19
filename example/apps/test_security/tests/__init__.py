@@ -8,17 +8,23 @@ from django.db import transaction
 
 import responses
 
-from security.models import InputLoggedRequest, OutputLoggedRequest, CommandLog
+from security.models import (
+    InputLoggedRequest, OutputLoggedRequest, CommandLog, LoggedRequestStatus, CeleryTaskLog, CeleryTaskLogState
+)
 from security.management import call_command
 from security.transport import security_requests as requests
 from security.transport.transaction import atomic_log
+from security.tasks import call_django_command
 
 from germanium.annotations import data_provider
 from germanium.test_cases.client import ClientTestCase
 from germanium.tools import (
     assert_in, assert_not_in, assert_equal, assert_true, assert_false, assert_http_redirect, assert_http_bad_request,
-    assert_http_application_error, assert_http_ok, assert_http_not_found, assert_raises, assert_http_too_many_requests
+    assert_http_application_error, assert_http_ok, assert_http_not_found, assert_raises, assert_http_too_many_requests,
+    assert_is_not_none, assert_raises
 )
+
+from apps.test_security.tasks import sum_task, error_task
 
 
 class TestException(Exception):
@@ -52,13 +58,13 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
     @data_provider('create_user')
     def test_input_logged_request_should_have_right_status(self, user):
         assert_http_ok(self.post('/admin/login/', data={'username': 'invalid', 'password': 'invalid'}))
-        assert_equal(InputLoggedRequest.objects.first().status, InputLoggedRequest.INFO)
+        assert_equal(InputLoggedRequest.objects.first().status, LoggedRequestStatus.INFO)
         assert_http_redirect(self.post('/admin/login/', data={'username': 'test', 'password': 'test'}))
-        assert_equal(InputLoggedRequest.objects.first().status, InputLoggedRequest.INFO)
+        assert_equal(InputLoggedRequest.objects.first().status, LoggedRequestStatus.INFO)
         assert_raises(Exception, self.get, '/proxy/')
-        assert_equal(InputLoggedRequest.objects.first().status, InputLoggedRequest.ERROR)
+        assert_equal(InputLoggedRequest.objects.first().status, LoggedRequestStatus.ERROR)
         assert_http_not_found(self.get('/404/'))
-        assert_equal(InputLoggedRequest.objects.first().status, InputLoggedRequest.WARNING)
+        assert_equal(InputLoggedRequest.objects.first().status, LoggedRequestStatus.WARNING)
 
     @override_settings(SECURITY_LOG_REQUEST_IGNORE_IP=('127.0.0.1',))
     def test_ignored_client_ip_should_not_be_logged(self):
@@ -308,3 +314,24 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         requests.post('http://test.cz?a=1&a=2', params={'b': '6', 'a': '3', 'c': ['5']})
         output_logged_request = OutputLoggedRequest.objects.get()
         assert_equal(output_logged_request.queries, {'b': '6', 'a': ['3', '1', '2'], 'c': '5'})
+
+    def test_celery_task_should_be_logged(self):
+        sum_task.apply_async(args=(5, 8))
+        assert_equal(CeleryTaskLog.objects.count(), 1)
+        assert_equal(CeleryTaskLog.objects.get().state, CeleryTaskLogState.SUCCEEDED)
+
+    def test_celery_task_should_be_able_to_run_with_apply_async_on_commit(self):
+        sum_task.apply_async_on_commit(args=(5, 8))
+        assert_equal(CeleryTaskLog.objects.count(), 1)
+        assert_equal(CeleryTaskLog.objects.get().state, CeleryTaskLogState.SUCCEEDED)
+
+    def test_celery_error_task_should_be_set_as_failed_in_the_log(self):
+        error_task.apply_async_on_commit()
+        assert_equal(CeleryTaskLog.objects.count(), 1)
+        assert_equal(CeleryTaskLog.objects.get().state, CeleryTaskLogState.FAILED)
+        assert_is_not_none(CeleryTaskLog.objects.get().error_message)
+
+    def test_django_command_should_be_run_via_task(self):
+        call_django_command.apply_async(args=('check',))
+        assert_equal(CeleryTaskLog.objects.count(), 1)
+        assert_equal(CeleryTaskLog.objects.get().state, CeleryTaskLogState.SUCCEEDED)

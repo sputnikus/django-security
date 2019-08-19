@@ -5,7 +5,7 @@ from django.utils import timezone
 from django.utils.encoding import force_text
 
 from security.config import settings
-from security.models import LoggedRequest, clean_body, clean_headers, clean_queries
+from security.models import LoggedRequest, LoggedRequestStatus, clean_body, clean_headers, clean_queries
 from security.utils import is_base_collection
 
 from .transaction import log_output_request
@@ -110,7 +110,7 @@ class SecuritySession(Session):
         except Exception as ex:
             logged_kwargs.update({
                 'error_description': force_text(ex),
-                'status': LoggedRequest.CRITICAL,
+                'status': LoggedRequestStatus.CRITICAL,
                 'exception_name': ex.__class__.__name__
             })
             raise

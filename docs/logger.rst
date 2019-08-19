@@ -115,3 +115,25 @@ If you want to log commands you must only modify your ``mangage.py`` file::
         execute_from_command_line(sys.argv)
 
 If you want to call command from code, you should use ``security.management.call_command`` instead of standard Django ``call_command`` function.
+
+Celery tasks log
+----------------
+
+If you want to log celery tasks you must firsly install celery library (celery==4.3.0). Then you must define your task as in example::
+
+    from security.tasks import LoggedTask
+
+    @celery_app.task(
+        base=LoggedTask,
+        bind=True,
+        name='sum_task')
+    def sum_task(self, task_id, a, b):
+        return a + b
+
+Task result will be automatically logged to the ``security.models.CeleryTaskLog``.
+
+You can use predefined celery task ``security.tasks.call_django_command`` to run arbitrary django command. For example::
+
+    from security.tasks import call_django_command
+
+    call_django_command.apply_async(args=('check',))

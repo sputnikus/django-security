@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext as _
 
 from .exception import ThrottlingException
-from .models import InputLoggedRequest
+from .models import InputLoggedRequest, InputLoggedRequestType
 
 
 class ThrottlingValidator:
@@ -55,7 +55,7 @@ class LoginThrottlingValidator(ThrottlingValidator):
 
 class UnsuccessfulLoginThrottlingValidator(LoginThrottlingValidator):
 
-    type = InputLoggedRequest.UNSUCCESSFUL_LOGIN_REQUEST
+    type = InputLoggedRequestType.UNSUCCESSFUL_LOGIN_REQUEST
 
     def __init__(self, timeframe, throttle_at, description=_('Too many login attempts')):
         super().__init__(timeframe, throttle_at, description)
@@ -63,7 +63,7 @@ class UnsuccessfulLoginThrottlingValidator(LoginThrottlingValidator):
 
 class SuccessfulLoginThrottlingValidator(LoginThrottlingValidator):
 
-    type = InputLoggedRequest.SUCCESSFUL_LOGIN_REQUEST
+    type = InputLoggedRequestType.SUCCESSFUL_LOGIN_REQUEST
 
     def __init__(self, timeframe, throttle_at, description=_('You have logged in too many times')):
         super().__init__(timeframe, throttle_at, description)
@@ -71,7 +71,7 @@ class SuccessfulLoginThrottlingValidator(LoginThrottlingValidator):
 
 class UnSuccessfulTwoFactorCodeVerificationThrottlingValidator(LoginThrottlingValidator):
 
-    type = InputLoggedRequest.UNSUCCESSFUL_2FA_CODE_VERIFICATION_REQUEST
+    type = InputLoggedRequestType.UNSUCCESSFUL_2FA_CODE_VERIFICATION_REQUEST
 
     def __init__(self, timeframe, throttle_at, description=_('Too many login attempts')):
         super().__init__(timeframe, throttle_at, description)
@@ -79,7 +79,7 @@ class UnSuccessfulTwoFactorCodeVerificationThrottlingValidator(LoginThrottlingVa
 
 class SuccessfulTwoFactorCodeVerificationThrottlingValidator(LoginThrottlingValidator):
 
-    type = InputLoggedRequest.SUCCESSFUL_2FA_CODE_VERIFICATION_REQUEST
+    type = InputLoggedRequestType.SUCCESSFUL_2FA_CODE_VERIFICATION_REQUEST
 
     def __init__(self, timeframe, throttle_at, description=_('You have logged in too many times')):
         super().__init__(timeframe, throttle_at, description)

@@ -10,7 +10,9 @@ from is_core.generic_views.inlines.inline_form_views import TabularInlineFormVie
 from is_core.main import UIRESTModelISCore
 from is_core.utils.decorators import short_description
 
-from security.models import CommandLog, InputLoggedRequest, OutputLoggedRequest, OutputLoggedRequestRelatedObjects
+from security.models import (
+    CommandLog, InputLoggedRequest, OutputLoggedRequest, OutputLoggedRequestRelatedObjects, CeleryTaskLog
+)
 
 from ansi2html import Ansi2HTMLConverter
 
@@ -60,14 +62,14 @@ class InputRequestsLogISCore(RequestsLogISCore):
 
     model = InputLoggedRequest
     ui_list_fields = (
-        'request_timestamp', 'response_timestamp', 'response_time', 'status', 'response_code', 'host', 'short_path',
-        'slug', 'ip', 'user', 'method', 'type', 'short_response_body', 'short_request_body', 'short_queries',
-        'short_request_headers'
+        'created_at', 'changed_at', 'request_timestamp', 'response_timestamp', 'response_time', 'status',
+        'response_code', 'host', 'short_path', 'slug', 'ip', 'user', 'method', 'type', 'short_response_body',
+        'short_request_body', 'short_queries', 'short_request_headers'
     )
 
     form_fieldsets = (
-        (_('Request'), {'fields': ('request_timestamp', 'host', 'method', 'path', 'queries_code',
-                                   'request_headers_code', 'request_body_code', 'is_secure')}),
+        (_('Request'), {'fields': ('created_at', 'changed_at', 'request_timestamp', 'host', 'method', 'path',
+                                   'queries_code', 'request_headers_code', 'request_body_code', 'is_secure')}),
         (_('Response'), {'fields': ('response_timestamp', 'response_code', 'status', 'response_headers_code',
                                     'response_body_code', 'type', 'error_description_code')}),
         (_('User information'), {'fields': ('user', 'ip')}),
@@ -87,14 +89,14 @@ class OutputRequestsLogISCore(RequestsLogISCore):
 
     model = OutputLoggedRequest
     ui_list_fields = (
-        'request_timestamp', 'response_timestamp', 'response_time', 'status', 'response_code', 'host', 'short_path',
-        'method', 'slug', 'short_response_body', 'short_request_body', 'input_logged_request', 'short_queries',
-        'short_request_headers'
+        'created_at', 'changed_at', 'request_timestamp', 'response_timestamp', 'response_time', 'status',
+        'response_code', 'host', 'short_path', 'method', 'slug', 'short_response_body', 'short_request_body',
+        'input_logged_request', 'short_queries', 'short_request_headers'
     )
 
     form_fieldsets = (
-        (_('Request'), {'fields': ('request_timestamp', 'host', 'method', 'path', 'queries_code',
-                                   'request_headers_code', 'request_body_code', 'is_secure')}),
+        (_('Request'), {'fields': ('created_at', 'changed_at', 'request_timestamp', 'host', 'method', 'path',
+                                   'queries_code', 'request_headers_code', 'request_body_code', 'is_secure')}),
         (_('Response'), {'fields': ('response_timestamp', 'response_code', 'status', 'response_headers_code',
                                     'response_body_code', 'error_description_code')}),
         (_('Extra information'), {'fields': ('slug', 'response_time', 'input_logged_request')}),
@@ -112,11 +114,12 @@ class CommandLogISCore(UIRESTModelISCore):
     update_permission = False
     delete_permission = False
 
-    ui_list_fields = ('command_name', 'start', 'stop', 'executed_from_command_line', 'is_successful')
+    ui_list_fields = ('created_at', 'changed_at', 'command_name', 'start', 'stop', 'executed_from_command_line',
+                      'is_successful')
 
     form_fieldsets = (
         (None, {
-            'fields': ('command_name', 'command_options', 'output_html'),
+            'fields': ('created_at', 'changed_at', 'command_name', 'command_options', 'output_html'),
             'class': 'col-sm-6'
         }),
         (None, {
@@ -134,3 +137,21 @@ class CommandLogISCore(UIRESTModelISCore):
             output = mark_safe(conv.convert(obj.output, full=False))
             return display_as_code(output)
         return None
+
+
+class CeleryTaskLogISCore(UIRESTModelISCore):
+
+    model = CeleryTaskLog
+
+    abstract = True
+
+    cat_create = can_update = can_delete = False
+
+    rest_paginator = BaseOffsetPaginatorWithoutTotal
+
+    ui_list_fields = (
+        'created_at', 'changed_at', 'name', 'state', 'start', 'stop', 'queue_name'
+    )
+    form_fields = (
+        'created_at', 'changed_at', 'name', 'state', 'start', 'stop', 'error_message', 'queue_name'
+    )

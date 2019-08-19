@@ -22,9 +22,12 @@ try:
 except ImportError:
     from django.urls import get_resolver
 
+from chamber.models import SmartModel
+
+from enumfields import NumEnumField
+
 from security.config import settings
 from security.utils import get_headers, remove_nul_from_string, regex_sub_groups_global, is_base_collection
-
 
 try:
     from django.contrib.contenttypes.fields import GenericForeignKey
@@ -36,6 +39,8 @@ try:
     from pyston.filters.default_filters import CaseSensitiveStringFieldFilter
 except ImportError:
     CaseSensitiveStringFieldFilter = object
+
+from .enums import InputLoggedRequestType, LoggedRequestStatus, CeleryTaskLogState
 
 
 def display_json(value, indent=4):
@@ -142,32 +147,16 @@ class InputLoggedRequestManager(models.Manager):
         )
 
 
-class LoggedRequest(models.Model):
-
-    INCOMPLETE = 0
-    DEBUG = 10
-    INFO = 20
-    WARNING = 30
-    ERROR = 40
-    CRITICAL = 50
-
-    STATUS_CHOICES = (
-        (INCOMPLETE, _('Incomplete')),
-        (INFO, _('Info')),
-        (WARNING, _('Warning')),
-        (ERROR, _('Error')),
-        (DEBUG, _('Debug')),
-        (CRITICAL, _('Critical')),
-    )
+class LoggedRequest(SmartModel):
 
     host = models.CharField(_('host'), max_length=255, null=False, blank=False, db_index=True)
     host._filter = CaseSensitiveStringFieldFilter
     method = models.SlugField(_('method'), max_length=7, null=False, blank=False, db_index=True)
-    path = models.CharField(_('URL path'), max_length=255, null=False, blank=False, db_index=True)
+    path = models.CharField(_('URL path'), max_length=255, null=False, blank=True, db_index=True)
     path._filter = CaseSensitiveStringFieldFilter
     queries = JSONField(_('queries'), null=True, blank=True)
     is_secure = models.BooleanField(_('HTTPS connection'), default=False, null=False, blank=False)
-    slug = models.SlugField(_('slug'), null=True, blank=True, db_index=True, max_length=255)
+    slug = models.CharField(_('slug'), null=True, blank=True, db_index=True, max_length=255)
 
     # Request information
     request_timestamp = models.DateTimeField(_('request timestamp'), null=False, blank=False, db_index=True)
@@ -180,19 +169,19 @@ class LoggedRequest(models.Model):
     response_headers = JSONField(_('response headers'), null=True, blank=True)
     response_body = models.TextField(_('response body'), null=True, blank=True)
 
-    status = models.PositiveSmallIntegerField(_('status'), choices=STATUS_CHOICES, null=False, blank=False,
-                                              default=INCOMPLETE)
+    status = NumEnumField(verbose_name=_('status'), enum=LoggedRequestStatus, null=False, blank=False,
+                          default=LoggedRequestStatus.INCOMPLETE)
     error_description = models.TextField(_('error description'), null=True, blank=True)
     exception_name = models.CharField(_('exception name'), null=True, blank=True, max_length=255)
 
     @classmethod
     def get_status(cls, status_code):
         if status_code >= 500:
-            return LoggedRequest.ERROR
+            return LoggedRequestStatus.ERROR
         elif status_code >= 400:
-            return LoggedRequest.WARNING
+            return LoggedRequestStatus.WARNING
         else:
-            return LoggedRequest.INFO
+            return LoggedRequestStatus.INFO
 
     def short_queries(self):
         return truncatechars(display_json(self.queries, indent=0), 50)
@@ -240,27 +229,12 @@ class LoggedRequest(models.Model):
 
 class InputLoggedRequest(LoggedRequest):
 
-    COMMON_REQUEST = 1
-    THROTTLED_REQUEST = 2
-    SUCCESSFUL_LOGIN_REQUEST = 3
-    UNSUCCESSFUL_LOGIN_REQUEST = 4
-    SUCCESSFUL_2FA_CODE_VERIFICATION_REQUEST = 5
-    UNSUCCESSFUL_2FA_CODE_VERIFICATION_REQUEST = 6
-
-    TYPE_CHOICES = (
-        (COMMON_REQUEST, _('Common request')),
-        (THROTTLED_REQUEST, _('Throttled request')),
-        (SUCCESSFUL_LOGIN_REQUEST, _('Successful login request')),
-        (UNSUCCESSFUL_LOGIN_REQUEST, _('Unsuccessful login request')),
-        (SUCCESSFUL_2FA_CODE_VERIFICATION_REQUEST, _('Successful two factor code verification request')),
-        (UNSUCCESSFUL_2FA_CODE_VERIFICATION_REQUEST, _('Unsuccessful two factor code verification request')),
-    )
-
     user = models.ForeignKey(django_settings.AUTH_USER_MODEL, verbose_name=_('user'), null=True, blank=True,
                              on_delete=models.SET_NULL)
     ip = models.GenericIPAddressField(_('IP address'), null=False, blank=False)
-    type = models.PositiveSmallIntegerField(_('type'), choices=TYPE_CHOICES, default=COMMON_REQUEST, null=False,
-                                            blank=False)
+    type = NumEnumField(verbose_name=_('type'), enum=InputLoggedRequestType,
+                        default=InputLoggedRequestType.COMMON_REQUEST,
+                        null=False, blank=False)
 
     objects = InputLoggedRequestManager()
 
@@ -281,7 +255,10 @@ class InputLoggedRequest(LoggedRequest):
     class Meta:
         verbose_name = _('input logged request')
         verbose_name_plural = _('input logged requests')
-        ordering = ('-request_timestamp',)
+        ordering = ('-created_at',)
+
+    class SmartMeta:
+        is_cleaned_pre_save = False
 
 
 class OutputLoggedRequest(LoggedRequest):
@@ -293,7 +270,10 @@ class OutputLoggedRequest(LoggedRequest):
     class Meta:
         verbose_name = _('output logged request')
         verbose_name_plural = _('output logged requests')
-        ordering = ('-request_timestamp',)
+        ordering = ('-created_at',)
+
+    class SmartMeta:
+        is_cleaned_pre_save = False
 
 
 class OutputLoggedRequestRelatedObjects(models.Model):
@@ -311,7 +291,7 @@ class OutputLoggedRequestRelatedObjects(models.Model):
     display_object.short_description = _('object')
 
 
-class CommandLog(models.Model):
+class CommandLog(SmartModel):
     """
     Represents a log of a command run.
 
@@ -338,4 +318,46 @@ class CommandLog(models.Model):
     class Meta:
         verbose_name = _('command log')
         verbose_name_plural = _('command logs')
-        ordering = ('-start',)
+        ordering = ('-created_at',)
+
+    class SmartMeta:
+        is_cleaned_pre_save = False
+
+    class UIMeta:
+        default_ui_filter_by = 'id'
+
+
+class CeleryTaskManager(models.Manager):
+
+    def filter_stale(self, **kwargs):
+        return self.filter(
+            state__in={CeleryTaskLogState.WAITING, CeleryTaskLogState.ACTIVE, CeleryTaskLogState.RETRIED},
+            changed_at__lt=timezone.now() - timedelta(minutes=settings.CELERY_STALE_TASK_TIME_LIMIT_MINUTES)
+        )
+
+
+class CeleryTaskLog(SmartModel):
+
+    objects = CeleryTaskManager()
+
+    start = models.DateTimeField(verbose_name=_('start'), null=True, blank=True)
+    stop = models.DateTimeField(verbose_name=_('stop'), null=True, blank=True)
+    name = models.CharField(verbose_name=_('task name'), null=False, blank=False, max_length=250)
+    state = NumEnumField(verbose_name=_('state'), null=False, blank=False, enum=CeleryTaskLogState,
+                         default=CeleryTaskLogState.WAITING)
+    error_message = models.TextField(verbose_name=_('error message'), null=True, blank=True)
+    queue_name = models.CharField(verbose_name=_('queue name'), null=True, blank=True, max_length=250)
+
+    class Meta:
+        verbose_name = _('celery task')
+        verbose_name_plural = _('celery tasks')
+        ordering = ('-created_at',)
+
+    class SmartMeta:
+        is_cleaned_pre_save = False
+
+    class UIMeta:
+        default_ui_filter_by = 'id'
+
+    def __str__(self):
+        return '{} ({})'.format(self.name, self.get_state_display())

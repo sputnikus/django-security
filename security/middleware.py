@@ -11,7 +11,7 @@ from django.utils.encoding import force_text
 
 from .config import settings
 from .exception import ThrottlingException
-from .models import InputLoggedRequest
+from .models import InputLoggedRequest, InputLoggedRequestType
 from .utils import get_throttling_validators, get_view_from_request_or_none
 
 try:
@@ -64,7 +64,7 @@ class LogMiddleware(MiddlewareMixin):
         connection = get_connection()
 
         view = get_view_from_request_or_none(request)
-        if (get_ip(request) not in settings.LOG_REQUEST_IGNORE_IP 
+        if (get_ip(request) not in settings.LOG_REQUEST_IGNORE_IP
                and request.path not in settings.LOG_REQUEST_IGNORE_URL_PATHS
                and not getattr(view, 'log_exempt', False)):
             input_logged_request = InputLoggedRequest.objects.prepare_from_request(request)
@@ -151,5 +151,5 @@ class LogMiddleware(MiddlewareMixin):
             logged_request.error_description = traceback.format_exc()
             logged_request.exception_name = exception.__class__.__name__
             if isinstance(exception, ThrottlingException):
-                logged_request.type = InputLoggedRequest.THROTTLED_REQUEST
+                logged_request.type = InputLoggedRequestType.THROTTLED_REQUEST
                 return self._render_throttling(request, exception)
