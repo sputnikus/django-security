@@ -10,7 +10,7 @@ DEFAULTS = {
     'LOG_REQUEST_IGNORE_URL_PATHS': (),
     'LOG_REQUEST_BODY_LENGTH': 1000,
     'LOG_RESPONSE_BODY_LENGTH': 1000,
-    'LOG_RESPONSE_BODY_CONTENT_TYPES':  (
+    'LOG_RESPONSE_BODY_CONTENT_TYPES': (
         'application/json', 'application/xml', 'text/xml', 'text/csv', 'text/html', 'application/xhtml+xml'
     ),
     'LOG_JSON_STRING_LENGTH': 250,
@@ -40,6 +40,7 @@ DEFAULTS = {
     'SENSITIVE_DATA_REPLACEMENT': '[Filtered]',
     'APPEND_SLASH': True,
     'CELERY_STALE_TASK_TIME_LIMIT_MINUTES': 60,
+    'BACKUP_STORAGE_CLASS': 'django.core.files.storage.DefaultStorage',
 }
 
 
