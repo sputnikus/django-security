@@ -110,9 +110,7 @@ class CommandLogISCore(UIRESTModelISCore):
 
     model = CommandLog
 
-    create_permission = False
-    update_permission = False
-    delete_permission = False
+    can_create = can_update = can_delete = False
 
     ui_list_fields = ('created_at', 'changed_at', 'command_name', 'start', 'stop', 'executed_from_command_line',
                       'is_successful')
@@ -145,7 +143,7 @@ class CeleryTaskLogISCore(UIRESTModelISCore):
 
     abstract = True
 
-    cat_create = can_update = can_delete = False
+    can_create = can_update = can_delete = False
 
     rest_paginator = BaseOffsetPaginatorWithoutTotal
 
