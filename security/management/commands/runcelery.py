@@ -4,7 +4,7 @@ import subprocess
 from django.core.management.base import BaseCommand
 
 
-def restart_celery(celery_type, celery_settings, extra_arguments, pids):
+def restart_celery(celery_type, celery_settings, extra_arguments):
     starter_celery_cmd = 'celery {} -l info -A {} {}'.format(celery_type, celery_settings, extra_arguments)
     kill_worker_cmd = 'pkill -9 -f "{}"'.format(starter_celery_cmd)
     subprocess.call(shlex.split(kill_worker_cmd))
@@ -36,15 +36,22 @@ class Command(BaseCommand):
             self.stdout.write('Starting celery with autoreload...')
             try:
                 from django.utils.autoreload import run_with_reloader
-                run_with_reloader(restart_celery, args=(
-                    options.get('type'), options.get('celery_settings'), options.get('extra_args', ''), []
-                ))
+                run_with_reloader(
+                    restart_celery,
+                    celery_type=options.get('type'),
+                    celery_settings=options.get('celery_settings'),
+                    extra_arguments=options.get('extra_args', '')
+                )
             except ImportError:
                 from django.utils import autoreload
                 autoreload.main(restart_celery, args=(
-                    options.get('type'), options.get('celery_settings'), options.get('extra_args', ''), []
+                    options.get('type'), options.get('celery_settings'), options.get('extra_args', '')
                 ))
         else:
             self.stdout.write('Starting celery...')
-            restart_celery(options.get('type'), options.get('celery_settings'), options.get('extra_args', ''), []),
+            restart_celery(
+                celery_type=options.get('type'),
+                celery_settings=options.get('celery_settings'),
+                extra_arguments=options.get('extra_args', '')
+            )
 
