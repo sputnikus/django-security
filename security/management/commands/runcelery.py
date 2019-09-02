@@ -2,7 +2,6 @@ import shlex
 import subprocess
 
 from django.core.management.base import BaseCommand
-from django.utils import autoreload
 
 
 def restart_celery(celery_type, celery_settings, extra_arguments, pids):
@@ -35,9 +34,16 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         if options.get('use_reloader'):
             self.stdout.write('Starting celery with autoreload...')
-            autoreload.main(restart_celery, args=(
-                options.get('type'), options.get('celery_settings'), options.get('extra_args', ''), []
-            ))
+            try:
+                from django.utils.autoreload import run_with_reloader
+                run_with_reloader(restart_celery, args=(
+                    options.get('type'), options.get('celery_settings'), options.get('extra_args', ''), []
+                ))
+            except ImportError:
+                from django.utils import autoreload
+                autoreload.main(restart_celery, args=(
+                    options.get('type'), options.get('celery_settings'), options.get('extra_args', ''), []
+                ))
         else:
             self.stdout.write('Starting celery...')
             restart_celery(options.get('type'), options.get('celery_settings'), options.get('extra_args', ''), []),
