@@ -112,12 +112,13 @@ class CommandLogISCore(UIRESTModelISCore):
 
     can_create = can_update = can_delete = False
 
-    ui_list_fields = ('created_at', 'changed_at', 'command_name', 'start', 'stop', 'executed_from_command_line',
-                      'is_successful')
+    ui_list_fields = (
+        'created_at', 'changed_at', 'name', 'start', 'stop', 'executed_from_command_line', 'is_successful'
+    )
 
     form_fieldsets = (
         (None, {
-            'fields': ('created_at', 'changed_at', 'command_name', 'command_options', 'output_html'),
+            'fields': ('created_at', 'changed_at', 'name', 'input', 'output_html'),
             'class': 'col-sm-6'
         }),
         (None, {
@@ -128,7 +129,7 @@ class CommandLogISCore(UIRESTModelISCore):
 
     abstract = True
 
-    @short_description(_('command output'))
+    @short_description(_('output'))
     def output_html(self, obj=None):
         if obj and obj.output is not None:
             conv = Ansi2HTMLConverter()
@@ -151,5 +152,14 @@ class CeleryTaskLogISCore(UIRESTModelISCore):
         'created_at', 'changed_at', 'name', 'state', 'start', 'stop', 'queue_name'
     )
     form_fields = (
-        'created_at', 'changed_at', 'name', 'state', 'start', 'stop', 'error_message', 'queue_name'
+        'created_at', 'changed_at', 'name', 'state', 'start', 'stop', 'error_message', 'queue_name', 'input',
+        'output_html'
     )
+
+    @short_description(_('output'))
+    def output_html(self, obj=None):
+        if obj and obj.output is not None:
+            conv = Ansi2HTMLConverter()
+            output = mark_safe(conv.convert(obj.output, full=False))
+            return display_as_code(output)
+        return None

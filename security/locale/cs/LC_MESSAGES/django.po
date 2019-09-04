@@ -156,11 +156,11 @@ msgstr "start"
 msgid "stop"
 msgstr "stop"
 
-msgid "command name"
-msgstr "název spustitelné úlohy"
+msgid "name"
+msgstr "název"
 
-msgid "command options"
-msgstr "parametry spustitelné úlohy"
+msgid "input"
+msgstr "vstup"
 
 msgid "executed from command line"
 msgstr "spuštěno z příkazové řádky"

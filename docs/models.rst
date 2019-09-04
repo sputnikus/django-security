@@ -191,11 +191,11 @@ Models
 
     Date and time when command finished.
 
-  .. attribute:: command_name
+  .. attribute:: name
 
     Name of the command.
 
-  .. attribute:: command_options
+  .. attribute:: input
 
     Arguments/options the command was run with.
 
@@ -238,3 +238,11 @@ Models
   .. attribute:: queue_name
 
     Name of the task queue.
+
+  .. attribute:: input
+
+    Input args and kwargs of the celery task.
+
+  .. attribute:: output
+
+    Standard and error output of the celery task.
