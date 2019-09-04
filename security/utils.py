@@ -99,7 +99,7 @@ class CommandLogger(StringIO):
             stderr: Custom stream where command's error output will be written.
             **kwargs: Keyword arguments passed to CommandLog model.
         """
-        assert 'command_name' in kwargs, 'Key command_name must be provided in kwargs'
+        assert 'name' in kwargs, 'Key name must be provided in kwargs'
 
         self.command_function = command_function
         self.kwargs = kwargs
@@ -135,7 +135,7 @@ class CommandLogger(StringIO):
         Runs the command function and returns its return value or re-raises any exceptions. The run of the command will
         not be logged if it is in excluded commands setting.
         """
-        if self.kwargs['command_name'] in settings.COMMAND_LOG_EXCLUDED_COMMANDS:
+        if self.kwargs['name'] in settings.COMMAND_LOG_EXCLUDED_COMMANDS:
             return self.command_function()
 
         self._start_intercepting()

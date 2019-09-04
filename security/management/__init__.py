@@ -21,8 +21,8 @@ def execute_from_command_line(argv=None):
     from security.utils import CommandLogger
     return CommandLogger(
         command_function=lambda: execute_from_command_line_original(argv),
-        command_name=argv[1],
-        command_options=' '.join(argv[2:]),
+        name=argv[1],
+        input=' '.join(argv[2:]),
         executed_from_command_line=True
     ).run()
 
@@ -36,8 +36,8 @@ def call_command(command_name, stdout=None, stderr=None, *args, **options):
         command_function=lambda: call_command_original(command_name, stdout=stdout, stderr=stderr, *args, **options),
         stdout=stdout,
         stderr=stderr,
-        command_name=command_name,
-        command_options=', '.join(
+        name=command_name,
+        input=', '.join(
             list(args)+['{}={}'.format(k, v) for k, v in options.items()]
         )
     ).run()

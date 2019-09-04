@@ -298,20 +298,20 @@ class CommandLog(SmartModel):
     Attributes:
         start: Date and time when command was started.
         stop: Date and time when command finished.
-        command_name: Name of the command.
-        command_options: Arguments/options the command was run with.
+        name: Name of the command.
+        options: Arguments/options the command was run with.
         executed_from_command_line: Flag that indicates if command was run from the command line.
         output: Standard and error output of the command.
         is_successful: Flag that indicates if command finished successfully.
     """
     start = models.DateTimeField(blank=False, null=False, editable=False, verbose_name=_('start'))
     stop = models.DateTimeField(blank=True, null=True, editable=False, verbose_name=_('stop'))
-    command_name = models.CharField(max_length=250, blank=False, null=False, editable=False, db_index=True,
-                                    verbose_name=_('command name'))
-    command_options = models.TextField(blank=False, null=False, editable=False, verbose_name=_('command options'))
+    name = models.CharField(max_length=250, blank=False, null=False, editable=False, db_index=True,
+                            verbose_name=_('name'))
+    input = models.TextField(blank=False, null=False, editable=False, verbose_name=_('input'))
     executed_from_command_line = models.BooleanField(blank=False, null=False, default=False, editable=False,
                                                      verbose_name=_('executed from command line'))
-    output = models.TextField(blank=True, null=True, editable=False, verbose_name=_('command output'))
+    output = models.TextField(blank=True, null=True, editable=False, verbose_name=_('output'))
     is_successful = models.BooleanField(blank=False, null=False, default=False, editable=False,
                                         verbose_name=_('finished successfully'))
 
@@ -347,6 +347,8 @@ class CeleryTaskLog(SmartModel):
                          default=CeleryTaskLogState.WAITING)
     error_message = models.TextField(verbose_name=_('error message'), null=True, blank=True)
     queue_name = models.CharField(verbose_name=_('queue name'), null=True, blank=True, max_length=250)
+    input = models.TextField(blank=True, null=True, editable=False, verbose_name=_('input'))
+    output = models.TextField(blank=True, null=True, editable=False, verbose_name=_('output'))
 
     class Meta:
         verbose_name = _('celery task')

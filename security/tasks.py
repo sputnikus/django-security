@@ -3,6 +3,7 @@ import base64
 import logging
 import pickle
 import sys
+from io import StringIO
 
 from django.conf import settings
 from django.core.management import call_command
@@ -30,6 +31,18 @@ class LoggedTask(Task):
     abstract = True
     logger_level = logging.WARNING
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.output = StringIO()
+
+    @property
+    def stdout(self):
+        return self.output
+
+    @property
+    def stderr(self):
+        return self.output
+
     def get_task(self, task_id):
         return CeleryTaskLog.objects.get(pk=task_id)
 
@@ -50,20 +63,36 @@ class LoggedTask(Task):
         self._call_callback('start', task_id, args, kwargs)
 
     def on_success(self, retval, task_id, args, kwargs):
-        self.get_task(task_id).change_and_save(state=CeleryTaskLogState.SUCCEEDED, stop=now())
+        self.get_task(task_id).change_and_save(
+            state=CeleryTaskLogState.SUCCEEDED,
+            stop=now(),
+            output=self.output.getvalue()
+        )
         self._call_callback('success', task_id, args, kwargs)
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         try:
-            self.get_task(task_id).change_and_save(state=CeleryTaskLogState.FAILED, stop=now(), error_message=einfo)
+            self.get_task(task_id).change_and_save(
+                state=CeleryTaskLogState.FAILED,
+                stop=now(),
+                error_message=einfo,
+                output = self.output.getvalue()
+            )
         except CeleryTask.DoesNotExist:
             pass
         self._call_callback('failure', task_id, args, kwargs)
 
-    def _create_task(self, options):
+    def _create_task(self, options, task_args, task_kwargs):
+        task_input = []
+        if task_args:
+            task_input += [str(v) for v in task_args]
+        if task_kwargs:
+            task_input += ['{}={}'.format(k, v) for k, v in task_kwargs.items()]
+
         task = CeleryTaskLog.objects.create(
             name=self.name, state=CeleryTaskLogState.WAITING,
-            queue_name=options.get('queue', settings.CELERY_DEFAULT_QUEUE)
+            queue_name=options.get('queue', settings.CELERY_DEFAULT_QUEUE),
+            input=', '.join(task_input),
         )
         return str(task.pk)
 
@@ -71,7 +100,7 @@ class LoggedTask(Task):
         return (task_id,) + tuple(args or ())
 
     def apply_async_on_commit(self, args=None, kwargs=None, **options):
-        task_id = self._create_task(options)
+        task_id = self._create_task(options, args, kwargs)
         args = self._get_args(task_id, args)
         self.on_apply(task_id, args, kwargs)
         if sys.argv[1:2] == ['test']:
@@ -83,7 +112,7 @@ class LoggedTask(Task):
             )
 
     def apply_async(self, args=None, kwargs=None, **options):
-        task_id = self._create_task(options)
+        task_id = self._create_task(options, args, kwargs)
         args = self._get_args(task_id, args)
         self.on_apply(task_id, args, kwargs)
         return super().apply_async(args=args, kwargs=kwargs, task_id=task_id, **options)
@@ -117,5 +146,11 @@ def string_to_obj(obj_string):
 @atomic_with_signals
 def call_django_command(self, task_id, command_name, command_args=None):
     command_args = [] if command_args is None else command_args
-    call_command(command_name, '--settings={}'.format(os.environ.get('DJANGO_SETTINGS_MODULE')), *command_args)
+    call_command(
+        command_name,
+        settings=os.environ.get('DJANGO_SETTINGS_MODULE'),
+        *command_args,
+        stdout=self.stdout,
+        stderr=self.stderr
+    )
 
