@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-15 18:42+0200\n"
+"POT-Creation-Date: 2019-09-04 15:12+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -51,8 +51,8 @@ msgstr "Další informace"
 msgid "Related objects"
 msgstr "Vztažené objekty"
 
-msgid "command output"
-msgstr "výstup spustitelné úlohy"
+msgid "output"
+msgstr "výstup"
 
 msgid "Incomplete"
 msgstr "Nedokončený"
@@ -71,6 +71,39 @@ msgstr "Chyba"
 
 msgid "Critical"
 msgstr "Kritické"
+
+msgid "Common request"
+msgstr "Běžný HTTP dotaz"
+
+msgid "Throttled request"
+msgstr "Throttled HTTP dotaz"
+
+msgid "Successful login request"
+msgstr "Úspěšné přihlášení"
+
+msgid "Unsuccessful login request"
+msgstr "Neúspěšné přihlášení"
+
+msgid "Successful two factor code verification request"
+msgstr "Úspěšné přihlášení při dvoufaktorovém ověření kódu"
+
+msgid "Unsuccessful two factor code verification request"
+msgstr "Neúspěšné přihlášení při dvoufaktorovém ověření kódu"
+
+msgid "Waiting"
+msgstr "Čeká"
+
+msgid "Active"
+msgstr "Aktivní"
+
+msgid "Succeeded"
+msgstr "Dokončený"
+
+msgid "Failed"
+msgstr "Chyba"
+
+msgid "Retried"
+msgstr "Opakovaný"
 
 msgid "host"
 msgstr "host"
@@ -107,24 +140,6 @@ msgstr "Čas odpovědi"
 
 msgid "Path"
 msgstr "Cesta"
-
-msgid "Common request"
-msgstr "Běžný HTTP dotaz"
-
-msgid "Throttled request"
-msgstr "Throttled HTTP dotaz"
-
-msgid "Successful login request"
-msgstr "Úspěšné přihlášení"
-
-msgid "Unsuccessful login request"
-msgstr "Neúspěšné přihlášení"
-
-msgid "Successful two factor code verification request"
-msgstr "Úspěšné přihlášení při dvoufaktorovém ověření kódu"
-
-msgid "Unsuccessful two factor code verification request"
-msgstr "Neúspěšné přihlášení při dvoufaktorovém ověření kódu"
 
 msgid "user"
 msgstr "uživatel"
@@ -173,21 +188,6 @@ msgstr "log spustitelné úlohy"
 
 msgid "command logs"
 msgstr "logy spustitelných úloh"
-
-msgid "Waiting"
-msgstr "Čeká"
-
-msgid "Active"
-msgstr "Aktivní"
-
-msgid "Succeeded"
-msgstr "Dokončený"
-
-msgid "Failed"
-msgstr "Chyba"
-
-msgid "Retried"
-msgstr "Opakovaný"
 
 msgid "task name"
 msgstr "název úlohy"
