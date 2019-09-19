@@ -1,10 +1,12 @@
 import json
 
 from django.core.serializers.json import DjangoJSONEncoder
+from django.template.defaultfilters import truncatechars
 from django.utils.html import format_html, mark_safe
 from django.utils.translation import ugettext_lazy as _
 
 from pyston.paginator import BaseOffsetPaginatorWithoutTotal
+from pyston.utils.decorators import filter_by, order_by
 
 from is_core.generic_views.inlines.inline_form_views import TabularInlineFormView
 from is_core.main import UIRESTModelISCore
@@ -149,12 +151,18 @@ class CeleryTaskLogISCore(UIRESTModelISCore):
     rest_paginator = BaseOffsetPaginatorWithoutTotal
 
     ui_list_fields = (
-        'created_at', 'changed_at', 'name', 'state', 'start', 'stop', 'queue_name'
+        'created_at', 'changed_at', 'name', 'short_input', 'state', 'start', 'stop', 'queue_name'
     )
     form_fields = (
         'created_at', 'changed_at', 'name', 'state', 'start', 'stop', 'error_message', 'queue_name', 'input',
         'output_html'
     )
+
+    @filter_by('input')
+    @order_by('input')
+    @short_description(_('input'))
+    def short_input(self, obj=None):
+        return truncatechars(obj.input, 50)
 
     @short_description(_('output'))
     def output_html(self, obj=None):

@@ -17,7 +17,6 @@ try:
 except ImportError:
     raise ImproperlyConfigured('Missing celery library, please install it')
 
-from chamber.shortcuts import change_and_save
 from chamber.utils.transaction import atomic_with_signals
 
 from .models import CeleryTaskLog, CeleryTaskLogState
@@ -90,8 +89,9 @@ class LoggedTask(Task):
             task_input += ['{}={}'.format(k, v) for k, v in task_kwargs.items()]
 
         task = CeleryTaskLog.objects.create(
-            name=self.name, state=CeleryTaskLogState.WAITING,
-            queue_name=options.get('queue', settings.CELERY_DEFAULT_QUEUE),
+            name=self.name,
+            state=CeleryTaskLogState.WAITING,
+            queue_name=options.get('queue', getattr(self, 'queue', settings.CELERY_DEFAULT_QUEUE)),
             input=', '.join(task_input),
         )
         return str(task.pk)
@@ -141,7 +141,7 @@ def string_to_obj(obj_string):
 @shared_task(
     base=LoggedTask,
     bind=True,
-    name='call_django_command',
+    name='call_django_command'
 )
 @atomic_with_signals
 def call_django_command(self, task_id, command_name, command_args=None):
