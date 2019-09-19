@@ -40,7 +40,8 @@ DEFAULTS = {
     'SENSITIVE_DATA_REPLACEMENT': '[Filtered]',
     'APPEND_SLASH': True,
     'CELERY_STALE_TASK_TIME_LIMIT_MINUTES': 60,
-    'BACKUP_STORAGE_CLASS': 'django.core.files.storage.DefaultStorage',
+    'BACKUP_STORAGE_CLASS': 'security.storages.BackupFileSystemStorage',
+    'BACKUP_STORAGE_PATH': None,
 }
 
 

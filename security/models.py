@@ -34,7 +34,6 @@ try:
 except ImportError:
     from django.contrib.contenttypes.generic import GenericForeignKey
 
-
 try:
     from pyston.filters.default_filters import CaseSensitiveStringFieldFilter
 except ImportError:
