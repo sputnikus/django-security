@@ -7,7 +7,7 @@ from security.tasks import LoggedTask
     base=LoggedTask,
     bind=True,
     name='sum_task')
-def sum_task(self, task_id, a, b):
+def sum_task(self, a, b):
     return a + b
 
 
@@ -15,5 +15,5 @@ def sum_task(self, task_id, a, b):
     base=LoggedTask,
     bind=True,
     name='error_task')
-def error_task(self, task_id):
+def error_task(self):
     raise RuntimeError('error')

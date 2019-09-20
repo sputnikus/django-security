@@ -2,6 +2,8 @@ import re
 import json
 from json import JSONDecodeError
 
+from datetime import timedelta
+
 from ipware.ip import get_ip
 from jsonfield import JSONField
 

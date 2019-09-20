@@ -83,28 +83,28 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         self.post('/admin/login/', data={'username': 20 * 'a', 'password': 20 * 'b'})
         input_logged_request = InputLoggedRequest.objects.get()
         assert_equal(len(input_logged_request.request_body), 10)
-        assert_true(input_logged_request.request_body.endswith('...'))
+        assert_true(input_logged_request.request_body.endswith('…'))
 
     @override_settings(SECURITY_LOG_RESPONSE_BODY_LENGTH=10)
     def test_response_body_should_be_truncated(self):
         self.post('/admin/login/', data={'username': 20 * 'a', 'password': 20 * 'b'})
         input_logged_request = InputLoggedRequest.objects.get()
         assert_equal(len(input_logged_request.response_body), 10)
-        assert_true(input_logged_request.response_body.endswith('...'))
+        assert_true(input_logged_request.response_body.endswith('…'))
 
     @override_settings(SECURITY_LOG_REQUEST_BODY_LENGTH=None)
     def test_request_body_truncation_should_be_turned_off(self):
         self.post('/admin/login/', data={'username': 2000 * 'a', 'password': 2000 * 'b'})
         input_logged_request = InputLoggedRequest.objects.get()
         assert_equal(len(input_logged_request.request_body), 4183)
-        assert_false(input_logged_request.request_body.endswith('...'))
+        assert_false(input_logged_request.request_body.endswith('…'))
 
     @override_settings(SECURITY_LOG_RESPONSE_BODY_LENGTH=None)
     def test_response_body_truncation_should_be_turned_off(self):
         resp = self.post('/admin/login/', data={'username': 20 * 'a', 'password': 20 * 'b'})
         input_logged_request = InputLoggedRequest.objects.get()
         assert_equal(input_logged_request.response_body, str(resp.content))
-        assert_false(input_logged_request.response_body.endswith('...'))
+        assert_false(input_logged_request.response_body.endswith('…'))
 
     @override_settings(SECURITY_LOG_RESPONSE_BODY_CONTENT_TYPES=())
     def test_not_allowed_content_type_should_not_be_logged(self):
@@ -125,17 +125,17 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         input_logged_request = InputLoggedRequest.objects.get()
         assert_equal(
             json.loads(input_logged_request.request_body),
-            json.loads('{"a": "aaaaaaa...", "b": "bbbbbbb..."}')
+            json.loads('{"a": "aaaaaaaaa…", "b": "bbbbbbbbb…"}')
         )
-        assert_false(input_logged_request.request_body.endswith('...'))
+        assert_false(input_logged_request.request_body.endswith('…'))
 
     @override_settings(SECURITY_LOG_REQUEST_BODY_LENGTH=50, SECURITY_LOG_JSON_STRING_LENGTH=None)
     def test_json_request_should_not_be_truncated_with_another_method(self):
         self.c.post('/admin/login/', data=json.dumps({'a': 50 * 'a'}),
                     content_type='application/json')
         input_logged_request = InputLoggedRequest.objects.get()
-        assert_equal(input_logged_request.request_body, '{"a": "' + 40* 'a' + '...')
-        assert_true(input_logged_request.request_body.endswith('...'))
+        assert_equal(input_logged_request.request_body, '{"a": "' + 42* 'a' + '…')
+        assert_true(input_logged_request.request_body.endswith('…'))
 
     @override_settings(SECURITY_LOG_REQUEST_BODY_LENGTH=100, SECURITY_LOG_JSON_STRING_LENGTH=10)
     def test_json_request_should_be_truncated_with_another_method_and_standard_method_too(self):
@@ -143,7 +143,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
                     content_type='application/json')
         input_logged_request = InputLoggedRequest.objects.get()
         assert_equal(len(input_logged_request.request_body), 100)
-        assert_true(input_logged_request.request_body.endswith('...'))
+        assert_true(input_logged_request.request_body.endswith('…'))
 
     def test_response_with_exception_should_be_logged(self):
         assert_equal(InputLoggedRequest.objects.count(), 0)

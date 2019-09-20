@@ -5,8 +5,6 @@ from apps.test_security.views import (
     proxy_view, hide_request_body_view, log_exempt_view, throttling_exempt_view, extra_throttling_view
 )
 
-admin.autodiscover()
-
 
 urlpatterns = [
     path('admin/', admin.site.urls),
