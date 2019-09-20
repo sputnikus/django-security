@@ -37,8 +37,8 @@ class LoggedTask(Task):
         self.request.id = task_id
         self.request.output_stream = output_stream
 
-    def get_task(self, task_id):
-        return CeleryTaskLog.objects.get(pk=task_id)
+    def get_task(self):
+        return CeleryTaskLog.objects.get(pk=self.request.id)
 
     def __call__(self, *args, **kwargs):
         # Every set attr is send here
@@ -54,14 +54,14 @@ class LoggedTask(Task):
         self._call_callback('apply', task_id, args, kwargs)
 
     def on_start(self, task_id, args, kwargs):
-        self.get_task(task_id).change_and_save(state=CeleryTaskLogState.ACTIVE, start=now())
+        self.get_task().change_and_save(state=CeleryTaskLogState.ACTIVE, start=now())
         self._call_callback('start', task_id, args, kwargs)
 
     def on_success(self, retval, task_id, args, kwargs):
         if retval:
             self.request.output_stream.write('Return value is "{}"'.format(retval))
 
-        self.get_task(task_id).change_and_save(
+        self.get_task().change_and_save(
             state=CeleryTaskLogState.SUCCEEDED,
             stop=now(),
             output=self.request.output_stream.getvalue()
@@ -70,7 +70,7 @@ class LoggedTask(Task):
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         try:
-            self.get_task(task_id).change_and_save(
+            self.get_task().change_and_save(
                 state=CeleryTaskLogState.FAILED,
                 stop=now(),
                 error_message=einfo,
