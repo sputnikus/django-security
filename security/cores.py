@@ -120,7 +120,7 @@ class CommandLogISCore(UIRESTModelISCore):
 
     form_fieldsets = (
         (None, {
-            'fields': ('created_at', 'changed_at', 'name', 'input', 'output_html'),
+            'fields': ('created_at', 'changed_at', 'name', 'input', 'output_html', 'error_message'),
             'class': 'col-sm-6'
         }),
         (None, {

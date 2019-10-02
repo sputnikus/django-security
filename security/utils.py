@@ -4,6 +4,7 @@ import json
 import os
 import re
 import sys
+import traceback
 from datetime import datetime, time, timedelta
 from importlib import import_module
 from io import StringIO
@@ -57,31 +58,59 @@ def remove_nul_from_string(value):
     return value.replace('\x00', '')
 
 
-class TeeStringIO(StringIO):
+class LogStringIO(StringIO):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._last_newline = 0
+
+    def write(self, s):
+        line_first = True
+        for line in s.split('\n'):
+            if not line_first:
+                super().write('\n')
+                self._last_newline = self.tell()
+            cursor_first = True
+            for cursor_block in line.split('\r'):
+                if not cursor_first:
+                    self.seek(self._last_newline)
+                    self.truncate()
+                cursor_first = False
+                super().write(cursor_block)
+            line_first = False
+
+    def isatty(self):
+        return True
+
+
+class TeeStringIO:
     """
     StringIO that additionally writes to another stream(s).
     """
     ANSI_ESCAPE_REGEX = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
 
-    def __init__(self, streams):
-        self.streams = streams
+    def __init__(self, out, log_stream):
+        self._out = out
+        self._log_stream = log_stream
+        self._last_newline = 0
         super().__init__()
 
     def write(self, s):
-        for stream in self.streams:
-            if stream.isatty():
-                stream.write(s)
-            else:
-                stream.write(self.ANSI_ESCAPE_REGEX.sub('', s))
+        if self.isatty():
+            self._out.write(s)
+        else:
+            self._out.write(self.ANSI_ESCAPE_REGEX.sub('', s))
+        self._log_stream.write(s)
 
-        return super().write(s)
+    def __getattr__(self, name):
+        return getattr(self._out, name)
 
     def isatty(self):
-        return True
+        return hasattr(self._out, 'isatty') and self._out.isatty()
 
     def flush(self):
-        for stream in self.streams:
-            stream.flush()
+        self._out.flush()
+        self._log_stream.flush()
 
 
 class CommandLogger(StringIO):
@@ -89,7 +118,7 @@ class CommandLogger(StringIO):
     A helper class that runs a django command and logs details about its run into DB.
     """
 
-    def __init__(self, command_function, stdout=None, stderr=None, **kwargs):
+    def __init__(self, command_function, command_args=None, command_kwargs=None, stdout=None, stderr=None, **kwargs):
         """
         Initializes the command logger.
 
@@ -102,71 +131,52 @@ class CommandLogger(StringIO):
         assert 'name' in kwargs, 'Key name must be provided in kwargs'
 
         self.command_function = command_function
+        self.command_args = command_args or ()
+        self.command_kwargs = command_kwargs or {}
+
         self.kwargs = kwargs
-        self.stdout = stdout
-        self.stderr = stderr
-
-    def _start_intercepting(self):
-        """
-        Starts intercepting of stdout and stderr.
-        """
-        self.output = StringIO()
-        self.output.isatty = lambda: True
-
-        stdout_streams = [sys.__stdout__, self.output]
-        if self.stdout:
-            stdout_streams.append(self.stdout)
-        sys.stdout = TeeStringIO(stdout_streams)
-
-        stderr_streams = [sys.__stderr__, self.output]
-        if self.stderr:
-            stderr_streams.append(self.stderr)
-        sys.stderr = TeeStringIO(stderr_streams)
-
-    def _stop_intercepting(self):
-        """
-        Stops intercepting of stdout and stderr.
-        """
-        sys.stdout = sys.__stdout__
-        sys.stderr = sys.__stderr__
+        self.stdout = stdout if stdout else sys.stdout
+        self.stderr = stderr if stderr else sys.stderr
 
     def run(self):
         """
         Runs the command function and returns its return value or re-raises any exceptions. The run of the command will
         not be logged if it is in excluded commands setting.
         """
-        if self.kwargs['name'] in settings.COMMAND_LOG_EXCLUDED_COMMANDS:
-            return self.command_function()
-
-        self._start_intercepting()
-
         from security.models import CommandLog
-        self.command_log = CommandLog(start=now(), **self.kwargs)
-        self.command_log.save()
+
+        if self.kwargs['name'] in settings.COMMAND_LOG_EXCLUDED_COMMANDS:
+            return self.command_function(
+                stdout=self.stdout, stderr=self.stderr, *self.command_args, **self.command_kwargs
+            )
+
+        self.output = LogStringIO()
+        stdout = TeeStringIO(self.stdout, self.output)
+        stderr = TeeStringIO(self.stderr, self.output)
+
+        self.command_log = CommandLog.objects.create(start=now(), **self.kwargs)
 
         # register call of the finish method in case the command exits the interpreter prematurely
-        atexit.register(self._finish)
+        atexit.register(lambda: self._finish(error_message='Command was killed'))
 
         try:
-            ret_val = self.command_function()
+            ret_val = self.command_function(
+                stdout=stdout, stderr=stderr, *self.command_args, **self.command_kwargs
+            )
             self._finish(success=True)
             return ret_val
         except Exception as ex:  # pylint: disable=W0703
-            print(
-                '{}: {}'.format(ex.__class__.__name__, ex),
-                file=sys.stderr
-            )
-            self._finish(success=False)
+            self._finish(success=False, error_message=traceback.format_exc())
             raise ex
 
-    def _finish(self, success=False):
+    def _finish(self, success=False, error_message=None):
         if self.command_log.stop is None:
             self.command_log.change_and_save(
                 output=self.output.getvalue(),
                 stop=now(),
-                is_successful=success
+                is_successful=success,
+                error_message=error_message
             )
-            self._stop_intercepting()
 
 
 class PurgeLogsBaseCommand(BaseCommand):

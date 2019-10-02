@@ -315,6 +315,7 @@ class CommandLog(SmartModel):
     output = models.TextField(blank=True, null=True, editable=False, verbose_name=_('output'))
     is_successful = models.BooleanField(blank=False, null=False, default=False, editable=False,
                                         verbose_name=_('finished successfully'))
+    error_message = models.TextField(verbose_name=_('error message'), null=True, blank=True, editable=False)
 
     class Meta:
         verbose_name = _('command log')

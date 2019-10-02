@@ -3,7 +3,6 @@ import base64
 import logging
 import pickle
 import sys
-from io import StringIO
 
 from django.conf import settings
 from django.core.management import call_command
@@ -20,6 +19,7 @@ except ImportError:
 from chamber.utils.transaction import atomic_with_signals
 
 from .models import CeleryTaskLog, CeleryTaskLogState
+from .utils import LogStringIO
 
 
 LOGGER = logging.getLogger(__name__)
@@ -42,7 +42,7 @@ class LoggedTask(Task):
 
     def __call__(self, *args, **kwargs):
         # Every set attr is send here
-        self.request.output_stream = StringIO()
+        self.request.output_stream = LogStringIO()
         self.on_start(self.request.id, args, kwargs)
         super().__call__(*args, **kwargs)
 
