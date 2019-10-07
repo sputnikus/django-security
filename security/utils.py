@@ -199,12 +199,12 @@ class PurgeLogsBaseCommand(BaseCommand):
         return data
 
     def backup_logs_and_clean_data(self, qs, backup_path):
-        for timestamp in qs.datetimes(self.get_timestamp_field(), 'day'):
+        for timestamp in qs.datetimes(self.get_timestamp_field(), 'day', tzinfo=utc):
             min_timestamp = datetime.combine(timestamp, time.min).replace(tzinfo=utc)
             max_timestamp = datetime.combine(timestamp, time.max).replace(tzinfo=utc)
             qs_filtered_by_day = qs.filter(
-                **{'{}__range'.format(self.get_timestamp_field()): (min_timestamp, max_timestamp)})
-
+                **{'{}__range'.format(self.get_timestamp_field()): (min_timestamp, max_timestamp)}
+            )
             if backup_path:
                 log_file_path = os.path.join(backup_path, force_text(timestamp.date()))
 
