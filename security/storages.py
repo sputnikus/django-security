@@ -5,11 +5,11 @@ from django.utils.functional import cached_property
 from security.config import settings
 
 
-# File system storages
+# File system storage
 class BackupFileSystemStorage(FileSystemStorage):
 
     @cached_property
     def base_location(self):
-        if not settings.LOG_BACKUP_PATH:
-            raise ImproperlyConfigured('SECURITY_LOG_BACKUP_PATH settings is not set')
-        return settings.LOG_BACKUP_PATH
+        if not settings.BACKUP_STORAGE_PATH:
+            raise ImproperlyConfigured('SECURITY_BACKUP_STORAGE_PATH settings is not set')
+        return settings.BACKUP_STORAGE_PATH
