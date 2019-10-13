@@ -9,22 +9,40 @@ from django.core.management import handle_default_options
 
 
 def execute_from_command_line(argv=None):
-    # some arguments must be processed before django setup
-    parser = ArgumentParser()
-    parser.add_argument('--settings')
-    parser.add_argument('--pythonpath')
-    options, args = parser.parse_known_args(argv[2:])
-    handle_default_options(options)
 
-    django.setup()
+    def execute_from_command_line_with_stdout(argv=None, stdout=None, stderr=None):
+        try:
+            if stdout:
+                sys.stdout = stdout
+            if stderr:
+                sys.stderr = stderr
+            execute_from_command_line_original(argv=argv)
+        finally:
+            if stdout:
+                sys.stdout = sys.__stdout__
+            if stderr:
+                sys.stderr = sys.__stderr__
 
-    from security.utils import CommandLogger
-    return CommandLogger(
-        command_function=lambda: execute_from_command_line_original(argv),
-        name=argv[1],
-        input=' '.join(argv[2:]),
-        executed_from_command_line=True
-    ).run()
+    if len(argv) > 1:
+        # some arguments must be processed before django setup
+        parser = ArgumentParser()
+        parser.add_argument('--settings')
+        parser.add_argument('--pythonpath')
+        options, args = parser.parse_known_args(argv[2:])
+        handle_default_options(options)
+
+        django.setup()
+
+        from security.utils import CommandLogger
+        return CommandLogger(
+            command_function=execute_from_command_line_with_stdout,
+            command_kwargs={'argv': argv},
+            name=argv[1],
+            input=' '.join(argv[2:]),
+            executed_from_command_line=True
+        ).run()
+    else:
+        execute_from_command_line_original(argv=argv)
 
 
 def call_command(command_name, stdout=None, stderr=None, *args, **options):
@@ -33,7 +51,9 @@ def call_command(command_name, stdout=None, stderr=None, *args, **options):
 
     from security.utils import CommandLogger
     return CommandLogger(
-        command_function=lambda: call_command_original(command_name, stdout=stdout, stderr=stderr, *args, **options),
+        command_function=call_command_original,
+        command_args=(command_name,) + tuple(args),
+        command_kwargs=options,
         stdout=stdout,
         stderr=stderr,
         name=command_name,
