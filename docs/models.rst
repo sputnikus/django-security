@@ -215,6 +215,10 @@ Models
 
   Represents a log of a command run.
 
+  .. attribute:: celery_task_id
+
+    Identifier of celery task. Computed as random uuid value. There can be more logs with the same task number. But with the different retries value (retried tasks have same celery task ID).
+
   .. attribute:: start
 
     Date and time when task was started.
@@ -229,7 +233,7 @@ Models
 
   .. attribute:: state
 
-    State of the task (WAITING, ACTIVE, SUCCEEDED, FAILED, RETRIED).
+    State of the task (WAITING, ACTIVE, SUCCEEDED, FAILED, RETRIED, EXPIRED).
 
   .. attribute:: error_message
 
@@ -246,3 +250,28 @@ Models
   .. attribute:: output
 
     Standard and error output of the celery task.
+
+  .. attribute:: task_args
+
+    List of task args which was serialized into JSONField.
+
+  .. attribute:: task_kwargs
+
+    Dict of task kwargs which was serialized into JSONField.
+
+  .. attribute:: retries
+
+    Task attempt number is the task was retried.
+
+  .. attribute:: estimated_time_of_arrival
+
+    Celery task estimated time of arrival. Which was computed from celery task etc or countdown value.
+
+  .. attribute:: expires
+
+    Time of a task expiration. Waiting task will not be run if the time is a thing of the past.
+
+  .. attribute:: stale
+
+    Time when a task will be marked as stale and will be automatically set as expired.
+

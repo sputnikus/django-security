@@ -154,8 +154,8 @@ class CeleryTaskLogISCore(UIRESTModelISCore):
         'created_at', 'changed_at', 'name', 'short_input', 'state', 'start', 'stop', 'queue_name'
     )
     form_fields = (
-        'created_at', 'changed_at', 'name', 'state', 'start', 'stop', 'error_message', 'queue_name', 'input',
-        'output_html'
+        'created_at', 'changed_at', 'name', 'state', 'start', 'stop', 'estimated_time_of_arrival', 'expires', 'stale',
+        'error_message', 'queue_name', 'input', 'output_html'
     )
 
     @filter_by('input')

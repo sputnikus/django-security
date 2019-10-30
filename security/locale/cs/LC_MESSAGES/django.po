@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-09-04 15:12+0200\n"
+"POT-Creation-Date: 2019-11-03 23:09+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,218 +18,322 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
 
+#: cores.py:38 models.py:158 models.py:189
 msgid "queries"
 msgstr "query string"
 
+#: cores.py:42 models.py:165 models.py:214
 msgid "request body"
 msgstr "tělo dotazu"
 
+#: cores.py:46 models.py:164 models.py:194
 msgid "request headers"
 msgstr "hlavičky dotazu"
 
+#: cores.py:50 models.py:171 models.py:209
 msgid "response body"
 msgstr "tělo odpovědi"
 
+#: cores.py:54 models.py:170
 msgid "response headers"
 msgstr "hlavičky odpovědi"
 
+#: cores.py:58 models.py:175
 msgid "error description"
 msgstr "popis chyby"
 
+#: cores.py:73 cores.py:100 reversion_log/cores.py:17
 msgid "Request"
 msgstr "Dotaz"
 
+#: cores.py:75 cores.py:102 reversion_log/cores.py:19
 msgid "Response"
 msgstr "Odpověď"
 
+#: cores.py:77 reversion_log/cores.py:21
 msgid "User information"
 msgstr "Uživatelské informace"
 
+#: cores.py:78 cores.py:104 reversion_log/cores.py:22
 msgid "Extra information"
 msgstr "Další informace"
 
+#: cores.py:105
 msgid "Related objects"
 msgstr "Vztažené objekty"
 
+#: cores.py:134 cores.py:167 models.py:315 models.py:356
 msgid "output"
 msgstr "výstup"
 
-msgid "Incomplete"
-msgstr "Nedokončený"
-
-msgid "Debug"
-msgstr "Debug"
-
-msgid "Info"
-msgstr "Info"
-
-msgid "Warning"
-msgstr "Varování"
-
-msgid "Error"
-msgstr "Chyba"
-
-msgid "Critical"
-msgstr "Kritické"
-
-msgid "Common request"
-msgstr "Běžný HTTP dotaz"
-
-msgid "Throttled request"
-msgstr "Throttled HTTP dotaz"
-
-msgid "Successful login request"
-msgstr "Úspěšné přihlášení"
-
-msgid "Unsuccessful login request"
-msgstr "Neúspěšné přihlášení"
-
-msgid "Successful two factor code verification request"
-msgstr "Úspěšné přihlášení při dvoufaktorovém ověření kódu"
-
-msgid "Unsuccessful two factor code verification request"
-msgstr "Neúspěšné přihlášení při dvoufaktorovém ověření kódu"
-
-msgid "Waiting"
-msgstr "Čeká"
-
-msgid "Active"
-msgstr "Aktivní"
-
-msgid "Succeeded"
-msgstr "Dokončený"
-
-msgid "Failed"
-msgstr "Chyba"
-
-msgid "Retried"
-msgstr "Opakovaný"
-
-msgid "host"
-msgstr "host"
-
-msgid "method"
-msgstr "metoda"
-
-msgid "URL path"
-msgstr "URL cesta"
-
-msgid "HTTPS connection"
-msgstr "HTTPS spojení"
-
-msgid "slug"
-msgstr "slug"
-
-msgid "request timestamp"
-msgstr "čas a datum dotazu"
-
-msgid "response timestamp"
-msgstr "datum a čas odpovědi"
-
-msgid "response code"
-msgstr "kód odpovědi"
-
-msgid "status"
-msgstr "stav"
-
-msgid "exception name"
-msgstr "název výjimky"
-
-msgid "Response time"
-msgstr "Čas odpovědi"
-
-msgid "Path"
-msgstr "Cesta"
-
-msgid "user"
-msgstr "uživatel"
-
-msgid "IP address"
-msgstr "IP adresa"
-
-msgid "type"
-msgstr "typ"
-
-msgid "input logged request"
-msgstr "vstupní logovaný dotaz"
-
-msgid "input logged requests"
-msgstr "vstupní logované dotazy"
-
-msgid "output logged request"
-msgstr "výstupní logovaný dotaz"
-
-msgid "output logged requests"
-msgstr "výstupní logované dotazy"
-
-msgid "object"
-msgstr "objekt"
-
-msgid "start"
-msgstr "start"
-
-msgid "stop"
-msgstr "stop"
-
-msgid "name"
-msgstr "název"
-
+#: cores.py:163 models.py:312 models.py:353
 msgid "input"
 msgstr "vstup"
 
+#: enums.py:8
+msgid "Incomplete"
+msgstr "Nedokončený"
+
+#: enums.py:9
+msgid "Debug"
+msgstr "Debug"
+
+#: enums.py:10
+msgid "Info"
+msgstr "Info"
+
+#: enums.py:11
+msgid "Warning"
+msgstr "Varování"
+
+#: enums.py:12
+msgid "Error"
+msgstr "Chyba"
+
+#: enums.py:13
+msgid "Critical"
+msgstr "Kritické"
+
+#: enums.py:18
+msgid "Common request"
+msgstr "Běžný HTTP dotaz"
+
+#: enums.py:19
+msgid "Throttled request"
+msgstr "Throttled HTTP dotaz"
+
+#: enums.py:20
+msgid "Successful login request"
+msgstr "Úspěšné přihlášení"
+
+#: enums.py:21
+msgid "Unsuccessful login request"
+msgstr "Neúspěšné přihlášení"
+
+#: enums.py:22
+msgid "Successful two factor code verification request"
+msgstr "Úspěšné přihlášení při dvoufaktorovém ověření kódu"
+
+#: enums.py:23
+msgid "Unsuccessful two factor code verification request"
+msgstr "Neúspěšné přihlášení při dvoufaktorovém ověření kódu"
+
+#: enums.py:28
+msgid "Waiting"
+msgstr "Čeká"
+
+#: enums.py:29
+msgid "Active"
+msgstr "Aktivní"
+
+#: enums.py:30
+msgid "Succeeded"
+msgstr "Dokončený"
+
+#: enums.py:31
+msgid "Failed"
+msgstr "Chyba"
+
+#: enums.py:32
+msgid "Retried"
+msgstr "Opakovaný"
+
+#: enums.py:33
+msgid "Expired"
+msgstr "Expirovaný"
+
+#: models.py:153
+msgid "host"
+msgstr "host"
+
+#: models.py:155
+msgid "method"
+msgstr "metoda"
+
+#: models.py:156
+msgid "URL path"
+msgstr "URL cesta"
+
+#: models.py:159
+msgid "HTTPS connection"
+msgstr "HTTPS spojení"
+
+#: models.py:160
+msgid "slug"
+msgstr "slug"
+
+#: models.py:163
+msgid "request timestamp"
+msgstr "čas a datum dotazu"
+
+#: models.py:168
+msgid "response timestamp"
+msgstr "datum a čas odpovědi"
+
+#: models.py:169
+msgid "response code"
+msgstr "kód odpovědi"
+
+#: models.py:173
+msgid "status"
+msgstr "stav"
+
+#: models.py:176
+msgid "exception name"
+msgstr "název výjimky"
+
+#: models.py:199
+msgid "Response time"
+msgstr "Čas odpovědi"
+
+#: models.py:203
+msgid "Path"
+msgstr "Cesta"
+
+#: models.py:233
+msgid "user"
+msgstr "uživatel"
+
+#: models.py:235
+msgid "IP address"
+msgstr "IP adresa"
+
+#: models.py:236
+msgid "type"
+msgstr "typ"
+
+#: models.py:257 models.py:267
+msgid "input logged request"
+msgstr "vstupní logovaný dotaz"
+
+#: models.py:258
+msgid "input logged requests"
+msgstr "vstupní logované dotazy"
+
+#: models.py:272
+msgid "output logged request"
+msgstr "výstupní logovaný dotaz"
+
+#: models.py:273 models.py:282
+msgid "output logged requests"
+msgstr "výstupní logované dotazy"
+
+#: models.py:292
+msgid "object"
+msgstr "objekt"
+
+#: models.py:308 models.py:346
+msgid "start"
+msgstr "start"
+
+#: models.py:309 models.py:347
+msgid "stop"
+msgstr "stop"
+
+#: models.py:311
+msgid "name"
+msgstr "název"
+
+#: models.py:314
 msgid "executed from command line"
 msgstr "spuštěno z příkazové řádky"
 
+#: models.py:317
 msgid "finished successfully"
 msgstr "úspěšně dokončeno"
 
-msgid "command log"
-msgstr "log spustitelné úlohy"
-
-msgid "command logs"
-msgstr "logy spustitelných úloh"
-
-msgid "task name"
-msgstr "název úlohy"
-
-msgid "state"
-msgstr "stav"
-
+#: models.py:318 models.py:351
 msgid "error message"
 msgstr "zpráva chyby"
 
+#: models.py:321
+msgid "command log"
+msgstr "log spustitelné úlohy"
+
+#: models.py:322
+msgid "command logs"
+msgstr "logy spustitelných úloh"
+
+#: models.py:345
+msgid "celery ID"
+msgstr "celery ID"
+
+#: models.py:348
+msgid "task name"
+msgstr "název úlohy"
+
+#: models.py:349
+msgid "state"
+msgstr "stav"
+
+#: models.py:352
 msgid "queue name"
 msgstr "název fronty"
 
+#: models.py:354
+msgid "task args"
+msgstr "úloha - args"
+
+#: models.py:355
+msgid "task kwargs"
+msgstr "úloha - kwargs"
+
+#: models.py:357
+msgid "retries"
+msgstr "opakování"
+
+#: models.py:358
+msgid "estimated time of arrival"
+msgstr "předpokládaný čas spuštění"
+
+#: models.py:360
+msgid "time of expiration"
+msgstr "čas expirace"
+
+#: models.py:361
+msgid "stale task time"
+msgstr "čas zneplatnění úlohy"
+
+#: models.py:364
 msgid "celery task"
 msgstr "celery úloha"
 
+#: models.py:365
 msgid "celery tasks"
 msgstr "celery úlohy"
 
+#: reversion_log/cores.py:23
 msgid "Revisions"
 msgstr "Revize"
 
+#: reversion_log/models.py:11
 msgid "logged request"
 msgstr "logovaný dotaz"
 
+#: reversion_log/models.py:13
 msgid "revision"
 msgstr "datové změny"
 
+#: reversion_log/models.py:20
 msgid "Logged request revision"
 msgstr "logovaná datová změna"
 
+#: reversion_log/models.py:21
 msgid "Logged requests revisions"
 msgstr "Logované datové změny"
 
+#: templates/429.html:9
 msgid "Too Many Requests (429)"
 msgstr "Příliš mnoho HTTP dotazů (429)"
 
+#: throttling.py:35
 msgid "Slow down"
 msgstr "Zpomal"
 
+#: throttling.py:60 throttling.py:76
 msgid "Too many login attempts"
 msgstr "Příliš mnoho pokusů o přihlášení"
 
+#: throttling.py:68 throttling.py:84
 msgid "You have logged in too many times"
 msgstr "Příliš mnoho přihlášení najednou"

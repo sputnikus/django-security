@@ -332,9 +332,9 @@ class CommandLog(SmartModel):
 class CeleryTaskManager(models.Manager):
 
     def filter_stale(self, **kwargs):
-        return self.filter(
-            state__in={CeleryTaskLogState.WAITING, CeleryTaskLogState.ACTIVE, CeleryTaskLogState.RETRIED},
-            changed_at__lt=timezone.now() - timedelta(minutes=settings.CELERY_STALE_TASK_TIME_LIMIT_MINUTES)
+        return self.exclude(stale__isnull=True).filter(
+            state__in={CeleryTaskLogState.WAITING, CeleryTaskLogState.ACTIVE},
+            stale__lt=timezone.now()
         )
 
 
@@ -342,6 +342,7 @@ class CeleryTaskLog(SmartModel):
 
     objects = CeleryTaskManager()
 
+    celery_task_id = models.CharField(verbose_name=_('celery ID'), null=False, blank=False, max_length=250)
     start = models.DateTimeField(verbose_name=_('start'), null=True, blank=True)
     stop = models.DateTimeField(verbose_name=_('stop'), null=True, blank=True)
     name = models.CharField(verbose_name=_('task name'), null=False, blank=False, max_length=250)
@@ -350,12 +351,20 @@ class CeleryTaskLog(SmartModel):
     error_message = models.TextField(verbose_name=_('error message'), null=True, blank=True)
     queue_name = models.CharField(verbose_name=_('queue name'), null=True, blank=True, max_length=250)
     input = models.TextField(blank=True, null=True, editable=False, verbose_name=_('input'))
+    task_args = JSONField(_('task args'), null=True, blank=True)
+    task_kwargs = JSONField(_('task kwargs'), null=True, blank=True)
     output = models.TextField(blank=True, null=True, editable=False, verbose_name=_('output'))
+    retries = models.PositiveSmallIntegerField(verbose_name=_('retries'), null=False, blank=False, default=0)
+    estimated_time_of_arrival = models.DateTimeField(verbose_name=_('estimated time of arrival'), null=False,
+                                                     blank=False)
+    expires = models.DateTimeField(verbose_name=_('time of expiration'), null=True, blank=True)
+    stale = models.DateTimeField(verbose_name=_('stale task time'), null=True, blank=True)
 
     class Meta:
         verbose_name = _('celery task')
         verbose_name_plural = _('celery tasks')
         ordering = ('-created_at',)
+        unique_together = ('celery_task_id', 'retries')
 
     class SmartMeta:
         is_cleaned_pre_save = False
