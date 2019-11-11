@@ -125,7 +125,7 @@ INSTALLED_APPS = (
 # more details on how to customize your logging configuration.
 LOGGING = {
     'version': 1,
-    'disable_existing_loggers': False,
+    'disable_existing_loggers': True,
     'formatters': {
         'standard': {
             'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
@@ -143,7 +143,7 @@ LOGGING = {
             'class': 'django.utils.log.AdminEmailHandler'
         },
         'console': {
-            'level': 'DEBUG',
+            'level': 'ERROR',
             'class': 'logging.StreamHandler',
             'formatter': 'standard'
         },

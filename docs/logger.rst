@@ -137,3 +137,59 @@ You can use predefined celery task ``security.tasks.call_django_command`` to run
     from security.tasks import call_django_command
 
     call_django_command.apply_async(args=('check',))
+
+.. class:: security.tasks.LoggedTask
+
+  There are several methods of ``LoggedTask`` which you can use for your advanced tasks logic.
+
+  .. property:: task_log
+
+    This method returns an instance of CeleryTaskLog related to your task.
+
+  .. method:: on_apply_task(task_log, args, kwargs, options)
+
+    This method is called before the task is queued. You can override this method.
+
+  .. method:: on_start_task(task_log, args, kwargs)
+
+    This method method is called when the task was started.
+
+  .. method:: on_success_task(task_log, args, kwargs, retval)
+
+    This method method is called when the task was successfully completed.
+
+  .. method:: on_failure_task(task_log, args, kwargs, exc)
+
+    This method method is called when the task raised an exception and is not retried.
+
+  .. method:: on_retry_task(task_log, args, kwargs, exc)
+
+    This method method is called when the task raised an exception and is retried.
+
+  .. property:: default_retry_delays
+
+    Similar to celery ``default_retry_delay`` which you can use to define how long the retried task will wait, property  ``default_retry_delays`` can be used to define the same but every task attempt may have a different delay::
+
+        @celery_app.task(
+            base=LoggedTask,
+            bind=True,
+            name='retry_task',
+            autoretry_for=(RuntimeError,),
+            default_retry_delays=(1 * 60, 5 * 60, 10 * 60, 30 * 60, 60 * 60))
+        def retry_task(self):
+            ...
+
+    The ``retry_task`` will be retried after 1 minute for second attempt, 5 minutes for third attempt and so on.
+
+  .. property:: stale_time_limit
+
+    ``stale_time_limit`` is value in seconds which defines, how long it will take to set the task as expired. Default value can be set with ``CELERYD_TASK_STALE_TIME_LIMIT`` in Django settings.
+
+  .. property:: retry_error_message
+
+    Is the message which will be logged as warning if task is retried. Default value is ``'Task "{task_name}" ({task}) failed on exception: "{exception}", attempt: "{attempt}" and will be retried'``
+
+  .. property:: fail_error_message
+
+    Is the message which will be logged as warning if task is failed. Default value is ``'Task "{task_name}" ({task}) failed on exception: "{exception}"'``
+
