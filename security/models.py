@@ -165,7 +165,7 @@ class LoggedRequest(SmartModel):
     request_body = models.TextField(_('request body'), null=False, blank=True)
 
     # Response information
-    response_timestamp = models.DateTimeField(_('response timestamp'), null=True, blank=True)
+    response_timestamp = models.DateTimeField(_('response timestamp'), null=True, blank=True, db_index=True)
     response_code = models.PositiveSmallIntegerField(_('response code'), null=True, blank=True)
     response_headers = JSONField(_('response headers'), null=True, blank=True)
     response_body = models.TextField(_('response body'), null=True, blank=True)
@@ -232,10 +232,10 @@ class InputLoggedRequest(LoggedRequest):
 
     user = models.ForeignKey(django_settings.AUTH_USER_MODEL, verbose_name=_('user'), null=True, blank=True,
                              on_delete=models.SET_NULL)
-    ip = models.GenericIPAddressField(_('IP address'), null=False, blank=False)
+    ip = models.GenericIPAddressField(_('IP address'), null=False, blank=False, db_index=True)
     type = NumEnumField(verbose_name=_('type'), enum=InputLoggedRequestType,
                         default=InputLoggedRequestType.COMMON_REQUEST,
-                        null=False, blank=False)
+                        null=False, blank=False, db_index=True)
 
     objects = InputLoggedRequestManager()
 
