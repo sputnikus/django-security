@@ -5,6 +5,7 @@ from ipware.ip import get_ip
 from django.conf import settings
 from django.utils import timezone
 from django.utils.translation import ugettext as _
+from django.urls import resolve
 
 from .exception import ThrottlingException
 from .models import InputLoggedRequest, InputLoggedRequestType
@@ -36,10 +37,18 @@ class PerRequestThrottlingValidator(ThrottlingValidator):
         super(PerRequestThrottlingValidator, self).__init__(timeframe, throttle_at, description)
 
     def _validate(self, request):
-        count_same_requests = InputLoggedRequest.objects.filter(
+        try:
+            qs = InputLoggedRequest.objects.filter(
+                slug=resolve(request.path_info, getattr(request, 'urlconf', None)).view_name
+            )
+        except Resolver404:
+            qs = InputLoggedRequest.objects.filter(slug__isnull=True)
+
+        count_same_requests = qs.filter(
             ip=get_ip(request), path=request.path,
             request_timestamp__gte=timezone.now() - timedelta(seconds=self.timeframe),
-            method=request.method.upper()).count()
+            method=request.method.upper()
+        ).count()
         return count_same_requests <= self.throttle_at
 
 
