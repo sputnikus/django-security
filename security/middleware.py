@@ -6,8 +6,7 @@ from django import http
 from django.conf import settings as django_settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db.transaction import get_connection
-from django.urls import is_valid_path, get_callable, resolve
-from django.utils.encoding import force_text
+from django.urls import is_valid_path, get_callable
 
 from .config import settings
 from .exception import ThrottlingException
@@ -20,23 +19,8 @@ except ImportError:  # For Django < 1.8
     from django.utils.importlib import import_module
 
 
-class MiddlewareMixin:
 
-    def __init__(self, get_response=None):
-        self.get_response = get_response
-        super().__init__()
-
-    def __call__(self, request):
-        response = None
-        if hasattr(self, 'process_request'):
-            response = self.process_request(request)
-        response = response or self.get_response(request)
-        if hasattr(self, 'process_response'):
-            response = self.process_response(request, response)
-        return response
-
-
-if 'security.reversion_log' in django_settings.INSTALLED_APPS:
+if 'security.contrib.reversion_log' in django_settings.INSTALLED_APPS:
     if 'reversion' not in django_settings.INSTALLED_APPS:
         raise ImproperlyConfigured('For reversion log is necessary install "django-reversion"')
 
@@ -45,7 +29,7 @@ if 'security.reversion_log' in django_settings.INSTALLED_APPS:
         from reversion.signals import post_revision_commit
 
         def create_revision_request_log(sender, revision, versions, **kwargs):
-            from security.reversion_log.models import InputRequestRevision
+            from security.contrib.reversion_log.models import InputRequestRevision
 
             connection = get_connection()
             if getattr(connection, 'input_logged_request', False):
@@ -56,9 +40,19 @@ if 'security.reversion_log' in django_settings.INSTALLED_APPS:
         pass
 
 
-class LogMiddleware(MiddlewareMixin):
+class LogMiddleware:
 
     response_redirect_class = http.HttpResponsePermanentRedirect
+
+    def __init__(self, get_response=None):
+        self.get_response = get_response
+        super().__init__()
+
+    def __call__(self, request):
+        response = self.process_request(request)
+        response = response or self.get_response(request)
+        response = self.process_response(request, response)
+        return response
 
     def process_request(self, request):
         connection = get_connection()

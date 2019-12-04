@@ -24,3 +24,4 @@ Content
    commands
    logger
    throttling
+   contrib

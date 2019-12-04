@@ -1,5 +1,6 @@
 import json
 
+from django.apps import apps
 from django.core.serializers.json import DjangoJSONEncoder
 from django.template.defaultfilters import truncatechars
 from django.utils.html import format_html, mark_safe
@@ -12,6 +13,7 @@ from is_core.generic_views.inlines.inline_form_views import TabularInlineFormVie
 from is_core.main import UIRESTModelISCore
 from is_core.utils.decorators import short_description
 
+from security.config import settings
 from security.models import (
     CommandLog, InputLoggedRequest, OutputLoggedRequest, OutputLoggedRequestRelatedObjects, CeleryTaskLog
 )
@@ -77,6 +79,26 @@ class InputRequestsLogISCore(RequestsLogISCore):
         (_('User information'), {'fields': ('user', 'ip')}),
         (_('Extra information'), {'fields': ('slug', 'response_time', 'output_logged_requests')}),
     )
+
+    def get_form_fieldsets(self, request, obj=None):
+        form_fieldsets = list(super().get_form_fieldsets(request, obj))
+
+        app_names = {app.name for app in apps.get_app_configs()}
+
+        if 'security.contrib.reversion_log' in app_names and obj and obj.input_logged_request_revisions.exists():
+            from .contrib.reversion_log.views import RequestRevisionTabularInlineFormView
+
+            form_fieldsets.append((_('Revisions'), {'inline_view': RequestRevisionTabularInlineFormView}))
+
+        if (settings.SHOW_DEBUG_TOOLBAR and 'security.contrib.debug_toolbar_log' in app_names
+                and obj and hasattr(obj, 'input_logged_request_toolbar')):
+            form_fieldsets.append((None, {'fields': ('debug_toolbar',)}))
+        return form_fieldsets
+
+    @short_description('')
+    def debug_toolbar(self, obj):
+        return mark_safe(obj.input_logged_request_toolbar.toolbar)
+
 
     abstract = True
 

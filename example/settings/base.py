@@ -113,7 +113,7 @@ INSTALLED_APPS = (
 
     # apps
     'security',
-    'security.reversion_log',
+    'security.contrib.reversion_log',
     'reversion',
     'apps.test_security',
 )
