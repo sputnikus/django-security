@@ -41,7 +41,7 @@ try:
 except ImportError:
     CaseSensitiveStringFieldFilter = object
 
-from .enums import InputLoggedRequestType, LoggedRequestStatus, CeleryTaskLogState
+from .enums import InputLoggedRequestType, LoggedRequestStatus, CeleryTaskLogState, CeleryTaskRunState
 
 
 def display_json(value, indent=4):
@@ -338,39 +338,66 @@ class CeleryTaskManager(models.Manager):
         )
 
 
-class CeleryTaskLog(SmartModel):
+class CeleryTaskInitiationLog(SmartModel):
 
     objects = CeleryTaskManager()
 
-    celery_task_id = models.CharField(verbose_name=_('celery ID'), null=False, blank=False, max_length=250)
-    start = models.DateTimeField(verbose_name=_('start'), null=True, blank=True)
-    stop = models.DateTimeField(verbose_name=_('stop'), null=True, blank=True)
+    celery_task_id = models.CharField(verbose_name=_('celery ID'), null=False, blank=False, max_length=250,
+                                      primary_key=True)
     name = models.CharField(verbose_name=_('task name'), null=False, blank=False, max_length=250)
-    state = NumEnumField(verbose_name=_('state'), null=False, blank=False, enum=CeleryTaskLogState,
-                         default=CeleryTaskLogState.WAITING)
-    error_message = models.TextField(verbose_name=_('error message'), null=True, blank=True)
     queue_name = models.CharField(verbose_name=_('queue name'), null=True, blank=True, max_length=250)
-    input = models.TextField(blank=True, null=True, editable=False, verbose_name=_('input'))
-    task_args = JSONField(_('task args'), null=True, blank=True)
-    task_kwargs = JSONField(_('task kwargs'), null=True, blank=True)
-    output = models.TextField(blank=True, null=True, editable=False, verbose_name=_('output'))
-    retries = models.PositiveSmallIntegerField(verbose_name=_('retries'), null=False, blank=False, default=0)
-    estimated_time_of_arrival = models.DateTimeField(verbose_name=_('estimated time of arrival'), null=False,
-                                                     blank=False)
+    input = models.TextField(verbose_name=_('input'), blank=True, null=True, editable=False)
+    task_args = JSONField(verbose_name=_('task args'), null=True, blank=True, editable=False)
+    task_kwargs = JSONField(verbose_name=_('task kwargs'), null=True, blank=True, editable=False)
+    output = models.JSONField(verbose_name=_('output'), blank=True, null=True, editable=False)
+    estimated_time_of_first_arrival = models.DateTimeField(
+        verbose_name=_('estimated time of first arrival'), null=False, blank=False
+    )
     expires = models.DateTimeField(verbose_name=_('time of expiration'), null=True, blank=True)
     stale = models.DateTimeField(verbose_name=_('stale task time'), null=True, blank=True)
+    is_set_as_stale = models.BooleanField(verbose_name=_('set as stale'), default=False)
 
     class Meta:
-        verbose_name = _('celery task')
-        verbose_name_plural = _('celery tasks')
+        verbose_name = _('celery task initiation')
+        verbose_name_plural = _('celery tasks initiation')
         ordering = ('-created_at',)
-        unique_together = ('celery_task_id', 'retries')
 
     class SmartMeta:
         is_cleaned_pre_save = False
 
     class UIMeta:
         default_ui_filter_by = 'id'
+
+    def __str__(self):
+        return '{} ({})'.format(self.name, self.get_state_display())
+
+
+class CeleryTaskRunLog(SmartModel):
+
+    objects = CeleryTaskManager()
+
+    celery_task_id = models.CharField(verbose_name=_('celery ID'), null=False, blank=False, max_length=250)
+    start = models.DateTimeField(verbose_name=_('start'), null=True, blank=True)
+    stop = models.DateTimeField(verbose_name=_('stop'), null=True, blank=True)
+    state = NumEnumField(verbose_name=_('state'), null=False, blank=False, enum=CeleryTaskLogState,
+                         default=CeleryTaskRunLogState.WAITING)
+    name = models.CharField(verbose_name=_('task name'), null=False, blank=False, max_length=250)
+    task_args = JSONField(verbose_name=_('task args'), null=True, blank=True, editable=False)
+    task_kwargs = JSONField(verbose_name=_('task kwargs'), null=True, blank=True, editable=False)
+    error_message = models.TextField(verbose_name=_('error message'), null=True, blank=True)
+    output = models.TextField(blank=True, null=True, editable=False, verbose_name=_('output'))
+    retries = models.PositiveSmallIntegerField(verbose_name=_('retries'), null=False, blank=False,
+                                               default=0)
+    estimated_time_of_next_retry = models.DateTimeField(verbose_name=_('estimated time of arrival'), null=True,
+                                                        blank=True)
+
+    class Meta:
+        verbose_name = _('celery task run')
+        verbose_name_plural = _('celery tasks run')
+        ordering = ('created_at',)
+
+    class SmartMeta:
+        is_cleaned_pre_save = False
 
     def __str__(self):
         return '{} ({})'.format(self.name, self.get_state_display())

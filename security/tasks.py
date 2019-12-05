@@ -20,7 +20,7 @@ try:
 except ImportError:
     raise ImproperlyConfigured('Missing celery library, please install it')
 
-from .models import CeleryTaskLog, CeleryTaskLogState
+from .models import CeleryTaskRunLog, CeleryTaskInitiationLog, CeleryTaskLogState, CeleryTaskRunLogState
 from .utils import LogStringIO
 
 
@@ -42,7 +42,7 @@ class LoggedTask(Task):
 
     @property
     def task_log(self):
-        return CeleryTaskLog.objects.get(
+        return CeleryTaskRunLog.objects.get(
             celery_task_id=str(self.request.id),
             retries=self.request.retries
         )
@@ -65,21 +65,23 @@ class LoggedTask(Task):
         # celery library)
         req._protected = 1
 
+        self._create_task_run(args, kwargs)
+
         # Every set attr is sent here
         self.request.output_stream = LogStringIO()
         self.on_start_task(self.task_log, args, kwargs)
         return self.run(*args, **kwargs)
 
-    def on_apply_task(self, task_log, args, kwargs, options):
+    def on_apply_task(self, task_initiation_log, args, kwargs, options):
         """
         On apply task is invoked before task was prepared. Therefore task request context is not prepared.
-        :param task_log: logged celery task instance
+        :param task_initiation_log: logged celery task instance
         :param args: task args
         :param kwargs: task kwargs
         :param options: input task options
         """
 
-    def on_retry_task(self, task_log, args, kwargs, exc):
+    def on_retry_task(self, task_log, args, kwargs, exc, eta):
         """
         On retry task is invoked before task was retried.
         :param task_log: logged celery task instance
@@ -95,7 +97,7 @@ class LoggedTask(Task):
             state=CeleryTaskLogState.RETRIED,
             error_message=str(exc),
             output=self.request.output_stream.getvalue(),
-            retries=self.request.retries
+            estimated_time_of_next_retry=eta
         )
 
     def on_start_task(self, task_log, args, kwargs):
@@ -107,7 +109,7 @@ class LoggedTask(Task):
         """
 
         task_log.change_and_save(
-            state=CeleryTaskLogState.ACTIVE,
+            state=CeleryTaskRunLogState.ACTIVE,
             start=now()
         )
 
@@ -123,10 +125,9 @@ class LoggedTask(Task):
             self.request.output_stream.write('Return value is "{}"'.format(retval))
 
         task_log.change_and_save(
-            state=CeleryTaskLogState.SUCCEEDED,
+            state=CeleryTaskRunLogState.SUCCEEDED,
             stop=now(),
-            output=self.request.output_stream.getvalue(),
-            retries=self.request.retries
+            output=self.request.output_stream.getvalue()
         )
 
     def on_success(self, retval, task_id, args, kwargs):
@@ -145,19 +146,14 @@ class LoggedTask(Task):
             attempt=self.request.retries, exception=str(exc), task=task_log, task_name=task_log.name, **kwargs
         ))
         task_log.change_and_save(
-            state=CeleryTaskLogState.FAILED,
+            state=CeleryTaskRunLogState.FAILED,
             stop=now(),
             error_message=str(exc),
-            output=self.request.output_stream.getvalue(),
-            retries=self.request.retries
+            output=self.request.output_stream.getvalue()
         )
 
-    def expire_task(self, task_log):
-        task_log.change_and_save(
-            state=CeleryTaskLogState.EXPIRED,
-            stop=now(),
-            error_message='Task execution was expired by command'
-        )
+    def expire_task(self, task_initiation_log):
+        task_initiation_log.change_and_save(is_set_as_stale=True)
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         try:
@@ -203,28 +199,37 @@ class LoggedTask(Task):
         else:
             return None
 
-    def _create_task(self, options, task_args, task_kwargs, celery_task_id, now, stale_time_limit):
+    def _get_or_create_task_initiation(self, options, task_args, task_kwargs, celery_task_id, now, stale_time_limit):
         task_input = []
         if task_args:
             task_input += [str(v) for v in task_args]
         if task_kwargs:
             task_input += ['{}={}'.format(k, v) for k, v in task_kwargs.items()]
 
-        return CeleryTaskLog.objects.create(
+        return CeleryTaskInitiationLog.objects.get_or_create(
             celery_task_id=celery_task_id,
             name=self.name,
-            state=CeleryTaskLogState.WAITING,
             queue_name=options.get('queue', getattr(self, 'queue', settings.CELERY_DEFAULT_QUEUE)),
             input=', '.join(task_input),
             task_args=task_args,
             task_kwargs=task_kwargs,
-            estimated_time_of_arrival=options['eta'],
+            estimated_time_of_first_arrival=options['eta'],
             expires=options['expires'],
             stale=(
                 now + timedelta(seconds=self._get_stale_time_limit(stale_time_limit))
                 if self._get_stale_time_limit(stale_time_limit) is not None else None
-            ),
-            retries=options.get('retries', 0)
+            )
+        )
+
+    def _create_task_run(self, task_args, task_kwargs):
+        return CeleryTaskRunLog.objects.create(
+            celery_task_id=self.request.id,
+            name=self.name,
+            task_args=task_args,
+            task_kwargs=task_kwargs,
+            estimated_time_of_first_arrival=self.request['eta'],
+            retries=self.request.retries,
+            state=CeleryTaskRunLogState.WAITING
         )
 
     def _update_options(self, options, now, stale_time_limit):
@@ -246,8 +251,11 @@ class LoggedTask(Task):
         apply_time = now()
         options = self._update_options(options, apply_time, stale_time_limit)
         celery_task_id = task_id or uuid()
-        task_log = self._create_task(options, args, kwargs, celery_task_id, apply_time, stale_time_limit)
-        self.on_apply_task(task_log, args, kwargs, options)
+        if not self.request.id:
+            task_initiation = self._create_task_initiation(
+                options, args, kwargs, celery_task_id, apply_time, stale_time_limit
+            )
+            self.on_apply_task(task_initiation, args, kwargs, options)
         return super().apply(args=args, kwargs=kwargs, task_id=celery_task_id, **options)
 
     def apply_async(self, args=None, kwargs=None, task_id=None, stale_time_limit=None, **options):
@@ -260,17 +268,15 @@ class LoggedTask(Task):
         else:
             apply_time = now()
             options = self._update_options(options, apply_time, stale_time_limit)
-            task_log = self._create_task(options, args, kwargs, celery_task_id, apply_time, stale_time_limit)
-            self.on_apply_task(task_log, args, kwargs, options)
+            if not self.request.id:
+                task_initiation = self._create_task_initiation(
+                    options, args, kwargs, celery_task_id, apply_time, stale_time_limit
+                )
+                self.on_apply_task(task_initiation, args, kwargs, options)
             return super().apply_async(args=args, kwargs=kwargs, task_id=celery_task_id, **options)
 
     def retry(self, args=None, kwargs=None, exc=None, throw=True,
               eta=None, countdown=None, max_retries=None, default_retry_delays=None, **options):
-
-        self.on_retry_task(self.task_log, args, kwargs, exc)
-
-        # Celery retry not working in eager mode. This simple hack fix it.
-        self.request.is_eager = False
 
         if (default_retry_delays or (
                 max_retries is None and eta is None and countdown is None and max_retries is None
@@ -278,9 +284,20 @@ class LoggedTask(Task):
             default_retry_delays = self.default_retry_delays if default_retry_delays is None else default_retry_delays
             max_retries = len(default_retry_delays)
             countdown = default_retry_delays[self.request.retries] if self.request.retries < max_retries else None
+
+        if not eta and countdown is None:
+            countdown = self.default_retry_delay
+
+        if not eta:
+            eta = now() + timedelta(seconds=countdown)
+
+        self.on_retry_task(self.task_log, args, kwargs, exc, eta)
+
+        # Celery retry not working in eager mode. This simple hack fix it.
+        self.request.is_eager = False
         return super().retry(
             args=args, kwargs=kwargs, exc=exc, throw=throw,
-            eta=eta, countdown=countdown, max_retries=max_retries, **options
+            eta=eta, max_retries=max_retries, **options
         )
 
 
