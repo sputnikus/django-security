@@ -35,8 +35,7 @@ class CeleryTaskLogState(ChoiceEnum):
 
 class CeleryTaskRunLogState(ChoiceEnum):
 
-    WAITING = Choice(1, _('Waiting'))
-    ACTIVE = Choice(2, _('Active'))
-    SUCCEEDED = Choice(3, _('Succeeded'))
-    FAILED = Choice(4, _('Failed'))
-    RETRIED = Choice(5, _('Retried'))
+    ACTIVE = Choice(1, _('Active'))
+    SUCCEEDED = Choice(2, _('Succeeded'))
+    FAILED = Choice(3, _('Failed'))
+    RETRIED = Choice(4, _('Retried'))

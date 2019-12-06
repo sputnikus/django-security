@@ -213,7 +213,64 @@ Models
 
 .. class:: security.models.CeleryTaskLog
 
-  Represents a log of a command run.
+  Represents a log of a celery task initiation.
+
+  .. attribute:: celery_task_id
+
+    Identifier of celery task. Computed as random uuid value.
+
+  .. attribute:: name
+
+    Name of the task.
+
+  .. attribute:: queue_name
+
+    Name of the task queue.
+
+  .. attribute:: input
+
+    Input args and kwargs of the celery task.
+
+  .. attribute:: task_args
+
+    List of task args which was serialized into JSONField.
+
+  .. attribute:: task_kwargs
+
+    Dict of task kwargs which was serialized into JSONField.
+
+  .. attribute:: estimated_time_of_first_arrival
+
+    Celery task estimated time of first arrival. Which was computed from celery task etc or countdown value.
+
+  .. attribute:: expires
+
+    Time of a task expiration. Waiting task will not be run if the time is a thing of the past.
+
+  .. attribute:: stale
+
+    Time when a task will be marked as stale and will be automatically set as expired.
+
+  .. attribute:: is_set_as_stale
+
+    Boolean value that identifies if task is expired.
+
+  .. method:: get_start
+
+    Date and time when task was started.
+
+  .. method:: get_stop
+
+    Date and time when task finished.
+
+  .. method:: get_state
+
+    State of the task (WAITING, ACTIVE, SUCCEEDED, FAILED, RETRIED, EXPIRED).
+
+
+.. class:: security.models.CeleryTaskRunLog
+
+  Represents a log of celery task run.
 
   .. attribute:: celery_task_id
 
@@ -221,19 +278,19 @@ Models
 
   .. attribute:: start
 
-    Date and time when task was started.
+    Date and time when task run was started.
 
   .. attribute:: stop
 
-    Date and time when task finished.
+    Date and time when task run finished.
 
   .. attribute:: name
 
-    Name of the task.
+    Name of the task run.
 
   .. attribute:: state
 
-    State of the task (WAITING, ACTIVE, SUCCEEDED, FAILED, RETRIED, EXPIRED).
+    State of the task run (ACTIVE, SUCCEEDED, FAILED, RETRIED).
 
   .. attribute:: error_message
 
@@ -263,15 +320,7 @@ Models
 
     Task attempt number is the task was retried.
 
-  .. attribute:: estimated_time_of_arrival
+  .. attribute:: estimated_time_of_next_retry
 
-    Celery task estimated time of arrival. Which was computed from celery task etc or countdown value.
-
-  .. attribute:: expires
-
-    Time of a task expiration. Waiting task will not be run if the time is a thing of the past.
-
-  .. attribute:: stale
-
-    Time when a task will be marked as stale and will be automatically set as expired.
+    Celery task estimated time of arrival of retried task. Which was computed from celery task etc or countdown value.
 

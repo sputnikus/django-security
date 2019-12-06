@@ -14,7 +14,8 @@ import responses
 from freezegun import freeze_time
 
 from security.models import (
-    InputLoggedRequest, OutputLoggedRequest, CommandLog, LoggedRequestStatus, CeleryTaskLog, CeleryTaskLogState
+    InputLoggedRequest, OutputLoggedRequest, CommandLog, LoggedRequestStatus, CeleryTaskLog, CeleryTaskRunLog,
+    CeleryTaskLogState, CeleryTaskRunLogState
 )
 from security.management import call_command
 from security.transport import security_requests as requests
@@ -323,50 +324,61 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
     def test_celery_task_should_be_logged(self):
         sum_task.apply_async(args=(5, 8))
         assert_equal(CeleryTaskLog.objects.count(), 1)
-        assert_equal(CeleryTaskLog.objects.get().state, CeleryTaskLogState.SUCCEEDED)
+        assert_equal(CeleryTaskLog.objects.get().get_state(), CeleryTaskLogState.SUCCEEDED)
+        assert_equal(CeleryTaskRunLog.objects.count(), 1)
+        assert_equal(CeleryTaskRunLog.objects.get().state, CeleryTaskRunLogState.SUCCEEDED)
 
     def test_celery_task_should_be_able_to_run_with_apply_async_on_commit(self):
         sum_task.apply_async_on_commit(args=(5, 8))
         assert_equal(CeleryTaskLog.objects.count(), 1)
-        assert_equal(CeleryTaskLog.objects.get().state, CeleryTaskLogState.SUCCEEDED)
+        assert_equal(CeleryTaskLog.objects.get().get_state(), CeleryTaskLogState.SUCCEEDED)
+        assert_equal(CeleryTaskRunLog.objects.count(), 1)
+        assert_equal(CeleryTaskRunLog.objects.get().state, CeleryTaskRunLogState.SUCCEEDED)
 
     def test_celery_error_task_should_be_set_as_failed_in_the_log(self):
         error_task.apply_async_on_commit()
         assert_equal(CeleryTaskLog.objects.count(), 1)
-        assert_equal(CeleryTaskLog.objects.get().state, CeleryTaskLogState.FAILED)
-        assert_is_not_none(CeleryTaskLog.objects.get().error_message)
+        assert_equal(CeleryTaskLog.objects.get().get_state(), CeleryTaskLogState.FAILED)
+        assert_equal(CeleryTaskRunLog.objects.count(), 1)
+        assert_equal(CeleryTaskRunLog.objects.get().state, CeleryTaskRunLogState.FAILED)
+        assert_is_not_none(CeleryTaskRunLog.objects.get().error_message)
 
     def test_django_command_should_be_run_via_task(self):
         call_django_command.apply_async(args=('check',))
         assert_equal(CeleryTaskLog.objects.count(), 1)
-        assert_equal(CeleryTaskLog.objects.get().state, CeleryTaskLogState.SUCCEEDED)
+        assert_equal(CeleryTaskLog.objects.get().get_state(), CeleryTaskLogState.SUCCEEDED)
+        assert_equal(CeleryTaskRunLog.objects.count(), 1)
+        assert_equal(CeleryTaskRunLog.objects.get().state, CeleryTaskRunLogState.SUCCEEDED)
 
     def test_retry_command_should_be_automatically_retried(self):
         retry_task.apply_async()
-        assert_equal(CeleryTaskLog.objects.count(), 6)
-        assert_equal(CeleryTaskLog.objects.values('celery_task_id').distinct().count(), 1)
+        assert_equal(CeleryTaskLog.objects.count(), 1)
+        assert_equal(CeleryTaskLog.objects.get().get_state(), CeleryTaskLogState.SUCCEEDED)
+        assert_equal(CeleryTaskRunLog.objects.count(), 6)
+        assert_equal(CeleryTaskRunLog.objects.values('celery_task_id').distinct().count(), 1)
         assert_equal(
-            tuple(CeleryTaskLog.objects.order_by('created_at').values_list('state', flat=True)),
-            (CeleryTaskLogState.RETRIED, CeleryTaskLogState.RETRIED, CeleryTaskLogState.RETRIED,
-             CeleryTaskLogState.RETRIED, CeleryTaskLogState.RETRIED, CeleryTaskLogState.SUCCEEDED)
+            tuple(CeleryTaskRunLog.objects.order_by('created_at').values_list('state', flat=True)),
+            (CeleryTaskRunLogState.RETRIED, CeleryTaskRunLogState.RETRIED, CeleryTaskRunLogState.RETRIED,
+             CeleryTaskRunLogState.RETRIED, CeleryTaskRunLogState.RETRIED, CeleryTaskRunLogState.SUCCEEDED)
         )
 
     @freeze_time(now())
     def test_retry_command_should_be_delayed(self):
         retry_task.apply_async()
-        assert_equal(CeleryTaskLog.objects.count(), 6)
+        assert_equal(CeleryTaskRunLog.objects.count(), 6)
+        assert_equal(CeleryTaskLog.objects.first().estimated_time_of_first_arrival, now())
         assert_equal(
-            tuple(CeleryTaskLog.objects.order_by('created_at').values_list('estimated_time_of_arrival', flat=True)),
-            (now(), now() + timedelta(minutes=1), now() + timedelta(minutes=5),
-             now() + timedelta(minutes=10), now() + timedelta(minutes=30), now() + timedelta(minutes=60))
+            tuple(CeleryTaskRunLog.objects.order_by('created_at').values_list('estimated_time_of_next_retry', flat=True)),
+            (now() + timedelta(minutes=1), now() + timedelta(minutes=5),
+             now() + timedelta(minutes=10), now() + timedelta(minutes=30), now() + timedelta(minutes=60), None)
         )
 
     @freeze_time(now())
     def test_retry_command_should_have_set_right_retry_value(self):
         retry_task.apply_async()
-        assert_equal(CeleryTaskLog.objects.count(), 6)
+        assert_equal(CeleryTaskRunLog.objects.count(), 6)
         assert_equal(
-            tuple(CeleryTaskLog.objects.order_by('created_at').values_list('retries', flat=True)),
+            tuple(CeleryTaskRunLog.objects.order_by('created_at').values_list('retries', flat=True)),
             (0, 1, 2, 3, 4, 5)
         )
 
@@ -375,7 +387,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
     def test_celery_task_should_have_rightly_set_stale_time(self):
         sum_task.apply_async(args=(5, 8))
         celery_task_log = CeleryTaskLog.objects.get()
-        assert_equal(celery_task_log.estimated_time_of_arrival, now())
+        assert_equal(celery_task_log.estimated_time_of_first_arrival, now())
         assert_is_none(celery_task_log.expires)
         assert_equal(celery_task_log.stale, now() + timedelta(seconds=30))
 
@@ -384,7 +396,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
     def test_celery_task_should_have_rightly_set_expires_time(self):
         sum_task.apply_async(args=(5, 8))
         celery_task_log = CeleryTaskLog.objects.get()
-        assert_equal(celery_task_log.estimated_time_of_arrival, now())
+        assert_equal(celery_task_log.estimated_time_of_first_arrival, now())
         assert_equal(celery_task_log.expires, now() + timedelta(seconds=20))
         assert_equal(celery_task_log.stale, now() + timedelta(seconds=30))
 
@@ -393,7 +405,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
     def test_celery_task_should_have_rightly_set_expires_time_if_soft_time_limit_is_set_in_task_call(self):
         sum_task.apply_async(args=(5, 8), time_limit=20)
         celery_task_log = CeleryTaskLog.objects.get()
-        assert_equal(celery_task_log.estimated_time_of_arrival, now())
+        assert_equal(celery_task_log.estimated_time_of_first_arrival, now())
         assert_equal(celery_task_log.expires, now() + timedelta(seconds=10))
         assert_equal(celery_task_log.stale, now() + timedelta(seconds=30))
 
@@ -402,7 +414,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
     def test_celery_task_should_have_rightly_set_expires_time_if_stale_time_limit_is_set_in_task_call(self):
         sum_task.apply_async(args=(5, 8), stale_time_limit=100)
         celery_task_log = CeleryTaskLog.objects.get()
-        assert_equal(celery_task_log.estimated_time_of_arrival, now())
+        assert_equal(celery_task_log.estimated_time_of_first_arrival, now())
         assert_equal(celery_task_log.stale, now() + timedelta(seconds=100))
         assert_equal(celery_task_log.expires, now() + timedelta(seconds=90))
 
@@ -411,7 +423,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
     def test_celery_task_should_have_rightly_set_expires_time_according_to_default_task_stale_limit_value(self):
         error_task.apply_async()
         celery_task_log = CeleryTaskLog.objects.get()
-        assert_equal(celery_task_log.estimated_time_of_arrival, now())
+        assert_equal(celery_task_log.estimated_time_of_first_arrival, now())
         assert_equal(celery_task_log.stale, now() + timedelta(seconds=60*60))
         assert_equal(celery_task_log.expires, now() + timedelta(seconds=60 * 60 - 10))
 
@@ -422,38 +434,16 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         celery_task_log = CeleryTaskLog.objects.create(
             celery_task_id='random id',
             name='error_task',
-            state=CeleryTaskLogState.WAITING,
             queue_name='default',
             input='',
             task_args=[],
             task_kwargs={},
-            estimated_time_of_arrival=now() - timedelta(minutes=5),
+            estimated_time_of_first_arrival=now() - timedelta(minutes=5),
             expires=now() - timedelta(minutes=4),
-            stale=now() - timedelta(minutes=3),
-            retries=0
+            stale=now() - timedelta(minutes=3)
         )
         call_command('setstaletaskstoerrorstate')
-        assert_equal(celery_task_log.refresh_from_db().state, CeleryTaskLogState.EXPIRED)
-
-    @freeze_time(now())
-    @override_settings(CELERYD_TASK_STALE_TIME_LIMIT=30, CELERYD_TASK_TIME_LIMIT=10)
-    def test_stale_active_celery_task_should_be_set_as_failed_with_command(self):
-        sum_task.apply_async(args=(5, 8))
-        celery_task_log = CeleryTaskLog.objects.create(
-            celery_task_id='random id',
-            name='error_task',
-            state=CeleryTaskLogState.ACTIVE,
-            queue_name='default',
-            input='',
-            task_args=[],
-            task_kwargs={},
-            estimated_time_of_arrival=now() - timedelta(minutes=5),
-            expires=now() - timedelta(minutes=4),
-            stale=now() - timedelta(minutes=3),
-            retries=0
-        )
-        call_command('setstaletaskstoerrorstate')
-        assert_equal(celery_task_log.refresh_from_db().state, CeleryTaskLogState.EXPIRED)
+        assert_equal(celery_task_log.refresh_from_db().get_state(), CeleryTaskLogState.EXPIRED)
 
     @freeze_time(now())
     @override_settings(CELERYD_TASK_STALE_TIME_LIMIT=30, CELERYD_TASK_TIME_LIMIT=10)
@@ -462,15 +452,22 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         celery_task_log = CeleryTaskLog.objects.create(
             celery_task_id='random id',
             name='error_task',
-            state=CeleryTaskLogState.FAILED,
             queue_name='default',
             input='',
             task_args=[],
             task_kwargs={},
-            estimated_time_of_arrival=now() - timedelta(minutes=5),
+            estimated_time_of_first_arrival=now() - timedelta(minutes=5),
             expires=now() - timedelta(minutes=4),
-            stale=now() - timedelta(minutes=3),
+            stale=now() - timedelta(minutes=3)
+        )
+        CeleryTaskRunLog.objects.create(
+            celery_task_id='random id',
+            name='error_task',
+            state=CeleryTaskRunLogState.FAILED,
+            task_args=[],
+            task_kwargs={},
             retries=0
         )
+
         call_command('setstaletaskstoerrorstate')
-        assert_equal(celery_task_log.refresh_from_db().state, CeleryTaskLogState.FAILED)
+        assert_equal(celery_task_log.refresh_from_db().get_state(), CeleryTaskLogState.FAILED)

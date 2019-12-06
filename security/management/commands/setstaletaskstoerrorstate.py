@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 
-from security.models import CeleryTaskLog, CeleryTaskLogState
+from security.models import CeleryTaskLog
 
 from celery import current_app
 
