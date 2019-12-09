@@ -18,30 +18,6 @@ There are several decorators for views and generic views that can be used for vi
 * ``security.decorators.log_exempt`` - decorator for view that exclude all requests to this view from logging
 * ``security.decorators.log_exempt_all`` - decorator for generic view class that exclude all requests to this view from logging
 
-Django-reversion
-^^^^^^^^^^^^^^^^
-
-If you have installed ``django-reversion`` it is possible to relate input logged requests with concrete object change. Firstly you must add extension to your ``INSTALLED_APPS`` setting::
-
-    INSTALLED_APPS = (
-        ...
-        'security',
-        'security.reversion_log',
-        ...
-    )
-
-For ``django-reversion`` version older than 2.x you must add middleware ``security.reversion_log.middleware.RevisionLogMiddleware`` too::
-
-    MIDDLEWARE = (
-        ...
-        'django.contrib.auth.middleware.AuthenticationMiddleware',
-        'security.middleware.LogMiddleware',
-        'security.reversion_log.middleware.RevisionLogMiddleware',
-        ...
-    )
-
-Input logged requests and reversion revision objects are related via m2m model ``security.reversion_log.models.InputRequestRevision``
-
 
 Output requests
 ---------------
