@@ -61,23 +61,6 @@
 					<td class="djdt-time">
 						{{ query.duration|floatformat:"2" }}
 					</td>
-					<td class="djdt-actions">
-
-					{% if query.params %}
-						{% if query.is_select %}
-							<form method="post">
-								{{ query.form }}
-
-								<button formaction="{% url 'djdt:sql_select' %}" class="remoteCall">Sel</button>
-								<button formaction="{% url 'djdt:sql_explain' %}" class="remoteCall">Expl</button>
-
-								{% if query.vendor == 'mysql' %}
-									<button formaction="{% url 'djdt:sql_profile' %}" class="remoteCall">Prof</button>
-								{% endif %}
-							</form>
-						{% endif %}
-					{% endif %}
-					</td>
 				</tr>
 				<tr class="djUnselected {% cycle 'djDebugOdd' 'djDebugEven' %}{% if query.is_slow %} djDebugRowWarning{% endif %} djToggleDetails_{{ forloop.counter }}" id="sqlDetails_{{ forloop.counter }}">
 					<td colspan="2"></td>
