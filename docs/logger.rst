@@ -118,29 +118,37 @@ You can use predefined celery task ``security.tasks.call_django_command`` to run
 
   There are several methods of ``LoggedTask`` which you can use for your advanced tasks logic.
 
-  .. property:: task_log
+  .. property:: task_run_log
 
-    This method returns an instance of CeleryTaskLog related to your task.
+    This property returns an instance of CeleryTaskRunLog related to your task.
 
   .. method:: on_apply_task(task_log, args, kwargs, options)
 
     This method is called before the task is queued. You can override this method.
 
-  .. method:: on_start_task(task_log, args, kwargs)
+  .. method:: on_start_task(task_run_log, args, kwargs)
 
-    This method method is called when the task was started.
+    This method is called when the task was started.
 
-  .. method:: on_success_task(task_log, args, kwargs, retval)
+  .. method:: on_success_task(task_run_log, args, kwargs, retval)
 
-    This method method is called when the task was successfully completed.
+    This method is called when the task was successfully completed.
 
-  .. method:: on_failure_task(task_log, args, kwargs, exc)
+  .. method:: on_failure_task(task_run_log, args, kwargs, exc)
 
-    This method method is called when the task raised an exception and is not retried.
+    This method is called when the task raised an exception and is not retried.
 
-  .. method:: on_retry_task(task_log, args, kwargs, exc)
+  .. method:: on_retry_task(task_run_log, args, kwargs, exc)
 
-    This method method is called when the task raised an exception and is retried.
+    This method is called when the task raised an exception and is retried.
+
+  .. method:: apply_async_on_commit(args=None, kwargs=None, **options)
+
+    This method has the same behaviour as ``apply_async`` but runs task with ``on_commit`` django signal. Therefore it is initialized at the end of the django atomic block.
+
+  .. method:: delay_on_commit(*args, **kwargs)
+
+    This method is same as ``delay`` method only uses for task initialization ``apply_async_on_commit``.
 
   .. property:: default_retry_delays
 
@@ -169,3 +177,18 @@ You can use predefined celery task ``security.tasks.call_django_command`` to run
 
     Is the message which will be logged as warning if task is failed. Default value is ``'Task "{task_name}" ({task}) failed on exception: "{exception}"'``
 
+  .. property:: unique
+
+    LoggedTask can guarantee unique celery task. It means that only one task with the same name and input can run at one time. If task is already running its ``AsyncResult`` is returned in the methods ``apply_async``, ``apply_async_on_commit``, ``delay`` or ``LoggedTask`` can guarantee unique celery task.
+
+  .. property:: unique_key_generator
+
+    ``unique_key_generator`` is value which defines function that is used for task unique key computation. Default generator looks like::
+
+        def default_unique_key_generator(task, task_args, task_kwargs):
+            unique_key = [task.name]
+            if task_args:
+                unique_key += [str(v) for v in task_args]
+            if task_kwargs:
+                unique_key += ['{}={}'.format(k, v) for k, v in task_kwargs.items()]
+            return '||'.join(unique_key)

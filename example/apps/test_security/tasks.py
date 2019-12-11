@@ -30,3 +30,11 @@ def retry_task(self):
     if self.request.retries != 5:
         raise RuntimeError('error')
 
+
+@celery_app.task(
+    base=LoggedTask,
+    bind=True,
+    name='unique_task',
+    unique=True)
+def unique_task(self):
+    return 'unique'
