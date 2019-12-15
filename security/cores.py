@@ -10,15 +10,21 @@ from pyston.paginator import BaseOffsetPaginatorWithoutTotal
 from pyston.utils.decorators import filter_by, order_by
 
 from is_core.generic_views.inlines.inline_form_views import TabularInlineFormView
+from is_core.generic_views.inlines.inline_table_views import InlineTableView
+from is_core.generic_views.mixins import TabItem, TabsViewMixin
+from is_core.generic_views.table_views import TableView
 from is_core.main import UIRESTModelISCore
 from is_core.utils.decorators import short_description
 
 from security.config import settings
 from security.models import (
-    CommandLog, InputLoggedRequest, OutputLoggedRequest, OutputLoggedRequestRelatedObjects, CeleryTaskLog
+    CommandLog, InputLoggedRequest, OutputLoggedRequest, OutputLoggedRequestRelatedObjects, CeleryTaskLog,
+    CeleryTaskRunLog
 )
 
 from ansi2html import Ansi2HTMLConverter
+
+from .filters import CeleryTaskLogStateFilter
 
 
 def display_json(value):
@@ -162,6 +168,70 @@ class CommandLogISCore(UIRESTModelISCore):
         return None
 
 
+class CeleryTaskLogTabs(TabsViewMixin):
+
+    tabs = (
+        TabItem('list-celerytasklog', _('celery task')),
+        TabItem('list-celerytaskrunlog', _('celery task run')),
+    )
+
+
+class CeleryTaskLogTableView(CeleryTaskLogTabs, TableView):
+    pass
+
+
+class CeleryTaskRunLogISCore(UIRESTModelISCore):
+
+    model = CeleryTaskRunLog
+
+    abstract = True
+
+    can_create = can_update = can_delete = False
+
+    rest_paginator = BaseOffsetPaginatorWithoutTotal
+    rest_extra_filter_fields = (
+        'celery_task_id',
+    )
+
+    ui_list_fields = (
+        'created_at', 'changed_at', 'name', 'state', 'start', 'stop', 'result', 'retries', 'get_task_log'
+    )
+
+    form_fields = (
+        'start', 'stop', 'state', 'result', 'error_message', 'output_html', 'retries', 'estimated_time_of_next_retry'
+    )
+
+    ui_list_view = CeleryTaskLogTableView
+
+    default_ordering = ('-created_at',)
+
+    @short_description(_('output'))
+    def output_html(self, obj=None):
+        if obj and obj.output is not None:
+            conv = Ansi2HTMLConverter()
+            output = mark_safe(conv.convert(obj.output, full=False))
+            return display_as_code(output)
+        return None
+
+
+class CeleryTaskRunLogInlineTableView(InlineTableView):
+
+    model = CeleryTaskRunLog
+    fields = (
+        'created_at', 'changed_at', 'start', 'stop', 'state', 'result', 'retries'
+    )
+
+    def _get_list_filter(self):
+        return {
+            'filter': {
+                'celery_task_id': self.parent_instance.celery_task_id
+            }
+        }
+
+
+CeleryTaskLog.get_state.filter = CeleryTaskLogStateFilter
+
+
 class CeleryTaskLogISCore(UIRESTModelISCore):
 
     model = CeleryTaskLog
@@ -173,12 +243,20 @@ class CeleryTaskLogISCore(UIRESTModelISCore):
     rest_paginator = BaseOffsetPaginatorWithoutTotal
 
     ui_list_fields = (
-        'created_at', 'changed_at', 'name', 'short_input', 'state', 'start', 'stop', 'queue_name'
+        'created_at', 'changed_at', 'name', 'short_input', 'get_state', 'get_start', 'get_stop', 'queue_name'
     )
-    form_fields = (
-        'created_at', 'changed_at', 'name', 'state', 'start', 'stop', 'estimated_time_of_arrival', 'expires', 'stale',
-        'error_message', 'queue_name', 'input', 'output_html'
+
+    form_fieldsets = (
+        (None, {
+            'fields': (
+                'created_at', 'changed_at', 'name', 'get_state', 'get_start', 'get_stop',
+                'estimated_time_of_first_arrival', 'expires', 'stale', 'queue_name', 'input'
+            )
+        }),
+        (_('celery task runs'), {'inline_view': CeleryTaskRunLogInlineTableView}),
     )
+
+    ui_list_view = CeleryTaskLogTableView
 
     @filter_by('input')
     @order_by('input')
@@ -186,10 +264,8 @@ class CeleryTaskLogISCore(UIRESTModelISCore):
     def short_input(self, obj=None):
         return truncatechars(obj.input, 50)
 
-    @short_description(_('output'))
-    def output_html(self, obj=None):
-        if obj and obj.output is not None:
-            conv = Ansi2HTMLConverter()
-            output = mark_safe(conv.convert(obj.output, full=False))
-            return display_as_code(output)
-        return None
+    def is_active_menu_item(self, request, active_group):
+        return active_group in {
+            self.menu_group,
+            'celerytaskrunlog',
+        }

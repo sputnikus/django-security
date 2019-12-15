@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-11-03 23:09+0100\n"
+"POT-Creation-Date: 2019-12-08 22:18+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,55 +18,67 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
 
-#: cores.py:38 models.py:158 models.py:189
+#: cores.py:44 models.py:156 models.py:187
 msgid "queries"
 msgstr "query string"
 
-#: cores.py:42 models.py:165 models.py:214
+#: cores.py:48 models.py:163 models.py:212
 msgid "request body"
 msgstr "tělo dotazu"
 
-#: cores.py:46 models.py:164 models.py:194
+#: cores.py:52 models.py:162 models.py:192
 msgid "request headers"
 msgstr "hlavičky dotazu"
 
-#: cores.py:50 models.py:171 models.py:209
+#: cores.py:56 models.py:169 models.py:207
 msgid "response body"
 msgstr "tělo odpovědi"
 
-#: cores.py:54 models.py:170
+#: cores.py:60 models.py:168
 msgid "response headers"
 msgstr "hlavičky odpovědi"
 
-#: cores.py:58 models.py:175
+#: cores.py:64 models.py:173
 msgid "error description"
 msgstr "popis chyby"
 
-#: cores.py:73 cores.py:100 reversion_log/cores.py:17
+#: cores.py:79 cores.py:106 reversion_log/cores.py:17
 msgid "Request"
 msgstr "Dotaz"
 
-#: cores.py:75 cores.py:102 reversion_log/cores.py:19
+#: cores.py:81 cores.py:108 reversion_log/cores.py:19
 msgid "Response"
 msgstr "Odpověď"
 
-#: cores.py:77 reversion_log/cores.py:21
+#: cores.py:83 reversion_log/cores.py:21
 msgid "User information"
 msgstr "Uživatelské informace"
 
-#: cores.py:78 cores.py:104 reversion_log/cores.py:22
+#: cores.py:84 cores.py:110 reversion_log/cores.py:22
 msgid "Extra information"
 msgstr "Další informace"
 
-#: cores.py:105
+#: cores.py:111
 msgid "Related objects"
 msgstr "Vztažené objekty"
 
-#: cores.py:134 cores.py:167 models.py:315 models.py:356
+#: cores.py:140 cores.py:186 models.py:313 models.py:415
 msgid "output"
 msgstr "výstup"
 
-#: cores.py:163 models.py:312 models.py:353
+#: cores.py:152 models.py:356 models.py:431
+msgid "celery task"
+msgstr "celery úloha"
+
+#: cores.py:153 models.py:422
+msgid "celery task run"
+msgstr "zpracování celery úlohy"
+
+#: cores.py:234
+msgid "celery task runs"
+msgstr "zpracování celery úlohy"
+
+#: cores.py:241 models.py:310 models.py:345
 msgid "input"
 msgstr "vstup"
 
@@ -122,19 +134,19 @@ msgstr "Neúspěšné přihlášení při dvoufaktorovém ověření kódu"
 msgid "Waiting"
 msgstr "Čeká"
 
-#: enums.py:29
+#: enums.py:29 enums.py:38
 msgid "Active"
 msgstr "Aktivní"
 
-#: enums.py:30
+#: enums.py:30 enums.py:39
 msgid "Succeeded"
 msgstr "Dokončený"
 
-#: enums.py:31
+#: enums.py:31 enums.py:40
 msgid "Failed"
 msgstr "Chyba"
 
-#: enums.py:32
+#: enums.py:32 enums.py:41
 msgid "Retried"
 msgstr "Opakovaný"
 
@@ -142,165 +154,181 @@ msgstr "Opakovaný"
 msgid "Expired"
 msgstr "Expirovaný"
 
-#: models.py:153
+#: filters.py:26
+msgid "Invalid value."
+msgstr "Neplatná hodnota."
+
+#: models.py:151
 msgid "host"
 msgstr "host"
 
-#: models.py:155
+#: models.py:153
 msgid "method"
 msgstr "metoda"
 
-#: models.py:156
+#: models.py:154
 msgid "URL path"
 msgstr "URL cesta"
 
-#: models.py:159
+#: models.py:157
 msgid "HTTPS connection"
 msgstr "HTTPS spojení"
 
-#: models.py:160
+#: models.py:158
 msgid "slug"
 msgstr "slug"
 
-#: models.py:163
+#: models.py:161
 msgid "request timestamp"
 msgstr "čas a datum dotazu"
 
-#: models.py:168
+#: models.py:166
 msgid "response timestamp"
 msgstr "datum a čas odpovědi"
 
-#: models.py:169
+#: models.py:167
 msgid "response code"
 msgstr "kód odpovědi"
 
-#: models.py:173
+#: models.py:171
 msgid "status"
 msgstr "stav"
 
-#: models.py:176
+#: models.py:174
 msgid "exception name"
 msgstr "název výjimky"
 
-#: models.py:199
+#: models.py:197
 msgid "Response time"
 msgstr "Čas odpovědi"
 
-#: models.py:203
+#: models.py:201
 msgid "Path"
 msgstr "Cesta"
 
-#: models.py:233
+#: models.py:231
 msgid "user"
 msgstr "uživatel"
 
-#: models.py:235
+#: models.py:233
 msgid "IP address"
 msgstr "IP adresa"
 
-#: models.py:236
+#: models.py:234
 msgid "type"
 msgstr "typ"
 
-#: models.py:257 models.py:267
+#: models.py:255 models.py:265
 msgid "input logged request"
 msgstr "vstupní logovaný dotaz"
 
-#: models.py:258
+#: models.py:256
 msgid "input logged requests"
 msgstr "vstupní logované dotazy"
 
-#: models.py:272
+#: models.py:270
 msgid "output logged request"
 msgstr "výstupní logovaný dotaz"
 
-#: models.py:273 models.py:282
+#: models.py:271 models.py:280
 msgid "output logged requests"
 msgstr "výstupní logované dotazy"
 
-#: models.py:292
+#: models.py:290
 msgid "object"
 msgstr "objekt"
 
-#: models.py:308 models.py:346
+#: models.py:306 models.py:380 models.py:406
 msgid "start"
 msgstr "start"
 
-#: models.py:309 models.py:347
+#: models.py:307 models.py:384 models.py:407
 msgid "stop"
 msgstr "stop"
 
-#: models.py:311
+#: models.py:309
 msgid "name"
 msgstr "název"
 
-#: models.py:314
+#: models.py:312
 msgid "executed from command line"
 msgstr "spuštěno z příkazové řádky"
 
-#: models.py:317
+#: models.py:315
 msgid "finished successfully"
 msgstr "úspěšně dokončeno"
 
-#: models.py:318 models.py:351
+#: models.py:316 models.py:414
 msgid "error message"
 msgstr "zpráva chyby"
 
-#: models.py:321
+#: models.py:319
 msgid "command log"
 msgstr "log spustitelné úlohy"
 
-#: models.py:322
+#: models.py:320
 msgid "command logs"
 msgstr "logy spustitelných úloh"
 
-#: models.py:345
+#: models.py:341 models.py:404
 msgid "celery ID"
 msgstr "celery ID"
 
-#: models.py:348
+#: models.py:343 models.py:410
 msgid "task name"
 msgstr "název úlohy"
 
-#: models.py:349
-msgid "state"
-msgstr "stav"
-
-#: models.py:352
+#: models.py:344
 msgid "queue name"
 msgstr "název fronty"
 
-#: models.py:354
+#: models.py:346 models.py:411
 msgid "task args"
 msgstr "úloha - args"
 
-#: models.py:355
+#: models.py:347 models.py:412
 msgid "task kwargs"
 msgstr "úloha - kwargs"
 
-#: models.py:357
-msgid "retries"
-msgstr "opakování"
+#: models.py:349
+msgid "estimated time of first arrival"
+msgstr "předpokládaný čas spuštění prvního zpracování úlohy"
 
-#: models.py:358
-msgid "estimated time of arrival"
-msgstr "předpokládaný čas spuštění"
-
-#: models.py:360
+#: models.py:351
 msgid "time of expiration"
 msgstr "čas expirace"
 
-#: models.py:361
+#: models.py:352
 msgid "stale task time"
 msgstr "čas zneplatnění úlohy"
 
-#: models.py:364
-msgid "celery task"
-msgstr "celery úloha"
+#: models.py:353
+msgid "set as stale"
+msgstr "nastaveno zneplatnění"
 
-#: models.py:365
+#: models.py:357
 msgid "celery tasks"
 msgstr "celery úlohy"
+
+#: models.py:399 models.py:408
+msgid "state"
+msgstr "stav"
+
+#: models.py:413
+msgid "result"
+msgstr "výsledek"
+
+#: models.py:416
+msgid "retries"
+msgstr "opakování"
+
+#: models.py:418
+msgid "estimated time of arrival"
+msgstr "předpokládaný čas spuštění"
+
+#: models.py:423
+msgid "celery tasks run"
+msgstr "zpracování celery úlohy"
 
 #: reversion_log/cores.py:23
 msgid "Revisions"
@@ -326,14 +354,14 @@ msgstr "Logované datové změny"
 msgid "Too Many Requests (429)"
 msgstr "Příliš mnoho HTTP dotazů (429)"
 
-#: throttling.py:35
+#: throttling.py:36
 msgid "Slow down"
 msgstr "Zpomal"
 
-#: throttling.py:60 throttling.py:76
+#: throttling.py:69 throttling.py:85
 msgid "Too many login attempts"
 msgstr "Příliš mnoho pokusů o přihlášení"
 
-#: throttling.py:68 throttling.py:84
+#: throttling.py:77 throttling.py:93
 msgid "You have logged in too many times"
 msgstr "Příliš mnoho přihlášení najednou"
