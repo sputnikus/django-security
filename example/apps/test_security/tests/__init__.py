@@ -3,6 +3,8 @@ import json
 
 from datetime import timedelta
 
+from celery.exceptions import CeleryError, TimeoutError
+
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.test import override_settings
@@ -22,15 +24,15 @@ from security.transport import security_requests as requests
 from security.transport.transaction import atomic_log
 from security.tasks import call_django_command
 
-from germanium.annotations import data_provider
+from germanium.decorators import data_provider
 from germanium.test_cases.client import ClientTestCase
 from germanium.tools import (
     assert_in, assert_not_in, assert_equal, assert_true, assert_false, assert_http_redirect, assert_http_bad_request,
     assert_http_application_error, assert_http_ok, assert_http_not_found, assert_raises, assert_http_too_many_requests,
-    assert_is_not_none, assert_raises, assert_is_none
+    assert_is_not_none, assert_raises, assert_is_none, assert_not_raises
 )
 
-from apps.test_security.tasks import sum_task, error_task, retry_task
+from apps.test_security.tasks import sum_task, error_task, retry_task, unique_task
 
 
 class TestException(Exception):
@@ -471,3 +473,20 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
 
         call_command('setstaletaskstoerrorstate')
         assert_equal(celery_task_log.refresh_from_db().get_state(), CeleryTaskLogState.FAILED)
+
+    @override_settings(CELERYD_TASK_STALE_TIME_LIMIT=None)
+    def test_unique_task_shoud_have_set_stale_limit(self):
+        with assert_raises(CeleryError):
+            unique_task.delay()
+        with override_settings(CELERYD_TASK_STALE_TIME_LIMIT=10):
+            with assert_not_raises(CeleryError):
+                unique_task.delay()
+
+    @override_settings(CELERYD_TASK_STALE_TIME_LIMIT=5)
+    def test_apply_async_and_get_result_should_return_time_error_for_zero_timeout(self):
+        with assert_raises(TimeoutError):
+            unique_task.apply_async_and_get_result(timeout=0)
+
+    @override_settings(CELERYD_TASK_STALE_TIME_LIMIT=5)
+    def test_apply_async_and_get_result_should_return_task_result(self):
+        assert_equal(unique_task.apply_async_and_get_result(), 'unique')

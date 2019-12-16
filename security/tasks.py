@@ -3,19 +3,23 @@ import base64
 import logging
 import pickle
 
+import uuid
+
 from datetime import timedelta
 
 from django.conf import settings
 from django.core.management import call_command
 from django.core.exceptions import ImproperlyConfigured
+from django.core.cache import cache
 from django.db import transaction
 from django.utils.timezone import now
 
 try:
     from celery import Task
     from celery import shared_task
-    from celery.exceptions import CeleryError
-    from kombu.utils.uuid import uuid
+    from celery.result import AsyncResult
+    from celery.exceptions import CeleryError, TimeoutError
+    from kombu.utils import uuid as task_uuid
 except ImportError:
     raise ImproperlyConfigured('Missing celery library, please install it')
 
@@ -24,6 +28,15 @@ from .utils import LogStringIO
 
 
 LOGGER = logging.getLogger(__name__)
+
+
+def default_unique_key_generator(task, task_args, task_kwargs):
+    unique_key = [task.name]
+    if task_args:
+        unique_key += [str(v) for v in task_args]
+    if task_kwargs:
+        unique_key += ['{}={}'.format(k, v) for k, v in task_kwargs.items()]
+    return '||'.join(unique_key)
 
 
 class LoggedTask(Task):
@@ -38,6 +51,38 @@ class LoggedTask(Task):
     # Support set retry delay in list. Retry countdown value is get from list where index is attempt
     # number (request.retries)
     default_retry_delays = None
+    # Unique task if task with same input already exists no extra task is created and old task result is returned
+    unique = False
+    unique_key_generator = default_unique_key_generator
+
+    def _get_unique_key(self, task_args, task_kwargs):
+        return (
+            str(uuid.uuid5(uuid.NAMESPACE_DNS, self.unique_key_generator(task_args, task_kwargs)))
+            if self.unique else None
+        )
+
+    def _clear_unique_key(self, task_args, task_kwargs):
+        unique_key = self._get_unique_key(task_args, task_kwargs)
+        if unique_key:
+            cache.delete(unique_key)
+
+    def _get_unique_task_id(self, task_id, task_args, task_kwargs, stale_time_limit):
+        unique_key = self._get_unique_key(task_args, task_kwargs)
+
+        if unique_key and not stale_time_limit:
+            raise CeleryError('For unique tasks is require set task stale_time_limit')
+
+        if unique_key and not self._get_app().conf.task_always_eager:
+            if cache.add(unique_key, task_id, stale_time_limit):
+                return task_id
+            else:
+                unique_task_id = cache.get(unique_key)
+                return (
+                    unique_task_id if unique_task_id
+                    else self._get_unique_task_id(task_id, task_args, task_kwargs, stale_time_limit)
+                )
+        else:
+            return task_id
 
     @property
     def task_run_log(self):
@@ -88,7 +133,6 @@ class LoggedTask(Task):
         :param kwargs: task kwargs
         :param exc: raised exception which caused retry
         """
-
         LOGGER.log(self.logger_level, self.retry_error_message.format(
             attempt=self.request.retries, exception=str(exc), task=task_run_log,
             task_name=task_run_log.name, **(kwargs or {})
@@ -126,6 +170,7 @@ class LoggedTask(Task):
             result=retval,
             output=self.request.output_stream.getvalue()
         )
+        self._clear_unique_key(args, kwargs)
 
     def on_success(self, retval, task_id, args, kwargs):
         self.on_success_task(self.task_run_log, args, kwargs, retval)
@@ -138,7 +183,6 @@ class LoggedTask(Task):
         :param kwargs: task kwargs
         :param exc: raised exception which caused retry
         """
-
         LOGGER.log(self.logger_level, self.fail_error_message.format(
             attempt=self.request.retries, exception=str(exc), task=task_run_log, task_name=task_run_log.name, **kwargs
         ))
@@ -148,6 +192,7 @@ class LoggedTask(Task):
             error_message=str(exc),
             output=self.request.output_stream.getvalue()
         )
+        self._clear_unique_key(args, kwargs)
 
     def expire_task(self, task_initiation_log):
         task_initiation_log.change_and_save(is_set_as_stale=True)
@@ -167,10 +212,9 @@ class LoggedTask(Task):
             return apply_time
 
     def _compute_expires(self, expires, time_limit, stale_time_limit, apply_time):
+        expires = self.expires if expires is None else expires
         if expires is not None:
-            return expires
-        elif self.expires is not None:
-            return self.expires
+            return apply_time + timedelta(seconds=expires) if isinstance(expires, int) else expires
         elif self._get_stale_time_limit(stale_time_limit) is not None and time_limit is not None:
             return apply_time + timedelta(seconds=stale_time_limit - time_limit)
         else:
@@ -194,8 +238,8 @@ class LoggedTask(Task):
         else:
             return None
 
-    def _create_task_log(self, celery_task_id, task_args, task_kwargs, apply_time, eta, expires,
-                                stale_time_limit, queue):
+    def _create_task_log(self, task_id, task_args, task_kwargs, apply_time, eta, expires, stale_time_limit,
+                         queue):
         task_input = []
         if task_args:
             task_input += [str(v) for v in task_args]
@@ -203,7 +247,7 @@ class LoggedTask(Task):
             task_input += ['{}={}'.format(k, v) for k, v in task_kwargs.items()]
 
         return CeleryTaskLog.objects.create(
-            celery_task_id=celery_task_id,
+            celery_task_id=task_id,
             name=self.name,
             queue_name=queue,
             input=', '.join(task_input),
@@ -215,19 +259,19 @@ class LoggedTask(Task):
         )
 
     def _create_task_run_log(self, task_args, task_kwargs):
-        return CeleryTaskRunLog.objects.create(
-            celery_task_id=self.request.id,
-            name=self.name,
-            task_args=task_args,
-            task_kwargs=task_kwargs,
-            retries=self.request.retries,
-            state=CeleryTaskRunLogState.ACTIVE,
-            start=now()
-        )
+            return CeleryTaskRunLog.objects.create(
+                celery_task_id=self.request.id,
+                name=self.name,
+                task_args=task_args,
+                task_kwargs=task_kwargs,
+                retries=self.request.retries,
+                state=CeleryTaskRunLogState.ACTIVE,
+                start=now()
+            )
 
-    def _first_apply(self, apply_function, args=None, kwargs=None, task_id=None, eta=None, countdown=None, expires=None,
+    def _first_apply(self, is_async, args=None, kwargs=None, task_id=None, eta=None, countdown=None, expires=None,
                      time_limit=None, stale_time_limit=None, **options):
-        celery_task_id = task_id or uuid()
+        task_id = task_id or task_uuid()
         apply_time = now()
         time_limit = self._get_time_limit(time_limit)
         eta = self._compute_eta(eta, countdown, apply_time)
@@ -244,12 +288,18 @@ class LoggedTask(Task):
             queue=queue,
             expires=expires,
         ))
+        unique_task_id = self._get_unique_task_id(task_id, args, kwargs, stale_time_limit)
+        if is_async and unique_task_id != task_id:
+            return AsyncResult(unique_task_id, app=self._get_app())
 
         task_initiation = self._create_task_log(
-            celery_task_id, args, kwargs, apply_time, eta, expires, stale_time_limit, queue
+            task_id, args, kwargs, apply_time, eta, expires, stale_time_limit, queue
         )
         self.on_apply_task(task_initiation, args, kwargs, options)
-        return apply_function(args=args, kwargs=kwargs, task_id=celery_task_id, **options)
+        if is_async:
+            return super().apply_async(task_id=task_id, args=args, kwargs=kwargs, **options)
+        else:
+            return super().apply(task_id=task_id, args=args, kwargs=kwargs, **options)
 
     def apply_async_on_commit(self, args=None, kwargs=None, **options):
         app = self._get_app()
@@ -265,14 +315,14 @@ class LoggedTask(Task):
         if self.request.id:
             return super().apply(args=args, kwargs=kwargs, **options)
         else:
-            return self._first_apply(super().apply, args, kwargs, **options)
+            return self._first_apply(is_async=False, args=args, kwargs=kwargs, **options)
 
     def apply_async(self, args=None, kwargs=None, **options):
         app = self._get_app()
         if self.request.id or app.conf.task_always_eager:
             return super().apply_async(args=args, kwargs=kwargs, **options)
         else:
-            return self._first_apply(super().apply_async, args, kwargs, **options)
+            return self._first_apply(is_async=True, args=args, kwargs=kwargs, **options)
 
     def delay_on_commit(self, *args, **kwargs):
         self.apply_async_on_commit(args, kwargs)
@@ -300,6 +350,22 @@ class LoggedTask(Task):
             args=args, kwargs=kwargs, exc=exc, throw=throw,
             eta=eta, max_retries=max_retries, **options
         )
+
+    def apply_async_and_get_result(self, args=None, kwargs=None, timeout=None, propagate=True, **options):
+        """
+        Apply task in an asynchronous way, wait defined timeout and get AsyncResult or TimeoutError
+        :param args: task args
+        :param kwargs: task kwargs
+        :param timeout: timout in seconds to wait for result
+        :param propagate: propagate or not exceptions from celery task
+        :param options: apply_async method options
+        :return: AsyncResult or TimeoutError
+        """
+        result = self.apply_async(args=args, kwargs=kwargs, **options)
+        if timeout is None or timeout > 0:
+            return result.get(timeout=timeout, propagate=propagate)
+        else:
+            raise TimeoutError('The operation timed out.')
 
 
 def obj_to_string(obj):
