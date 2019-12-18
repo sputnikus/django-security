@@ -376,11 +376,13 @@ class CeleryTaskLog(SmartModel):
         return CeleryTaskRunLog.objects.filter(celery_task_id=self.celery_task_id).first()
 
     def get_start(self):
-        return self.first_run.start
+        first_run = self.first_run
+        return first_run.start if first_run else None
     get_start.short_description = _('start')
 
     def get_stop(self):
-        return self.last_run.stop
+        last_run = self.last_run
+        return last_run.stop if last_run else None
     get_stop.short_description = _('stop')
 
     def get_state(self):
