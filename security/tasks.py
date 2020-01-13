@@ -196,6 +196,7 @@ class LoggedTask(Task):
 
     def expire_task(self, task_initiation_log):
         task_initiation_log.change_and_save(is_set_as_stale=True)
+        CeleryTaskRunLog.objects.filter(state=CeleryTaskRunLogState.ACTIVE).update(state=CeleryTaskRunLogState.EXPIRED)
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         try:

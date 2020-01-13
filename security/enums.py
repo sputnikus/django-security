@@ -39,3 +39,4 @@ class CeleryTaskRunLogState(ChoiceEnum):
     SUCCEEDED = Choice(2, _('Succeeded'))
     FAILED = Choice(3, _('Failed'))
     RETRIED = Choice(4, _('Retried'))
+    EXPIRED = Choice(4, _('Expired'))
