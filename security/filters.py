@@ -30,24 +30,28 @@ class CeleryTaskLogStateFilter(UIFilterMixin, SimpleMethodEqualFilter):
             return Q(is_set_as_stale=True)
         elif value == CeleryTaskLogState.SUCCEEDED:
             return Q(
+                is_set_as_stale=False,
                 celery_task_id__in=CeleryTaskRunLog.objects.filter(
                     state=CeleryTaskRunLogState.SUCCEEDED
                 ).values('celery_task_id')
             )
         elif value == CeleryTaskLogState.FAILED:
             return Q(
+                is_set_as_stale=False,
                 celery_task_id__in=CeleryTaskRunLog.objects.filter(
                     state=CeleryTaskRunLogState.FAILED
                 ).values('celery_task_id')
             )
         elif value == CeleryTaskLogState.ACTIVE:
             return Q(
+                is_set_as_stale=False,
                 celery_task_id__in=CeleryTaskRunLog.objects.filter(
                     state=CeleryTaskRunLogState.ACTIVE
                 ).values('celery_task_id')
             )
         elif value == CeleryTaskLogState.RETRIED:
             return Q(
+                is_set_as_stale=False,
                 celery_task_id__in=CeleryTaskRunLog.objects.filter(
                     state=CeleryTaskRunLogState.RETRIED
                 ).values('celery_task_id')
@@ -59,4 +63,8 @@ class CeleryTaskLogStateFilter(UIFilterMixin, SimpleMethodEqualFilter):
                 ).values('celery_task_id')
             )
         else:
-            return ~Q(celery_task_id__in=CeleryTaskRunLog.objects.all().values('celery_task_id'))
+            return Q(
+                is_set_as_stale=False
+            ) & ~Q(
+                celery_task_id__in=CeleryTaskRunLog.objects.all().values('celery_task_id')
+            )
