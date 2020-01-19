@@ -1,3 +1,5 @@
+import itertools
+
 from requests import *
 from urllib.parse import parse_qs, urlparse
 
@@ -8,7 +10,7 @@ from security.config import settings
 from security.models import LoggedRequest, LoggedRequestStatus, clean_body, clean_headers, clean_queries
 from security.utils import is_base_collection
 
-from .transaction import log_output_request
+from .transaction import log_output_request, get_all_request_related_objects
 
 
 def stringify_dict(d):
@@ -57,13 +59,15 @@ def get_logged_params(url, params):
 class SecuritySession(Session):
 
     def __init__(self, slug=None, related_objects=None):
-        super(SecuritySession, self).__init__()
+        super().__init__()
         self.slug = slug
-        self.related_objects = related_objects
+        self.related_objects = [] if related_objects is None else related_objects
 
     def request(self, method, url, params=None, data=None, headers=None, cookies=None, files=None, auth=None,
                 timeout=None, allow_redirects=True, proxies=None, hooks=None, stream=None, verify=None, cert=None,
                 json=None, slug=None, related_objects=None):
+
+        related_objects = [] if related_objects is None else related_objects
 
         parsed_url = urlparse(url)
         logged_kwargs = {
@@ -116,7 +120,10 @@ class SecuritySession(Session):
             raise
         finally:
             log_output_request(
-                stringify_dict(logged_kwargs), self.related_objects if related_objects is None else related_objects
+                stringify_dict(logged_kwargs),
+                list(itertools.chain(
+                    related_objects, self.related_objects, get_all_request_related_objects()
+                ))
             )
 
 

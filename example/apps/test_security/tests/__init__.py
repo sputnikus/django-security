@@ -21,7 +21,7 @@ from security.models import (
 )
 from security.management import call_command
 from security.transport import security_requests as requests
-from security.transport.transaction import atomic_log
+from security.transport.transaction import atomic_log, log_request_related_objects, get_all_request_related_objects
 from security.tasks import call_django_command
 
 from germanium.decorators import data_provider
@@ -41,8 +41,8 @@ class TestException(Exception):
 
 class BaseTestCaseMixin:
 
-    def create_user(self):
-        return User.objects._create_user('test', 'test@test.cz', 'test', is_staff=True, is_superuser=True)
+    def create_user(self, username='test', email='test@test.cz'):
+        return User.objects._create_user(username, email, 'test', is_staff=True, is_superuser=True)
 
 
 class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
@@ -490,3 +490,33 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
     @override_settings(CELERYD_TASK_STALE_TIME_LIMIT=5)
     def test_apply_async_and_get_result_should_return_task_result(self):
         assert_equal(unique_task.apply_async_and_get_result(), 'unique')
+
+    @responses.activate
+    def test_output_logged_request_should_be_related_with_object_selected_in_decorator(self):
+        user1 = self.create_user('test1', 'test1@test.cz')
+        user2 = self.create_user('test2', 'test2@test.cz')
+
+        responses.add(responses.GET, 'http://test.cz', body='test')
+        assert_equal(get_all_request_related_objects(), [])
+        with log_request_related_objects([user1]):
+            assert_equal(set(get_all_request_related_objects()), {user1})
+
+            requests.get('http://test.cz')
+            assert_equal(OutputLoggedRequest.objects.count(), 1)
+            assert_equal(OutputLoggedRequest.objects.get().related_objects.get().content_object, user1)
+            with log_request_related_objects([user2]):
+                assert_equal(set(get_all_request_related_objects()), {user1, user2})
+                requests.get('http://test.cz')
+                assert_equal(OutputLoggedRequest.objects.count(), 2)
+                assert_equal(
+                    {
+                        related_object.content_object
+                        for related_object in OutputLoggedRequest.objects.first().related_objects.all()
+                    },
+                    {user1, user2}
+                )
+            assert_equal(set(get_all_request_related_objects()), {user1})
+            requests.get('http://test.cz')
+            assert_equal(OutputLoggedRequest.objects.count(), 3)
+            assert_equal(OutputLoggedRequest.objects.first().related_objects.get().content_object, user1)
+        assert_equal(get_all_request_related_objects(), [])
