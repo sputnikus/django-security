@@ -327,11 +327,13 @@ class CommandLog(SmartModel):
 class CeleryTaskLogManager(models.Manager):
 
     def filter_stale(self, **kwargs):
-        return self.exclude(stale__isnull=True, is_set_as_stale=True).exclude(
+        return self.filter(
+            stale__isnull=False, is_set_as_stale=False, stale__lt=timezone.now()
+        ).exclude(
             celery_task_id__in=CeleryTaskRunLog.objects.filter(
                 state__in={CeleryTaskRunLogState.SUCCEEDED, CeleryTaskRunLogState.FAILED}
             ).values('celery_task_id')
-        ).filter(stale__lt=timezone.now())
+        )
 
 
 class CeleryTaskLog(SmartModel):
