@@ -27,7 +27,7 @@ from .models import CeleryTaskRunLog, CeleryTaskLog, CeleryTaskLogState, CeleryT
 from .utils import LogStringIO
 
 
-LOGGER = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def default_unique_key_generator(task, task_args, task_kwargs):
@@ -42,11 +42,16 @@ def default_unique_key_generator(task, task_args, task_kwargs):
 class LoggedTask(Task):
 
     abstract = True
-    logger_level = logging.WARNING
-    retry_error_message = (
-        'Task "{task_name}" ({task}) failed on exception: "{exception}", attempt: "{attempt}" and will be retried'
-    )
-    fail_error_message = 'Task "{task_name}" ({task}) failed on exception: "{exception}", attempt: "{attempt}"'
+
+    _log_messages = {
+        'expire': 'Task "%(task_name)s" (%(task)s) is expired',
+        'failure': 'Task "%(task_name)s" (%(task)s) is failed',
+        'retry': 'Task "%(task_name)s" (%(task)s) is retried',
+        'success': 'Task "%(task_name)s" (%(task)s) is complete',
+        'apply': 'Task "%(task_name)s" (%(task)s) is applied',
+        'start': 'Task "%(task_name)s" (%(task)s) is running',
+    }
+
     stale_time_limit = None
     # Support set retry delay in list. Retry countdown value is get from list where index is attempt
     # number (request.retries)
@@ -54,6 +59,9 @@ class LoggedTask(Task):
     # Unique task if task with same input already exists no extra task is created and old task result is returned
     unique = False
     unique_key_generator = default_unique_key_generator
+
+    def _get_log_message(self, log_name):
+        return self._log_messages[log_name]
 
     def _get_unique_key(self, task_args, task_kwargs):
         return (
@@ -124,6 +132,20 @@ class LoggedTask(Task):
         :param kwargs: task kwargs
         :param options: input task options
         """
+        logger.info(
+            self._get_log_message('apply'),
+            dict(
+                task=task_log.celery_task_id,
+                task_name=task_log.name,
+                **(kwargs or {})
+            ),
+            extra=dict(
+                task_input=task_log.input,
+                task_args=args,
+                task_kwargs=kwargs,
+                task_log_id=task_log.pk
+            )
+        )
 
     def on_retry_task(self, task_run_log, args, kwargs, exc, eta):
         """
@@ -133,10 +155,24 @@ class LoggedTask(Task):
         :param kwargs: task kwargs
         :param exc: raised exception which caused retry
         """
-        LOGGER.log(self.logger_level, self.retry_error_message.format(
-            attempt=self.request.retries, exception=str(exc), task=task_run_log,
-            task_name=task_run_log.name, **(kwargs or {})
-        ))
+        task_log = task_run_log.get_task_log()
+        logger.warning(
+            self._get_log_message('retry'),
+            dict(
+                attempt=self.request.retries,
+                exception=str(exc),
+                task=task_run_log.celery_task_id,
+                task_name=task_run_log.name,
+                **(kwargs or {})
+            ),
+            extra=dict(
+                task_exception=str(exc),
+                task_args=args,
+                task_kwargs=kwargs,
+                task_log_id=None if not task_log else task_log.pk,
+                task_run_log_id=task_run_log.pk
+            )
+        )
         task_run_log.change_and_save(
             state=CeleryTaskLogState.RETRIED,
             error_message=str(exc),
@@ -152,6 +188,22 @@ class LoggedTask(Task):
         :param args: task args
         :param kwargs: task kwargs
         """
+        task_log = task_run_log.get_task_log()
+        logger.info(
+            self._get_log_message('start'),
+            dict(
+                attempt=self.request.retries,
+                task=task_run_log.celery_task_id,
+                task_name=task_run_log.name,
+                **(kwargs or {})
+            ),
+            extra=dict(
+                task_args=args,
+                task_kwargs=kwargs,
+                task_log_id=None if not task_log else task_log.pk,
+                task_run_log_id=task_run_log.pk
+            )
+        )
 
     def on_success_task(self, task_run_log, args, kwargs, retval):
         """
@@ -161,6 +213,24 @@ class LoggedTask(Task):
         :param kwargs: task kwargs
         :param retval: return value of a task
         """
+        task_log = task_run_log.get_task_log()
+        logger.info(
+            self._get_log_message('success'),
+            dict(
+                attempt=self.request.retries,
+                task=task_run_log.celery_task_id,
+                task_name=task_run_log.name,
+                **(kwargs or {})
+            ),
+            extra=dict(
+                task_args=args,
+                task_kwargs=kwargs,
+                task_retval=retval,
+                task_log_id=None if not task_log else task_log.pk,
+                task_run_log_id=task_run_log.pk
+            )
+        )
+
         if retval:
             self.request.output_stream.write('Return value is "{}"'.format(retval))
 
@@ -183,9 +253,24 @@ class LoggedTask(Task):
         :param kwargs: task kwargs
         :param exc: raised exception which caused retry
         """
-        LOGGER.log(self.logger_level, self.fail_error_message.format(
-            attempt=self.request.retries, exception=str(exc), task=task_run_log, task_name=task_run_log.name, **kwargs
-        ))
+        task_log = task_run_log.get_task_log()
+        logger.error(
+            self._get_log_message('failure'),
+            dict(
+                attempt=self.request.retries,
+                exception=str(exc),
+                task=task_run_log.celery_task_id,
+                task_name=task_run_log.name,
+                **(kwargs or {})
+            ),
+            extra=dict(
+                task_exception=str(exc),
+                task_args=args,
+                task_kwargs=kwargs,
+                task_log_id=None if not task_log else task_log.pk,
+                task_run_log_id=task_run_log.pk
+            )
+        )
         task_run_log.change_and_save(
             state=CeleryTaskRunLogState.FAILED,
             stop=now(),
@@ -194,7 +279,18 @@ class LoggedTask(Task):
         )
         self._clear_unique_key(args, kwargs)
 
-    def expire_task(self, task_initiation_log):
+    def expire_task(self, task_log):
+        logger.error(
+            self._get_log_message('expire'),
+            dict(
+                task=task_run_log.celery_task_id,
+                task_name=task_run_log.name
+            ),
+            extra=dict(
+                task_input=task_run_log.input,
+                task_log_id=task_log.pk
+            )
+        )
         task_initiation_log.change_and_save(is_set_as_stale=True)
         task_initiation_log.runs.filter(state=CeleryTaskRunLogState.ACTIVE).update(state=CeleryTaskRunLogState.EXPIRED)
 
@@ -260,15 +356,15 @@ class LoggedTask(Task):
         )
 
     def _create_task_run_log(self, task_args, task_kwargs):
-            return CeleryTaskRunLog.objects.create(
-                celery_task_id=self.request.id,
-                name=self.name,
-                task_args=task_args,
-                task_kwargs=task_kwargs,
-                retries=self.request.retries,
-                state=CeleryTaskRunLogState.ACTIVE,
-                start=now()
-            )
+        return CeleryTaskRunLog.objects.create(
+            celery_task_id=self.request.id,
+            name=self.name,
+            task_args=task_args,
+            task_kwargs=task_kwargs,
+            retries=self.request.retries,
+            state=CeleryTaskRunLogState.ACTIVE,
+            start=now()
+        )
 
     def _first_apply(self, is_async, args=None, kwargs=None, task_id=None, eta=None, countdown=None, expires=None,
                      time_limit=None, stale_time_limit=None, **options):
