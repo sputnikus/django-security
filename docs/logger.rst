@@ -169,14 +169,6 @@ You can use predefined celery task ``security.tasks.call_django_command`` to run
 
     ``stale_time_limit`` is value in seconds which defines, how long it will take to set the task as expired. Default value can be set with ``CELERYD_TASK_STALE_TIME_LIMIT`` in Django settings.
 
-  .. property:: retry_error_message
-
-    Is the message which will be logged as warning if task is retried. Default value is ``'Task "{task_name}" ({task}) failed on exception: "{exception}", attempt: "{attempt}" and will be retried'``
-
-  .. property:: fail_error_message
-
-    Is the message which will be logged as warning if task is failed. Default value is ``'Task "{task_name}" ({task}) failed on exception: "{exception}"'``
-
   .. property:: unique
 
     LoggedTask can guarantee unique celery task. It means that only one task with the same name and input can run at one time. If task is already running its ``AsyncResult`` is returned in the methods ``apply_async``, ``apply_async_on_commit``, ``delay`` or ``LoggedTask`` can guarantee unique celery task.
