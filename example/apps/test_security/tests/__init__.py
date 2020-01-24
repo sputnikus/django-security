@@ -446,6 +446,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         )
         call_command('setstaletaskstoerrorstate')
         assert_equal(celery_task_log.refresh_from_db().get_state(), CeleryTaskLogState.EXPIRED)
+        assert_false(CeleryTaskLog.objects.filter_stale().exists())
 
     @freeze_time(now())
     @override_settings(CELERYD_TASK_STALE_TIME_LIMIT=30, CELERYD_TASK_TIME_LIMIT=10)
