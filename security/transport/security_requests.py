@@ -10,7 +10,7 @@ from security.config import settings
 from security.models import LoggedRequest, LoggedRequestStatus, clean_body, clean_headers, clean_queries
 from security.utils import is_base_collection
 
-from .transaction import log_output_request, get_all_request_related_objects
+from .transaction import log_output_request, get_all_request_related_objects, get_request_slug
 
 
 def stringify_dict(d):
@@ -70,14 +70,15 @@ class SecuritySession(Session):
         related_objects = [] if related_objects is None else related_objects
 
         parsed_url = urlparse(url)
+        request_timestamp = timezone.now()
         logged_kwargs = {
             'is_secure': parsed_url.scheme == 'https',
             'host': parsed_url.netloc,
             'path': parsed_url.path,
             'method': method.upper(),
             'queries': clean_queries(get_logged_params(url, params)),
-            'slug': slug or self.slug,
-            'request_timestamp': timezone.now(),
+            'slug': slug or self.slug or get_request_slug(),
+            'request_timestamp': request_timestamp,
         }
 
         try:
@@ -103,8 +104,10 @@ class SecuritySession(Session):
             })
             resp = self.send(prep, **send_kwargs)
 
+            response_timestamp = timezone.now()
             logged_kwargs.update({
-                'response_timestamp': timezone.now(),
+                'response_timestamp': response_timestamp,
+                'response_time': (response_timestamp - request_timestamp).total_seconds(),
                 'response_code': resp.status_code,
                 'response_headers': clean_headers(dict(resp.headers.items())),
                 'response_body': clean_body(prepare_body(resp.content), settings.LOG_RESPONSE_BODY_LENGTH),

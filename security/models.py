@@ -6,8 +6,8 @@ from ipware.ip import get_ip
 from jsonfield import JSONField
 
 from django.conf import settings as django_settings
-from django.contrib.contenttypes.models import ContentType
 from django.core.serializers.json import DjangoJSONEncoder
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.template.defaultfilters import truncatechars
 from django.urls import resolve
@@ -21,6 +21,8 @@ try:
     from django.core.urlresolvers import get_resolver
 except ImportError:
     from django.urls import get_resolver
+
+from generic_m2m_field.models import GenericManyToManyField
 
 from chamber.models import SmartModel
 
@@ -167,6 +169,7 @@ class LoggedRequest(SmartModel):
     response_code = models.PositiveSmallIntegerField(_('response code'), null=True, blank=True)
     response_headers = JSONField(_('response headers'), null=True, blank=True)
     response_body = models.TextField(_('response body'), null=True, blank=True)
+    response_time = models.FloatField(_('response time'), null=True, blank=True)
 
     status = NumEnumField(verbose_name=_('status'), enum=LoggedRequestStatus, null=False, blank=False,
                           default=LoggedRequestStatus.INCOMPLETE)
@@ -191,10 +194,6 @@ class LoggedRequest(SmartModel):
         return truncatechars(display_json(self.request_headers, indent=0), 50)
     short_request_headers.short_description = _('request headers')
     short_request_headers.filter_by = 'request_headers'
-
-    def response_time(self):
-        return (self.response_timestamp - self.request_timestamp).total_seconds() if self.response_timestamp else None
-    response_time.short_description = _('Response time')
 
     def short_path(self):
         return truncatechars(self.path, 50)
@@ -234,11 +233,13 @@ class InputLoggedRequest(LoggedRequest):
     type = NumEnumField(verbose_name=_('type'), enum=InputLoggedRequestType,
                         default=InputLoggedRequestType.COMMON_REQUEST,
                         null=False, blank=False, db_index=True)
+    related_objects = GenericManyToManyField()
 
     objects = InputLoggedRequestManager()
 
     def update_from_response(self, response):
         self.response_timestamp = timezone.now()
+        self.response_time = (self.response_timestamp - self.request_timestamp).total_seconds()
         self.status = self.get_status(response.status_code)
         self.response_code = response.status_code
         self.response_headers = clean_headers(dict(response.items()))
@@ -262,9 +263,10 @@ class InputLoggedRequest(LoggedRequest):
 
 class OutputLoggedRequest(LoggedRequest):
 
-    input_logged_request = models.ForeignKey(InputLoggedRequest, verbose_name=_('input logged request'), null=True,
+    input_logged_request = models.ForeignKey(to=InputLoggedRequest, verbose_name=_('input logged request'), null=True,
                                              blank=True, on_delete=models.SET_NULL,
                                              related_name='output_logged_requests')
+    related_objects = GenericManyToManyField()
 
     class Meta:
         verbose_name = _('output logged request')
@@ -275,21 +277,6 @@ class OutputLoggedRequest(LoggedRequest):
         is_cleaned_pre_save = False
 
 
-class OutputLoggedRequestRelatedObjects(models.Model):
-
-    output_logged_request = models.ForeignKey(OutputLoggedRequest, verbose_name=_('output logged requests'), null=False,
-                                              blank=False, related_name='related_objects', on_delete=models.CASCADE)
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
-    object_id = models.PositiveIntegerField()
-    content_object = GenericForeignKey('content_type', 'object_id')
-
-    def display_object(self, request):
-        from is_core.utils import render_model_object_with_link
-
-        return render_model_object_with_link(request, self.content_object) if self.content_object else None
-    display_object.short_description = _('object')
-
-
 class CommandLog(SmartModel):
     """
     Represents a log of a command run.
@@ -297,23 +284,26 @@ class CommandLog(SmartModel):
     Attributes:
         start: Date and time when command was started.
         stop: Date and time when command finished.
+        time: Command processing time in miliseconds.
         name: Name of the command.
         options: Arguments/options the command was run with.
         executed_from_command_line: Flag that indicates if command was run from the command line.
         output: Standard and error output of the command.
         is_successful: Flag that indicates if command finished successfully.
     """
-    start = models.DateTimeField(blank=False, null=False, editable=False, verbose_name=_('start'))
-    stop = models.DateTimeField(blank=True, null=True, editable=False, verbose_name=_('stop'))
+    start = models.DateTimeField(verbose_name=_('start'), blank=False, null=False, editable=False)
+    stop = models.DateTimeField(verbose_name=_('stop'), blank=True, null=True, editable=False)
+    time = models.FloatField(verbose_name=_('time'), null=True, blank=True)
     name = models.CharField(max_length=250, blank=False, null=False, editable=False, db_index=True,
                             verbose_name=_('name'))
-    input = models.TextField(blank=False, null=False, editable=False, verbose_name=_('input'))
-    executed_from_command_line = models.BooleanField(blank=False, null=False, default=False, editable=False,
-                                                     verbose_name=_('executed from command line'))
-    output = models.TextField(blank=True, null=True, editable=False, verbose_name=_('output'))
-    is_successful = models.BooleanField(blank=False, null=False, default=False, editable=False,
-                                        verbose_name=_('finished successfully'))
+    input = models.TextField(verbose_name=_('input'), blank=False, null=False, editable=False)
+    executed_from_command_line = models.BooleanField(verbose_name=_('executed from command line'),
+                                                     blank=False, null=False, default=False, editable=False)
+    output = models.TextField(verbose_name=_('output'), blank=True, null=True, editable=False)
+    is_successful = models.BooleanField(verbose_name=_('finished successfully'),
+                                        blank=False, null=False, default=False, editable=False)
     error_message = models.TextField(verbose_name=_('error message'), null=True, blank=True, editable=False)
+    related_objects = GenericManyToManyField()
 
     class Meta:
         verbose_name = _('command log')
@@ -335,6 +325,27 @@ class CeleryTaskLogManager(models.Manager):
             ).values('celery_task_id')
         )
 
+    def filter_processing(self, name, related_objects=None):
+        qs = self.filter(
+            name=name,
+            is_set_as_stale=False,
+        ).exclude(
+            celery_task_id__in=CeleryTaskRunLog.objects.filter(
+                state__in={
+                    CeleryTaskRunLogState.SUCCEEDED,
+                    CeleryTaskRunLogState.FAILED,
+                    CeleryTaskRunLogState.EXPIRED
+                }
+            ).values('celery_task_id')
+        )
+        if related_objects:
+            for related_object in related_objects:
+                qs = qs.filter(
+                    related_objects__object_id=related_object.pk,
+                    related_objects__object_ct=ContentType.objects.get_for_model(related_object)
+                )
+        return qs
+
 
 class CeleryTaskLog(SmartModel):
 
@@ -353,6 +364,7 @@ class CeleryTaskLog(SmartModel):
     expires = models.DateTimeField(verbose_name=_('time of expiration'), null=True, blank=True)
     stale = models.DateTimeField(verbose_name=_('stale task time'), null=True, blank=True)
     is_set_as_stale = models.BooleanField(verbose_name=_('set as stale'), default=False)
+    related_objects = GenericManyToManyField()
 
     class Meta:
         verbose_name = _('celery task')
@@ -409,6 +421,7 @@ class CeleryTaskRunLog(SmartModel):
                                       db_index=True)
     start = models.DateTimeField(verbose_name=_('start'), null=True, blank=True)
     stop = models.DateTimeField(verbose_name=_('stop'), null=True, blank=True)
+    time = models.FloatField(verbose_name=_('time'), null=True, blank=True)
     state = NumEnumField(verbose_name=_('state'), null=False, blank=False, enum=CeleryTaskRunLogState,
                          default=CeleryTaskRunLogState.ACTIVE)
     name = models.CharField(verbose_name=_('task name'), null=False, blank=False, max_length=250)

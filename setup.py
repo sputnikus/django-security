@@ -36,6 +36,7 @@ setup(
         'django-chamber>=0.5.3',
         'attrdict>=2.0.0',
         'django-choice-enumfields>=1.0.3',
+        'django-generic-m2m-field==0.0.3',
     ],
     zip_safe=False
 )

@@ -50,7 +50,7 @@ Decorators/context processors
     from security.transport import security_requests as requests
 
     user = User.objects.first()
-    with log_request_related_objects([user]):
+    with log_request_related_objects(slug='github-request', related_objects=[user]):
         requests.get('https:///github.com/druids/')
 
 
@@ -151,13 +151,21 @@ You can use predefined celery task ``security.tasks.call_django_command`` to run
 
     This method is called when the task raised an exception and is retried.
 
-  .. method:: apply_async_on_commit(args=None, kwargs=None, **options)
+  .. method:: apply_async_on_commit(args=None, kwargs=None, related_objects=None, **options)
 
-    This method has the same behaviour as ``apply_async`` but runs task with ``on_commit`` django signal. Therefore it is initialized at the end of the django atomic block.
+    This method has the same behaviour as ``apply_async`` but runs task with ``on_commit`` django signal. Therefore it is initialized at the end of the django atomic block. You can relate task with a django model instances by using ``related_object`` argument.
 
   .. method:: delay_on_commit(*args, **kwargs)
 
     This method is same as ``delay`` method only uses for task initialization ``apply_async_on_commit``.
+
+  .. method:: apply_async_and_get_result(args=None, kwargs=None, timeout=None, propagate=True, related_objects=None, **options)
+
+    This method applies task in an asynchronous way, wait defined timeout and get AsyncResult or TimeoutError. Timeout value ``None`` means endless waiting time.
+
+  .. method:: is_processing(related_objects=None)
+
+    This method can be used for checking if task is waiting or active. If task is related with objects you can use ``related_objects`` to filter only these tasks.
 
   .. property:: default_retry_delays
 

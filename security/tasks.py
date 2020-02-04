@@ -173,10 +173,12 @@ class LoggedTask(Task):
                 task_run_log_id=task_run_log.pk
             )
         )
+        stop = now()
         task_run_log.change_and_save(
             state=CeleryTaskLogState.RETRIED,
             error_message=str(exc),
-            stop=now(),
+            stop=stop,
+            time=(stop - task_run_log.start).total_seconds(),
             output=self.request.output_stream.getvalue(),
             estimated_time_of_next_retry=eta
         )
@@ -234,9 +236,11 @@ class LoggedTask(Task):
         if retval:
             self.request.output_stream.write('Return value is "{}"'.format(retval))
 
+        stop = now()
         task_run_log.change_and_save(
             state=CeleryTaskRunLogState.SUCCEEDED,
-            stop=now(),
+            stop=stop,
+            time=(stop - task_run_log.start).total_seconds(),
             result=retval,
             output=self.request.output_stream.getvalue()
         )
@@ -271,9 +275,11 @@ class LoggedTask(Task):
                 task_run_log_id=task_run_log.pk
             )
         )
+        stop = now()
         task_run_log.change_and_save(
             state=CeleryTaskRunLogState.FAILED,
-            stop=now(),
+            stop=stop,
+            time=(stop - task_run_log.start).total_seconds(),
             error_message=str(exc),
             output=self.request.output_stream.getvalue()
         )
@@ -336,14 +342,14 @@ class LoggedTask(Task):
             return None
 
     def _create_task_log(self, task_id, task_args, task_kwargs, apply_time, eta, expires, stale_time_limit,
-                         queue):
+                         queue, related_objects):
         task_input = []
         if task_args:
             task_input += [str(v) for v in task_args]
         if task_kwargs:
             task_input += ['{}={}'.format(k, v) for k, v in task_kwargs.items()]
 
-        return CeleryTaskLog.objects.create(
+        celery_task_log = CeleryTaskLog.objects.create(
             celery_task_id=task_id,
             name=self.name,
             queue_name=queue,
@@ -354,6 +360,9 @@ class LoggedTask(Task):
             expires=expires,
             stale=apply_time + timedelta(seconds=stale_time_limit) if stale_time_limit is not None else None
         )
+        if related_objects:
+            celery_task_log.related_objects.add(*related_objects)
+        return celery_task_log
 
     def _create_task_run_log(self, task_args, task_kwargs):
         return CeleryTaskRunLog.objects.create(
@@ -366,8 +375,8 @@ class LoggedTask(Task):
             start=now()
         )
 
-    def _first_apply(self, is_async, args=None, kwargs=None, task_id=None, eta=None, countdown=None, expires=None,
-                     time_limit=None, stale_time_limit=None, **options):
+    def _first_apply(self, is_async, args=None, kwargs=None, related_objects=None, task_id=None, eta=None,
+                     countdown=None, expires=None, time_limit=None, stale_time_limit=None, **options):
         task_id = task_id or task_uuid()
         apply_time = now()
         time_limit = self._get_time_limit(time_limit)
@@ -390,7 +399,7 @@ class LoggedTask(Task):
             return AsyncResult(unique_task_id, app=self._get_app())
 
         task_initiation = self._create_task_log(
-            task_id, args, kwargs, apply_time, eta, expires, stale_time_limit, queue
+            task_id, args, kwargs, apply_time, eta, expires, stale_time_limit, queue, related_objects
         )
         self.on_apply_task(task_initiation, args, kwargs, options)
         if is_async:
@@ -398,28 +407,32 @@ class LoggedTask(Task):
         else:
             return super().apply(task_id=task_id, args=args, kwargs=kwargs, **options)
 
-    def apply_async_on_commit(self, args=None, kwargs=None, **options):
+    def apply_async_on_commit(self, args=None, kwargs=None, related_objects=None, **options):
         app = self._get_app()
         if app.conf.task_always_eager:
-            self.apply_async(args=args, kwargs=kwargs, **options)
+            self.apply_async(args=args, kwargs=kwargs, related_objects=related_objects, **options)
         else:
             self_inst = self
             transaction.on_commit(
-                lambda: self_inst.apply_async(args=args, kwargs=kwargs, **options)
+                lambda: self_inst.apply_async(args=args, kwargs=kwargs, related_objects=related_objects, **options)
             )
 
-    def apply(self, args=None, kwargs=None, **options):
+    def apply(self, args=None, kwargs=None, related_objects=None, **options):
         if self.request.id:
             return super().apply(args=args, kwargs=kwargs, **options)
         else:
-            return self._first_apply(is_async=False, args=args, kwargs=kwargs, **options)
+            return self._first_apply(
+                is_async=False, args=args, kwargs=kwargs, related_objects=related_objects, **options
+            )
 
-    def apply_async(self, args=None, kwargs=None, **options):
+    def apply_async(self, args=None, kwargs=None, related_objects=None, **options):
         app = self._get_app()
         if self.request.id or app.conf.task_always_eager:
             return super().apply_async(args=args, kwargs=kwargs, **options)
         else:
-            return self._first_apply(is_async=True, args=args, kwargs=kwargs, **options)
+            return self._first_apply(
+                is_async=True, args=args, kwargs=kwargs, related_objects=related_objects, **options
+            )
 
     def delay_on_commit(self, *args, **kwargs):
         self.apply_async_on_commit(args, kwargs)
@@ -448,7 +461,8 @@ class LoggedTask(Task):
             eta=eta, max_retries=max_retries, **options
         )
 
-    def apply_async_and_get_result(self, args=None, kwargs=None, timeout=None, propagate=True, **options):
+    def apply_async_and_get_result(self, args=None, kwargs=None, timeout=None, propagate=True, related_objects=None,
+                                   **options):
         """
         Apply task in an asynchronous way, wait defined timeout and get AsyncResult or TimeoutError
         :param args: task args
@@ -458,11 +472,14 @@ class LoggedTask(Task):
         :param options: apply_async method options
         :return: AsyncResult or TimeoutError
         """
-        result = self.apply_async(args=args, kwargs=kwargs, **options)
+        result = self.apply_async(args=args, kwargs=kwargs, related_objects=related_objects, **options)
         if timeout is None or timeout > 0:
             return result.get(timeout=timeout, propagate=propagate)
         else:
             raise TimeoutError('The operation timed out.')
+
+    def is_processing(self, related_objects=None):
+        return CeleryTaskLog.objects.filter_processing(self.name, related_objects=related_objects).exists()
 
 
 def obj_to_string(obj):

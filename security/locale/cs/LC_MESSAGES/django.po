@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-12-08 22:18+0100\n"
+"POT-Creation-Date: 2020-02-04 22:11+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,67 +18,175 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
 
-#: cores.py:44 models.py:156 models.py:187
+#: contrib/debug_toolbar_log/models.py:11 contrib/reversion_log/models.py:11
+msgid "logged request"
+msgstr "logovaný dotaz"
+
+#: contrib/debug_toolbar_log/models.py:18
+msgid "toolbar"
+msgstr "toolbar"
+
+#: contrib/debug_toolbar_log/models.py:27
+msgid "Logged request toolbar"
+msgstr "Toolbar logovaného requestu"
+
+#: contrib/debug_toolbar_log/models.py:28
+msgid "Logged requests toolbars"
+msgstr "Toolbary logovaných dotazů"
+
+#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/sql.html:7
+#, python-format
+msgid "%(num)s query"
+msgid_plural "%(num)s queries"
+msgstr[0] "%(num)s dotaz"
+msgstr[1] "%(num)s dotazy"
+msgstr[2] "%(num)s dotazů"
+
+#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/sql.html:28
+msgid "Query"
+msgstr "Dotaz"
+
+#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/sql.html:29
+msgid "Timeline"
+msgstr "Časová osa"
+
+#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/sql.html:30
+msgid "Time (ms)"
+msgstr "Čas (ms)"
+
+#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/sql.html:31
+msgid "Action"
+msgstr "Akce"
+
+#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/sql.html:69
+msgid "Connection:"
+msgstr "Spojení:"
+
+#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/sql.html:71
+msgid "Isolation level:"
+msgstr "Úroveň izolace:"
+
+#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/sql.html:74
+msgid "Transaction status:"
+msgstr "Stav transakce:"
+
+#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/sql.html:88
+msgid "(unknown)"
+msgstr "(neznámé)"
+
+#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/sql.html:97
+msgid "No SQL queries were recorded during this request."
+msgstr "Pro tento požadavek nebyl zaznamenán žádný dotaz SQL."
+
+#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/templates.html:2
+msgid "Template path"
+msgid_plural "Template paths"
+msgstr[0] "Cesta k šabloně"
+msgstr[1] "Cesty k šablonám"
+msgstr[2] "Cesty k šablonám"
+
+#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/templates.html:10
+#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/templates.html:30
+#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/templates.html:47
+msgid "None"
+msgstr "Žádné"
+
+#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/templates.html:13
+msgid "Template"
+msgid_plural "Templates"
+msgstr[0] "Šablona"
+msgstr[1] "Šablony"
+msgstr[2] "Šablony"
+
+#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/templates.html:22
+#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/templates.html:40
+msgid "Toggle context"
+msgstr "Zap./vyp. kontext"
+
+#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/templates.html:33
+msgid "Context processor"
+msgid_plural "Context processors"
+msgstr[0] "Procesor kontextu"
+msgstr[1] "Procesory kontextu"
+msgstr[2] "Procesory kontextu"
+
+#: contrib/reversion_log/models.py:13
+msgid "revision"
+msgstr "datové změny"
+
+#: contrib/reversion_log/models.py:20
+msgid "Logged request revision"
+msgstr "logovaná datová změna"
+
+#: contrib/reversion_log/models.py:21
+msgid "Logged requests revisions"
+msgstr "Logované datové změny"
+
+#: cores.py:53 models.py:157 models.py:189
 msgid "queries"
 msgstr "query string"
 
-#: cores.py:48 models.py:163 models.py:212
+#: cores.py:57 models.py:164 models.py:210
 msgid "request body"
 msgstr "tělo dotazu"
 
-#: cores.py:52 models.py:162 models.py:192
+#: cores.py:61 models.py:163 models.py:194
 msgid "request headers"
 msgstr "hlavičky dotazu"
 
-#: cores.py:56 models.py:169 models.py:207
+#: cores.py:65 models.py:170 models.py:205
 msgid "response body"
 msgstr "tělo odpovědi"
 
-#: cores.py:60 models.py:168
+#: cores.py:69 models.py:169
 msgid "response headers"
 msgstr "hlavičky odpovědi"
 
-#: cores.py:64 models.py:173
+#: cores.py:73 models.py:175
 msgid "error description"
 msgstr "popis chyby"
 
-#: cores.py:79 cores.py:106 reversion_log/cores.py:17
+#: cores.py:77 cores.py:180 cores.py:291
+msgid "related objects"
+msgstr "vztažené objekty"
+
+#: cores.py:97 cores.py:139
 msgid "Request"
 msgstr "Dotaz"
 
-#: cores.py:81 cores.py:108 reversion_log/cores.py:19
+#: cores.py:99 cores.py:141
 msgid "Response"
 msgstr "Odpověď"
 
-#: cores.py:83 reversion_log/cores.py:21
+#: cores.py:101
 msgid "User information"
 msgstr "Uživatelské informace"
 
-#: cores.py:84 cores.py:110 reversion_log/cores.py:22
+#: cores.py:102 cores.py:143
 msgid "Extra information"
 msgstr "Další informace"
 
-#: cores.py:111
-msgid "Related objects"
-msgstr "Vztažené objekty"
+#: cores.py:114
+msgid "Revisions"
+msgstr "Revize"
 
-#: cores.py:140 cores.py:186 models.py:313 models.py:415
+#: cores.py:172 cores.py:226 models.py:301 models.py:410
 msgid "output"
 msgstr "výstup"
 
-#: cores.py:152 models.py:356 models.py:431
+#: cores.py:191 models.py:348 models.py:426
 msgid "celery task"
 msgstr "celery úloha"
 
-#: cores.py:153 models.py:422
+#: cores.py:192 models.py:417
 msgid "celery task run"
 msgstr "zpracování celery úlohy"
 
-#: cores.py:234
+#: cores.py:274
 msgid "celery task runs"
 msgstr "zpracování celery úlohy"
 
-#: cores.py:241 models.py:310 models.py:345
+#: cores.py:281 models.py:298 models.py:336
 msgid "input"
 msgstr "vstup"
 
@@ -150,7 +258,7 @@ msgstr "Chyba"
 msgid "Retried"
 msgstr "Opakovaný"
 
-#: enums.py:33
+#: enums.py:33 enums.py:42
 msgid "Expired"
 msgstr "Expirovaný"
 
@@ -158,63 +266,63 @@ msgstr "Expirovaný"
 msgid "Invalid value."
 msgstr "Neplatná hodnota."
 
-#: models.py:151
+#: models.py:152
 msgid "host"
 msgstr "host"
 
-#: models.py:153
+#: models.py:154
 msgid "method"
 msgstr "metoda"
 
-#: models.py:154
+#: models.py:155
 msgid "URL path"
 msgstr "URL cesta"
 
-#: models.py:157
+#: models.py:158
 msgid "HTTPS connection"
 msgstr "HTTPS spojení"
 
-#: models.py:158
+#: models.py:159
 msgid "slug"
 msgstr "slug"
 
-#: models.py:161
+#: models.py:162
 msgid "request timestamp"
 msgstr "čas a datum dotazu"
 
-#: models.py:166
+#: models.py:167
 msgid "response timestamp"
 msgstr "datum a čas odpovědi"
 
-#: models.py:167
+#: models.py:168
 msgid "response code"
 msgstr "kód odpovědi"
 
 #: models.py:171
+msgid "response time"
+msgstr "Čas odpovědi"
+
+#: models.py:173
 msgid "status"
 msgstr "stav"
 
-#: models.py:174
+#: models.py:176
 msgid "exception name"
 msgstr "název výjimky"
 
-#: models.py:197
-msgid "Response time"
-msgstr "Čas odpovědi"
-
-#: models.py:201
+#: models.py:199
 msgid "Path"
 msgstr "Cesta"
 
-#: models.py:231
+#: models.py:229
 msgid "user"
 msgstr "uživatel"
 
-#: models.py:233
+#: models.py:231
 msgid "IP address"
 msgstr "IP adresa"
 
-#: models.py:234
+#: models.py:232
 msgid "type"
 msgstr "typ"
 
@@ -226,129 +334,109 @@ msgstr "vstupní logovaný dotaz"
 msgid "input logged requests"
 msgstr "vstupní logované dotazy"
 
-#: models.py:270
+#: models.py:271
 msgid "output logged request"
 msgstr "výstupní logovaný dotaz"
 
-#: models.py:271 models.py:280
+#: models.py:272
 msgid "output logged requests"
 msgstr "výstupní logované dotazy"
 
-#: models.py:290
-msgid "object"
-msgstr "objekt"
-
-#: models.py:306 models.py:380 models.py:406
+#: models.py:293 models.py:373 models.py:400
 msgid "start"
 msgstr "start"
 
-#: models.py:307 models.py:384 models.py:407
+#: models.py:294 models.py:378 models.py:401
 msgid "stop"
 msgstr "stop"
 
-#: models.py:309
+#: models.py:295 models.py:402
+msgid "time"
+msgstr ""
+
+#: models.py:297
 msgid "name"
 msgstr "název"
 
-#: models.py:312
+#: models.py:299
 msgid "executed from command line"
 msgstr "spuštěno z příkazové řádky"
 
-#: models.py:315
+#: models.py:302
 msgid "finished successfully"
 msgstr "úspěšně dokončeno"
 
-#: models.py:316 models.py:414
+#: models.py:304 models.py:409
 msgid "error message"
 msgstr "zpráva chyby"
 
-#: models.py:319
+#: models.py:308
 msgid "command log"
 msgstr "log spustitelné úlohy"
 
-#: models.py:320
+#: models.py:309
 msgid "command logs"
 msgstr "logy spustitelných úloh"
 
-#: models.py:341 models.py:404
+#: models.py:332 models.py:398
 msgid "celery ID"
 msgstr "celery ID"
 
-#: models.py:343 models.py:410
+#: models.py:334 models.py:405
 msgid "task name"
 msgstr "název úlohy"
 
-#: models.py:344
+#: models.py:335
 msgid "queue name"
 msgstr "název fronty"
 
-#: models.py:346 models.py:411
+#: models.py:337 models.py:406
 msgid "task args"
 msgstr "úloha - args"
 
-#: models.py:347 models.py:412
+#: models.py:338 models.py:407
 msgid "task kwargs"
 msgstr "úloha - kwargs"
 
-#: models.py:349
+#: models.py:340
 msgid "estimated time of first arrival"
 msgstr "předpokládaný čas spuštění prvního zpracování úlohy"
 
-#: models.py:351
+#: models.py:342
 msgid "time of expiration"
 msgstr "čas expirace"
 
-#: models.py:352
+#: models.py:343
 msgid "stale task time"
 msgstr "čas zneplatnění úlohy"
 
-#: models.py:353
+#: models.py:344
 msgid "set as stale"
 msgstr "nastaveno zneplatnění"
 
-#: models.py:357
+#: models.py:349
 msgid "celery tasks"
 msgstr "celery úlohy"
 
-#: models.py:399 models.py:408
+#: models.py:393 models.py:403
 msgid "state"
 msgstr "stav"
 
-#: models.py:413
+#: models.py:408
 msgid "result"
 msgstr "výsledek"
 
-#: models.py:416
+#: models.py:411
 msgid "retries"
 msgstr "opakování"
 
-#: models.py:418
+#: models.py:413
 msgid "estimated time of arrival"
 msgstr "předpokládaný čas spuštění"
 
-#: models.py:423
+#: models.py:418
 msgid "celery tasks run"
 msgstr "zpracování celery úlohy"
-
-#: reversion_log/cores.py:23
-msgid "Revisions"
-msgstr "Revize"
-
-#: reversion_log/models.py:11
-msgid "logged request"
-msgstr "logovaný dotaz"
-
-#: reversion_log/models.py:13
-msgid "revision"
-msgstr "datové změny"
-
-#: reversion_log/models.py:20
-msgid "Logged request revision"
-msgstr "logovaná datová změna"
-
-#: reversion_log/models.py:21
-msgid "Logged requests revisions"
-msgstr "Logované datové změny"
 
 #: templates/429.html:9
 msgid "Too Many Requests (429)"

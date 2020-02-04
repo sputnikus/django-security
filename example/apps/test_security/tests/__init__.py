@@ -21,7 +21,9 @@ from security.models import (
 )
 from security.management import call_command
 from security.transport import security_requests as requests
-from security.transport.transaction import atomic_log, log_request_related_objects, get_all_request_related_objects
+from security.transport.transaction import (
+    atomic_log, log_request_related_objects, get_all_request_related_objects, get_request_slug
+)
 from security.tasks import call_django_command
 
 from germanium.decorators import data_provider
@@ -174,7 +176,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         assert_equal(InputLoggedRequest.objects.count(), 2)
         assert_equal(OutputLoggedRequest.objects.count(), 1)
         output_logged_request = OutputLoggedRequest.objects.get()
-        assert_equal(output_logged_request.related_objects.get().content_object, user)
+        assert_equal(output_logged_request.related_objects.get().object, user)
 
     def test_sensitive_data_body_in_json_should_be_hidden(self):
         self.c.post('/admin/login/', data=json.dumps({'username': 'test', 'password': 'secret-password'}),
@@ -499,25 +501,72 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
 
         responses.add(responses.GET, 'http://test.cz', body='test')
         assert_equal(get_all_request_related_objects(), [])
-        with log_request_related_objects([user1]):
+        with log_request_related_objects(slug='test1', related_objects=[user1]):
             assert_equal(set(get_all_request_related_objects()), {user1})
 
             requests.get('http://test.cz')
             assert_equal(OutputLoggedRequest.objects.count(), 1)
-            assert_equal(OutputLoggedRequest.objects.get().related_objects.get().content_object, user1)
-            with log_request_related_objects([user2]):
+            assert_equal(OutputLoggedRequest.objects.get().related_objects.get().object, user1)
+            assert_equal(OutputLoggedRequest.objects.first().slug, 'test1')
+            with log_request_related_objects(slug='test2',related_objects=[user2]):
                 assert_equal(set(get_all_request_related_objects()), {user1, user2})
                 requests.get('http://test.cz')
                 assert_equal(OutputLoggedRequest.objects.count(), 2)
                 assert_equal(
                     {
-                        related_object.content_object
+                        related_object.object
                         for related_object in OutputLoggedRequest.objects.first().related_objects.all()
                     },
                     {user1, user2}
                 )
+                assert_equal(OutputLoggedRequest.objects.first().slug, 'test2')
             assert_equal(set(get_all_request_related_objects()), {user1})
             requests.get('http://test.cz')
             assert_equal(OutputLoggedRequest.objects.count(), 3)
-            assert_equal(OutputLoggedRequest.objects.first().related_objects.get().content_object, user1)
+            assert_equal(OutputLoggedRequest.objects.first().related_objects.get().object, user1)
+            assert_equal(OutputLoggedRequest.objects.first().slug, 'test1')
         assert_equal(get_all_request_related_objects(), [])
+        assert_is_none(get_request_slug())
+
+    @data_provider('create_user')
+    def test_task_log_is_processing_should_return_if_task_is_active_or_waiting(self, user):
+        assert_false(sum_task.is_processing())
+
+        celery_task_log = CeleryTaskLog.objects.create(
+            celery_task_id='test',
+            name='sum_task',
+            stale=now(),
+            estimated_time_of_first_arrival=now()
+        )
+        celery_task_log.related_objects.add(user)
+
+        assert_true(sum_task.is_processing())
+        assert_true(sum_task.is_processing(related_objects=[user]))
+
+        user2 = self.create_user(username='test2', email='test2@test.cz')
+        assert_false(sum_task.is_processing(related_objects=(user2,)))
+
+        celery_task_run_log = CeleryTaskRunLog(
+            celery_task_id='test',
+            name='sum_task'
+        )
+        assert_true(sum_task.is_processing())
+        assert_true(sum_task.is_processing(related_objects=[user]))
+
+        celery_task_run_log.change_and_save(state=CeleryTaskRunLogState.SUCCEEDED)
+        assert_false(sum_task.is_processing())
+
+        celery_task_run_log.change_and_save(state=CeleryTaskRunLogState.FAILED)
+        assert_false(sum_task.is_processing())
+
+        celery_task_run_log.change_and_save(state=CeleryTaskRunLogState.RETRIED)
+        assert_true(sum_task.is_processing())
+
+        celery_task_run_log.change_and_save(state=CeleryTaskRunLogState.EXPIRED)
+        assert_false(sum_task.is_processing())
+
+        celery_task_run_log.change_and_save(state=CeleryTaskRunLogState.ACTIVE)
+        assert_true(sum_task.is_processing())
+
+        celery_task_log.change_and_save(is_set_as_stale=True)
+        assert_false(sum_task.is_processing())
