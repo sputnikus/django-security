@@ -171,9 +171,11 @@ class CommandLogger(StringIO):
 
     def _finish(self, success=False, error_message=None):
         if self.command_log.stop is None:
+            stop = now()
             self.command_log.change_and_save(
                 output=self.output.getvalue(),
-                stop=now(),
+                stop=stop,
+                time=(stop - self.command_log.start).total_seconds(),
                 is_successful=success,
                 error_message=error_message
             )
