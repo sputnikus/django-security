@@ -14,7 +14,6 @@ def restart_celery(celery_type, celery_settings, extra_arguments):
 class Command(BaseCommand):
 
     def add_arguments(self, parser):
-
         parser.add_argument(
             'type', help='Celery type "beat" or "worker', choices={'beat', 'worker'}
         )

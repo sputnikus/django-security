@@ -1,7 +1,4 @@
 import atexit
-import gzip
-import json
-import os
 import re
 import sys
 import traceback
@@ -9,32 +6,13 @@ from datetime import datetime, time, timedelta
 from importlib import import_module
 from io import StringIO
 
-from six.moves import input
-
-from django.core import serializers
 from django.core.exceptions import ImproperlyConfigured
-from django.core.files.base import ContentFile
-from django.core.management.base import BaseCommand
-from django.core.serializers.json import DjangoJSONEncoder
 from django.urls import resolve
 from django.urls.exceptions import Resolver404
 from django.utils import timezone
-from django.utils.encoding import force_bytes, force_text
-from django.utils.module_loading import import_string
-from django.utils.timezone import now, utc
+from django.utils.timezone import now
 
 from .config import settings
-
-
-UNIT_OPTIONS = {
-    'h': lambda amount: timezone.now() - timedelta(hours=amount),
-    'd': lambda amount: timezone.now() - timedelta(days=amount),
-    'w': lambda amount: timezone.now() - timedelta(weeks=amount),
-    'm': lambda amount: timezone.now() - timedelta(days=(30 * amount)),  # 30-day month
-    'y': lambda amount: timezone.now() - timedelta(weeks=(52 * amount)),  # 364-day year
-}
-
-storage = import_string(settings.BACKUP_STORAGE_CLASS)()
 
 
 def is_base_collection(v):
@@ -179,98 +157,6 @@ class CommandLogger(StringIO):
                 is_successful=success,
                 error_message=error_message
             )
-
-
-class PurgeLogsBaseCommand(BaseCommand):
-
-    help = ""
-    args = '[amount duration]'
-
-    model = None
-    timestamp_field = None
-
-    def get_timestamp_field(self):
-        return self.timestamp_field
-
-    def get_model(self):
-        return self.model
-
-    def add_arguments(self, parser):
-        parser.add_argument('--expiration', action='store', dest='expiration',
-                            help='Sets the timedelta from which logs will be removed.', required=True)
-        parser.add_argument('--noinput', action='store_false', dest='interactive', default=True,
-                            help='Tells Django to NOT prompt the user for input of any kind.')
-        parser.add_argument('--backup', action='store', dest='backup', default=False,
-                            help='Tells Django where to backup removed logs.')
-
-    def serialize(self, qs):
-        data = serializers.serialize('python', qs)
-
-        for obj_data in data:
-            del obj_data['pk']
-        return data
-
-    def backup_logs_and_clean_data(self, qs, backup_path):
-        for timestamp in qs.datetimes(self.get_timestamp_field(), 'day', tzinfo=utc):
-            min_timestamp = datetime.combine(timestamp, time.min).replace(tzinfo=utc)
-            max_timestamp = datetime.combine(timestamp, time.max).replace(tzinfo=utc)
-            qs_filtered_by_day = qs.filter(
-                **{'{}__range'.format(self.get_timestamp_field()): (min_timestamp, max_timestamp)}
-            )
-            if backup_path:
-                log_file_path = os.path.join(backup_path, force_text(timestamp.date()))
-
-                if storage.exists('{}.json.zip'.format(log_file_path)):
-                    i = 0
-                    while storage.exists('{}({}).json.zip'.format(log_file_path, i)):
-                        i += 1
-                    log_file_path = '{}({})'.format(log_file_path, i)
-
-                self.stdout.write(4 * ' ' + 'generate backup file: ' + log_file_path)
-                storage.save(
-                    '{}.json.zip'.format(log_file_path),
-                    ContentFile(gzip.compress(
-                        force_bytes(json.dumps(self.serialize(qs_filtered_by_day), cls=DjangoJSONEncoder, indent=5)),
-                    )),
-                )
-            self.stdout.write(4 * ' ' + 'clean logs for day {}'.format(timestamp.date()))
-            qs_filtered_by_day.delete()
-
-    def handle(self, expiration, **options):
-        # Check we have the correct values
-        unit = expiration[-1]
-        amount = expiration[0:-1]
-        try:
-            amount = int(amount)
-        except ValueError:
-            raise CommandError('Invalid expiration format')
-
-        if unit not in UNIT_OPTIONS:
-            raise CommandError('Invalid expiration format')
-
-        model = self.get_model()
-        qs = model.objects.filter(**{'{}__lte'.format(self.get_timestamp_field()): UNIT_OPTIONS[unit](amount)})
-
-        if qs.count() == 0:
-            self.stdout.write('There are no logs to delete.')
-        else:
-            if options.get('interactive'):
-                confirm = input('''
-                You have requested a database reset.
-                This will IRREVERSIBLY DESTROY any
-                logs created before {} {}
-                ago. That is a total of {} logs.
-                Are you sure you want to do this?
-                Type 'yes' to continue, or 'no' to cancel: '''.format(amount, unit, qs.count()))
-            else:
-                confirm = 'yes'
-
-            if confirm == 'yes':
-                try:
-                    self.stdout.write('Clean data')
-                    self.backup_logs_and_clean_data(qs, options.get('backup'))
-                except IOError as ex:
-                    self.stderr.write(force_text(ex))
 
 
 def regex_sub_groups_global(pattern, repl, string):

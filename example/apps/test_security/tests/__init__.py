@@ -446,7 +446,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
             expires=now() - timedelta(minutes=4),
             stale=now() - timedelta(minutes=3)
         )
-        call_command('setstaletaskstoerrorstate')
+        call_command('set_stale_tasks_to_error_state')
         assert_equal(celery_task_log.refresh_from_db().get_state(), CeleryTaskLogState.EXPIRED)
         assert_false(CeleryTaskLog.objects.filter_stale().exists())
 
@@ -474,7 +474,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
             retries=0
         )
 
-        call_command('setstaletaskstoerrorstate')
+        call_command('set_stale_tasks_to_error_state')
         assert_equal(celery_task_log.refresh_from_db().get_state(), CeleryTaskLogState.FAILED)
 
     @override_settings(CELERYD_TASK_STALE_TIME_LIMIT=None)
