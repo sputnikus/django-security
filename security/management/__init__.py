@@ -5,7 +5,7 @@ from argparse import ArgumentParser
 import django
 from django.core.management import call_command as call_command_original
 from django.core.management import execute_from_command_line as execute_from_command_line_original
-from django.core.management import handle_default_options
+from django.core.management import handle_default_options, CommandError, CommandParser
 
 
 def execute_from_command_line(argv=None):
@@ -24,16 +24,21 @@ def execute_from_command_line(argv=None):
                 sys.stderr = sys.__stderr__
 
     if len(argv) > 1:
+        from security.utils import CommandLogger
+
         # some arguments must be processed before django setup
-        parser = ArgumentParser()
+        parser = CommandParser(None, usage="%(prog)s subcommand [options] [args]", add_help=False)
         parser.add_argument('--settings')
         parser.add_argument('--pythonpath')
-        options, args = parser.parse_known_args(argv[2:])
-        handle_default_options(options)
+        parser.add_argument('args', nargs='*')  # catch-all
+        try:
+            options, args = parser.parse_known_args(argv[2:])
+            handle_default_options(options)
+        except CommandError:
+            pass  # Ignore any option errors at this point.
 
         django.setup()
 
-        from security.utils import CommandLogger
         return CommandLogger(
             command_function=execute_from_command_line_with_stdout,
             command_kwargs={'argv': argv},
@@ -41,6 +46,7 @@ def execute_from_command_line(argv=None):
             input=' '.join(argv[2:]),
             executed_from_command_line=True
         ).run()
+
     else:
         execute_from_command_line_original(argv=argv)
 
