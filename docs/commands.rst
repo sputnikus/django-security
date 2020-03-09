@@ -31,4 +31,4 @@ Run celery worker or beater with autoreload, parameters:
 celery_health_check
 -------------------
 
-Check Celery queue health. Either by count of tasks with state ``WAITING`` (``--max-tasks-count``) or by time waiting in queue (``--max-created-at-diff``, in seconds) or both at once. Default queue name is ``defaul``. You can change queue name with argument ``--queue-name``.
+Check Celery queue health. Either by count of tasks with state ``WAITING`` (``--max-tasks-count``) or by time waiting in queue (``--max-created-at-diff``, in seconds) or both at once. Default queue name is ``default``. You can change queue name with argument ``--queue-name``.

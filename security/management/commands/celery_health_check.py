@@ -58,10 +58,9 @@ class Command(BaseCommand):
         if max_created_at_diff < 0:
             raise CommandError(self.messages['invalid_max_created_at_diff'])
 
-        task = queryset.annotate(diff=ExpressionWrapper(Now() - F('created_at'), output_field=DurationField())).filter(
+        if queryset.annotate(diff=ExpressionWrapper(Now() - F('created_at'), output_field=DurationField())).filter(
             diff__gt=timedelta(seconds=max_created_at_diff),
-        ).first()
-        if task:
+        ).exists():
             raise CommandError(self.messages['max_created_at_diff_error'].format(max_created_at_diff, queue_name))
 
     def _handle_max_tasks(self, queryset, queue_name, max_tasks_count):
