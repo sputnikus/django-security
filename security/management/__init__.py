@@ -1,11 +1,12 @@
 import sys
-from argparse import ArgumentParser
+from distutils.version import StrictVersion
 
 import django
 from django.core.management import CommandError, CommandParser
 from django.core.management import call_command as call_command_original
 from django.core.management import execute_from_command_line as execute_from_command_line_original
 from django.core.management import handle_default_options
+from django.utils.version import get_main_version
 
 
 def execute_from_command_line(argv=None):
@@ -27,7 +28,7 @@ def execute_from_command_line(argv=None):
         from security.utils import CommandLogger
 
         # some arguments must be processed before django setup
-        parser_args = (None,) if django.VERSION < (2, 1) else tuple()
+        parser_args = (None,) if StrictVersion(get_main_version()) < StrictVersion('2.1') else tuple()
         parser = CommandParser(*parser_args, usage='%(prog)s subcommand [options] [args]', add_help=False)
         parser.add_argument('--settings')
         parser.add_argument('--pythonpath')
