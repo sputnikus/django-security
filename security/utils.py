@@ -2,17 +2,262 @@ import atexit
 import re
 import sys
 import traceback
+import itertools
 from datetime import datetime, time, timedelta
 from importlib import import_module
 from io import StringIO
+from threading import local
 
+from contextlib import ContextDecorator
+
+from django.conf import settings as django_settings
+from django.core.signals import request_finished
 from django.core.exceptions import ImproperlyConfigured
+from django.db.transaction import get_connection
 from django.urls import resolve
 from django.urls.exceptions import Resolver404
 from django.utils import timezone
 from django.utils.timezone import now
 
 from .config import settings
+
+
+class LogManagementError(Exception):
+    pass
+
+
+class OutputLoggedRequestContext:
+    """
+    Data structure that stores data for creation OutputLoggedRequest model object
+    """
+
+    def __init__(self, data, related_objects=None):
+        self.data = data
+        self.related_objects = related_objects
+
+    def create(self, input_logged_request=None, command_log=None, celery_task_run_log=None):
+        from security.models import OutputLoggedRequest
+
+        output_logged_request = OutputLoggedRequest.objects.create(
+            input_logged_request=input_logged_request,
+            command_log=command_log,
+            celery_task_run_log=celery_task_run_log,
+            **self.data
+        )
+        output_logged_request.related_objects.add(*self.related_objects)
+        return output_logged_request
+
+
+class LogContextStackFrame:
+
+    def __init__(self, input_logged_request, command_log, celery_task_run_log, output_requests_related_objects,
+                 output_requests_slug):
+        self.input_logged_request = input_logged_request
+        self.command_log = command_log
+        self.celery_task_run_log = celery_task_run_log
+        self.output_requests_related_objects = (
+            list(output_requests_related_objects) if output_requests_related_objects else []
+        )
+        self.output_requests_slug = output_requests_slug
+        self.output_logged_requests = []
+
+    def fork(self, input_logged_request, command_log, celery_task_run_log, output_requests_related_objects,
+             output_requests_slug):
+        return LogContextStackFrame(
+            input_logged_request or self.input_logged_request,
+            command_log or self.command_log,
+            celery_task_run_log or self.celery_task_run_log,
+            output_requests_related_objects=(
+                self.output_requests_related_objects + list(output_requests_related_objects)
+            ),
+            output_requests_slug=self.output_requests_slug if output_requests_slug is None else output_requests_slug
+        )
+
+    def join(self, other_context):
+        self.output_logged_requests += other_context.output_logged_requests
+
+    def save(self):
+        for output_logged_request in self.output_logged_requests:
+            output_logged_request.create(
+                input_logged_request=self.input_logged_request,
+                command_log=self.command_log,
+                celery_task_run_log=self.celery_task_run_log
+            )
+
+
+class LogContextManager(local):
+
+    def __init__(self):
+        self.clear()
+        request_finished.connect(self._request_finished_receiver)
+        if 'reversion' in django_settings.INSTALLED_APPS:
+            from reversion.signals import post_revision_commit
+
+            post_revision_commit.connect(self._post_revision_commit)
+
+    def is_active(self):
+        """Returns whether there is an active revision for this thread."""
+        return bool(self._stack)
+
+    def _assert_active(self):
+        """Checks for an active revision, throwning an exception if none."""
+        if not self.is_active():  # pragma: no cover
+            raise LogManagementError('There is no active context log for this thread')
+
+    @property
+    def input_logged_request(self):
+        return self._current_frame.input_logged_request
+
+    @property
+    def command_log(self):
+        return self._current_frame.command_log
+
+    @property
+    def celery_task_run_log(self):
+        return self._current_frame.celery_task_run_log
+
+    @property
+    def _current_frame(self):
+        self._assert_active()
+        return self._stack[-1]
+
+    def start(self, using=None, input_logged_request=None, command_log=None, celery_task_run_log=None,
+              output_requests_related_objects=None, output_requests_slug=None):
+        """
+        Begins a context log for this thread.
+
+        This MUST be balanced by a call to `end`
+        """
+        self._using = using
+        if self.is_active():
+            self._stack.append(
+                self._current_frame.fork(
+                    input_logged_request,
+                    command_log,
+                    celery_task_run_log,
+                    output_requests_related_objects,
+                    output_requests_slug
+                )
+            )
+        else:
+            self._stack.append(
+                LogContextStackFrame(
+                    input_logged_request,
+                    command_log,
+                    celery_task_run_log,
+                    output_requests_related_objects,
+                    output_requests_slug
+                )
+            )
+
+    def end(self):
+        self._assert_active()
+        connection = get_connection(self._using)
+        stack_frame = self._stack.pop()
+        if self._stack and connection.in_atomic_block:
+            self._current_frame.join(stack_frame)
+        elif self._stack:
+            stack_frame.save()
+        else:
+            try:
+                stack_frame.save()
+            finally:
+                self.clear()
+
+    def clear(self):
+        self._stack = []
+        self._using = None
+
+    def _request_finished_receiver(self, **kwargs):
+        """
+        Called at the end of a request, ensuring that any open logs
+        are closed. Not closing all active revisions can cause memory leaks
+        and weird behaviour.
+        """
+        while self.is_active():  # pragma: no cover
+            self.end()
+
+    def log_output_requests(self, output_logged_request_context):
+        connection = get_connection(self._using)
+
+        if connection.in_atomic_block:
+            self._current_frame.output_logged_requests.append(output_logged_request_context)
+        else:
+            output_logged_request_context.create()
+
+    def get_output_request_related_objects(self):
+        if not self.is_active():
+            return []
+
+        return self._current_frame.output_requests_related_objects
+
+    def get_output_request_slug(self):
+        if not self.is_active():
+            return None
+
+        return self._current_frame.output_requests_slug
+
+    def _post_revision_commit(self, **kwargs):
+        """
+        Called as a post save of revision model of the reversion library.
+        If log context manager is active input logged request, command
+        log or celery task run log is joined with revision via related objects.
+        """
+        revision = kwargs['revision']
+        if self.is_active():
+            if self.input_logged_request:
+                self.input_logged_request.related_objects.add(revision)
+            if self.command_log:
+                self.command_log.related_objects.add(revision)
+            if self.celery_task_run_log:
+                self.celery_task_run_log.related_objects.add(revision)
+
+
+log_context_manager = LogContextManager()
+
+
+class AtomicLog(ContextDecorator):
+    """
+    Context decorator that stores logged requests to database connections and inside exit method
+    stores it to the database
+    """
+
+    def __init__(self, using=None, input_logged_request=None, command_log=None, celery_task_run_log=None,
+                 output_requests_related_objects=None, output_requests_slug=None):
+        self._using = using
+        self._command_log = command_log
+        self._celery_task_run_log = celery_task_run_log
+        self._input_logged_request = input_logged_request
+        self._output_requests_related_objects = (
+            [] if output_requests_related_objects is None else list(output_requests_related_objects)
+        )
+        self._output_requests_slug = output_requests_slug
+
+    def __enter__(self):
+        log_context_manager.start(
+            self._using,
+            self._input_logged_request,
+            self._command_log,
+            self._celery_task_run_log,
+            self._output_requests_related_objects,
+            self._output_requests_slug,
+        )
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        log_context_manager.end()
+
+
+def log_output_request(data, related_objects=None):
+    """
+    Helper for logging output requests
+    :param data: dict of input attributes of OutputLoggedRequest model
+    :param related_objects: objects that will be related to OutputLoggedRequest object
+    """
+    output_logged_request_context = OutputLoggedRequestContext(data, related_objects)
+    if log_context_manager.is_active():
+        log_context_manager.log_output_requests(output_logged_request_context)
+    else:
+        output_logged_request_context.create()
 
 
 def is_base_collection(v):
@@ -133,6 +378,7 @@ class CommandLogger(StringIO):
         not be logged if it is in excluded commands setting.
         """
         from security.models import CommandLog
+        from security.decorators import atomic_log
 
         if self.kwargs['name'] in settings.COMMAND_LOG_EXCLUDED_COMMANDS:
             return self.command_function(
@@ -149,11 +395,12 @@ class CommandLogger(StringIO):
         atexit.register(lambda: self._finish(error_message='Command was killed'))
 
         try:
-            ret_val = self.command_function(
-                stdout=stdout, stderr=stderr, *self.command_args, **self.command_kwargs
-            )
-            self._finish(success=True)
-            return ret_val
+            with atomic_log(command_log=self.command_log):
+                ret_val = self.command_function(
+                    stdout=stdout, stderr=stderr, *self.command_args, **self.command_kwargs
+                )
+                self._finish(success=True)
+                return ret_val
         except Exception as ex:  # pylint: disable=W0703
             self._finish(success=False, error_message=traceback.format_exc())
             raise ex

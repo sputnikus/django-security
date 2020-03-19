@@ -100,3 +100,7 @@ Setup
 .. attribute:: SECURITY_LOG_OUTPUT_REQUESTS
 
   Enable logging of output requests via logging module. Default value is ``True``.
+
+.. attribute:: SECURITY_AUTO_GENERATE_TASKS_FOR_DJANGO_COMMANDS
+
+  List or set of Django commands which will be automatically transformed into celery tasks.

@@ -1,10 +1,18 @@
+import os
+
 from setuptools import setup, find_packages
 
 from security.version import get_version
 
 
+def read(fname):
+    return open(os.path.join(os.path.dirname(__file__), fname)).read()
+
+
 setup(
     name='django-security-logger',
+    long_description=read('README.rst'),
+    long_description_content_type='text/x-rst',
     version=get_version(),
     description="Django security library.",
     keywords='django, throttling',

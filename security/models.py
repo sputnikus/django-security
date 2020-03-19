@@ -272,9 +272,30 @@ class InputLoggedRequest(LoggedRequest):
 
 class OutputLoggedRequest(LoggedRequest):
 
-    input_logged_request = models.ForeignKey(to=InputLoggedRequest, verbose_name=_('input logged request'), null=True,
-                                             blank=True, on_delete=models.SET_NULL,
-                                             related_name='output_logged_requests')
+    input_logged_request = models.ForeignKey(
+        to='InputLoggedRequest',
+        verbose_name=_('input logged request'),
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='output_logged_requests'
+    )
+    command_log = models.ForeignKey(
+        to='CommandLog',
+        verbose_name=_('command log'),
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='output_logged_requests'
+    )
+    celery_task_run_log = models.ForeignKey(
+        to='CeleryTaskRunLog',
+        verbose_name=_('celery task run log'),
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='output_logged_requests'
+    )
     related_objects = GenericManyToManyField()
 
     objects = BaseLogQuerySet.as_manager()
@@ -447,6 +468,7 @@ class CeleryTaskRunLog(SmartModel):
                                                default=0)
     estimated_time_of_next_retry = models.DateTimeField(verbose_name=_('estimated time of arrival'), null=True,
                                                         blank=True)
+    related_objects = GenericManyToManyField()
 
     class Meta:
         verbose_name = _('celery task run')
