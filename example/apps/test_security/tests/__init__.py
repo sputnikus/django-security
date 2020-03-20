@@ -17,8 +17,9 @@ from django.db import transaction
 from django.test import override_settings
 from django.utils.timezone import now, timedelta
 
-from germanium.decorators import data_provider
+from germanium.decorators import data_consumer, data_provider
 from germanium.test_cases.client import ClientTestCase
+from germanium.test_cases.default import GermaniumTestCase
 from germanium.tools import (
     assert_equal, assert_false, assert_http_not_found, assert_http_ok, assert_http_redirect,
     assert_http_too_many_requests, assert_in, assert_is_none, assert_is_not_none, assert_not_in, assert_not_raises,
@@ -28,7 +29,6 @@ from germanium.tools import (
 from security.config import settings
 from security.decorators import atomic_log
 from security.management import call_command
-from security.management.commands.celery_health_check import Command as CeleryHealthCheckCommand
 from security.models import (
     CeleryTaskLog, CeleryTaskLogState, CeleryTaskRunLog, CeleryTaskRunLogState, CommandLog, InputLoggedRequest,
     LoggedRequestStatus, OutputLoggedRequest
@@ -50,17 +50,22 @@ class TestException(Exception):
 
 class BaseTestCaseMixin:
 
+    @data_provider
     def create_user(self, username='test', email='test@test.cz'):
         return User.objects._create_user(username, email, 'test', is_staff=True, is_superuser=True)
 
+
+class CeleryHealthCheckCommandTestCaseMixin:
+
+    @data_provider
     def create_celery_task_log_without_celery_task_run_log(self, task_uuid=uuid.uuid4(), name=None,
                                                            estimated_time_of_first_arrival=now() + timedelta(days=1),
                                                            is_set_as_stale=False,
                                                            queue_name=settings.CELERY_HEALTH_CHECK_DEFAULT_QUEUE,
                                                            **kwargs):
-        return CeleryTaskLog.objects.create(celery_task_id=task_uuid, name=name if name is not None else task_uuid,
-                                            is_set_as_stale=is_set_as_stale, queue_name=queue_name,
-                                            estimated_time_of_first_arrival=estimated_time_of_first_arrival, **kwargs)
+        return CeleryTaskLog.objects.create(celery_task_id=task_uuid, name='test_task', is_set_as_stale=is_set_as_stale,
+                                            estimated_time_of_first_arrival=estimated_time_of_first_arrival,
+                                            queue_name=queue_name, **kwargs)
 
 
 def test_call_command(*args, **kwargs):
@@ -89,7 +94,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         self.get('/')
         assert_equal(InputLoggedRequest.objects.count(), 1)
 
-    @data_provider('create_user')
+    @data_consumer('create_user')
     def test_data_change_should_be_connected_with_logged_request(self, user):
         assert_equal(InputLoggedRequest.objects.count(), 0)
         assert_http_redirect(self.post('/admin/login/', data={'username': 'test', 'password': 'test'}))
@@ -118,7 +123,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
             ContentType.objects.get_for_model(User)
         )
 
-    @data_provider('create_user')
+    @data_consumer('create_user')
     def test_input_logged_request_should_have_right_status(self, user):
         assert_http_ok(self.post('/admin/login/', data={'username': 'invalid', 'password': 'invalid'}))
         assert_equal(InputLoggedRequest.objects.first().status, LoggedRequestStatus.INFO)
@@ -222,7 +227,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         assert_equal(OutputLoggedRequest.objects.count(), 1)
 
     @responses.activate
-    @data_provider('create_user')
+    @data_consumer('create_user')
     def test_output_logged_request_should_be_related_with_object(self, user):
         assert_http_redirect(self.post('/admin/login/', data={'username': 'test', 'password': 'test'}))
         responses.add(responses.GET, 'http://test.cz', body='test')
@@ -244,7 +249,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         input_logged_request = InputLoggedRequest.objects.get()
         assert_in('[Filtered]', input_logged_request.request_body)
 
-    @data_provider('create_user')
+    @data_consumer('create_user')
     def test_sensitive_headers_should_be_hidden(self, user):
         assert_http_redirect(self.post('/admin/login/', data={'username': 'test', 'password': 'test'}))
         input_logged_request = InputLoggedRequest.objects.get()
@@ -255,7 +260,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         input_logged_request = InputLoggedRequest.objects.get()
         assert_equal(input_logged_request.queries['token'], '[Filtered]')
 
-    @data_provider('create_user')
+    @data_consumer('create_user')
     @override_settings(SECURITY_SENSITIVE_DATA_REPLACEMENT='(Filtered)')
     def test_sensitive_replacement_should_be_changed(self, user):
         assert_http_redirect(self.post('/admin/login/', data={'username': 'test', 'password': 'test'}))
@@ -585,7 +590,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         assert_equal(log_context_manager.get_output_request_related_objects(), [])
         assert_is_none(log_context_manager.get_output_request_slug())
 
-    @data_provider('create_user')
+    @data_consumer('create_user')
     def test_task_log_is_processing_should_return_if_task_is_active_or_waiting(self, user):
         assert_false(sum_task.is_processing())
 
@@ -628,74 +633,41 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         celery_task_log.change_and_save(is_set_as_stale=True)
         assert_false(sum_task.is_processing())
 
-    @data_provider('create_celery_task_log_without_celery_task_run_log')
+
+class CeleryHealthCheckCommandTestCase(CeleryHealthCheckCommandTestCaseMixin, GermaniumTestCase):
+
+    @data_consumer('create_celery_task_log_without_celery_task_run_log')
     def test_celery_health_check_command_raises_error_if_queue_exceeds_max_tasks_count_limit(self, task_log):
-        stdout = io.StringIO()
-        stderr = io.StringIO()
         max_tasks_count = 0
 
         with assert_raises(CommandError):
-            call_command('celery_health_check', max_tasks_count=max_tasks_count, stdout=stdout, stderr=stderr)
-            assert_equal(stdout.getvalue(), '')
-            assert_equal(stderr.getvalue(), CeleryHealthCheckCommand.messages['max_tasks_count_error'].format(
-                max_tasks_count, task_log.queue_name,
-            ))
+            call_command('celery_health_check', max_tasks_count=max_tasks_count)
 
-    @data_provider('create_celery_task_log_without_celery_task_run_log')
+    @data_consumer('create_celery_task_log_without_celery_task_run_log')
     def test_celery_health_check_command_does_not_raise_error_if_queue_is_within_max_tasks_count_limit(self, task_log):
-        stdout = io.StringIO()
-        stderr = io.StringIO()
-
         with assert_not_raises(CommandError):
-            call_command('celery_health_check', max_tasks_count=1, stdout=stdout, stderr=stderr)
-            assert_equal(  # \n is auto appended, that's why I strip it
-                stdout.getvalue().rstrip('\n'), CeleryHealthCheckCommand.messages['ok'].format(task_log.queue_name)
-            )
-            assert_equal(stderr.getvalue(), '')
+            call_command('celery_health_check', max_tasks_count=1)
 
     def test_celery_health_check_command_raises_command_error_for_max_tasks_count_lower_than_zero(self):
-        stdout = io.StringIO()
-        stderr = io.StringIO()
-
         with assert_raises(CommandError):
-            call_command('celery_health_check', max_tasks_count=-1, stdout=stdout, stderr=stderr)
-            assert_equal(stdout.getvalue(), '')
-            assert_equal(stderr.getvalue(), CeleryHealthCheckCommand.messages['invalid_max_tasks_count'])
+            call_command('celery_health_check', max_tasks_count=-1)
 
     def test_celery_health_check_command_raises_command_error_for_max_created_at_diff_lower_than_zero(self):
-        stdout = io.StringIO()
-        stderr = io.StringIO()
-
         with assert_raises(CommandError):
-            call_command('celery_health_check', max_created_at_diff=-1, stdout=stdout, stderr=stderr)
-            assert_equal(stdout.getvalue(), '')
-            assert_equal(stderr.getvalue(), CeleryHealthCheckCommand.messages['invalid_max_created_at_diff'])
+            call_command('celery_health_check', max_created_at_diff=-1)
 
     @freeze_time(now())
-    @data_provider('create_celery_task_log_without_celery_task_run_log')
+    @data_consumer('create_celery_task_log_without_celery_task_run_log')
     def test_celery_health_check_command_does_not_raise_error_if_queue_is_within_max_created_at_diff_limit(self,
                                                                                                            task_log):
-        stdout = io.StringIO()
-        stderr = io.StringIO()
-
         with assert_not_raises(CommandError):
-            call_command('celery_health_check', max_created_at_diff=5, stdout=stdout, stderr=stderr)
-            assert_equal(  # \n is auto appended, that's why I strip it
-                stdout.getvalue().rstrip('\n'), CeleryHealthCheckCommand.messages['ok'].format(task_log.queue_name)
-            )
-            assert_equal(stderr.getvalue(), '')
+            call_command('celery_health_check', max_created_at_diff=5)
 
     @freeze_time(now() - timedelta(days=1))
-    @data_provider('create_celery_task_log_without_celery_task_run_log')
+    @data_consumer('create_celery_task_log_without_celery_task_run_log')
     def test_celery_health_check_command_does_raise_error_if_queue_is_not_within_max_created_at_diff_limit(self,
                                                                                                            task_log):
-        stdout = io.StringIO()
-        stderr = io.StringIO()
         max_created_at_diff = 1
 
         with assert_raises(CommandError):
-            call_command('celery_health_check', max_created_at_diff=max_created_at_diff, stdout=stdout, stderr=stderr)
-            assert_equal(stdout.getvalue(), '')
-            assert_equal(stderr.getvalue(), CeleryHealthCheckCommand.messages['max_created_at_diff_error'].format(
-                max_created_at_diff, task_log.queue_name,
-            ))
+            call_command('celery_health_check', max_created_at_diff=max_created_at_diff)
