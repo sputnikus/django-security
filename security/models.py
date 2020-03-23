@@ -24,7 +24,7 @@ except ImportError:
 
 from generic_m2m_field.models import GenericManyToManyField
 
-from chamber.models import SmartModel
+from chamber.models import SmartModel, SmartQuerySet
 
 from enumfields import NumEnumField
 
@@ -117,6 +117,15 @@ def clean_headers(headers):
 
 def clean_queries(queries):
     return hide_sensitive_data_queries(queries) if queries else queries
+
+
+class BaseLogQuerySet(SmartQuerySet):
+
+    def filter_related_with_object(self, related_object):
+        return self.filter(
+            related_objects__object_id=related_object.pk,
+            related_objects__object_ct=ContentType.objects.get_for_model(related_object)
+        )
 
 
 class InputLoggedRequestManager(models.Manager):
@@ -235,7 +244,7 @@ class InputLoggedRequest(LoggedRequest):
                         null=False, blank=False, db_index=True)
     related_objects = GenericManyToManyField()
 
-    objects = InputLoggedRequestManager()
+    objects = InputLoggedRequestManager.from_queryset(BaseLogQuerySet)()
 
     def update_from_response(self, response):
         self.response_timestamp = timezone.now()
@@ -267,6 +276,8 @@ class OutputLoggedRequest(LoggedRequest):
                                              blank=True, on_delete=models.SET_NULL,
                                              related_name='output_logged_requests')
     related_objects = GenericManyToManyField()
+
+    objects = BaseLogQuerySet.as_manager()
 
     class Meta:
         verbose_name = _('output logged request')
@@ -304,6 +315,8 @@ class CommandLog(SmartModel):
                                         blank=False, null=False, default=False, editable=False)
     error_message = models.TextField(verbose_name=_('error message'), null=True, blank=True, editable=False)
     related_objects = GenericManyToManyField()
+
+    objects = BaseLogQuerySet.as_manager()
 
     class Meta:
         verbose_name = _('command log')
@@ -349,8 +362,6 @@ class CeleryTaskLogManager(models.Manager):
 
 class CeleryTaskLog(SmartModel):
 
-    objects = CeleryTaskLogManager()
-
     celery_task_id = models.CharField(verbose_name=_('celery ID'), null=False, blank=False, max_length=250,
                                       db_index=True)
     name = models.CharField(verbose_name=_('task name'), null=False, blank=False, max_length=250)
@@ -365,6 +376,8 @@ class CeleryTaskLog(SmartModel):
     stale = models.DateTimeField(verbose_name=_('stale task time'), null=True, blank=True)
     is_set_as_stale = models.BooleanField(verbose_name=_('set as stale'), default=False)
     related_objects = GenericManyToManyField()
+
+    objects = CeleryTaskLogManager.from_queryset(BaseLogQuerySet)()
 
     class Meta:
         verbose_name = _('celery task')
