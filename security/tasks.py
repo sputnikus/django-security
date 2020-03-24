@@ -431,7 +431,7 @@ class LoggedTask(Task):
     def apply_async(self, args=None, kwargs=None, related_objects=None, **options):
         app = self._get_app()
         if self.request.id or app.conf.task_always_eager:
-            return super().apply_async(args=args, kwargs=kwargs, **options)
+            return super().apply_async(args=args, kwargs=kwargs, related_objects=related_objects, **options)
         else:
             return self._first_apply(
                 is_async=True, args=args, kwargs=kwargs, related_objects=related_objects, **options
