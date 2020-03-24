@@ -38,9 +38,14 @@ def remove_nul_from_string(value):
 
 class LogStringIO(StringIO):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, post_write_callback=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._last_newline = 0
+        self._post_write_callback = post_write_callback
+
+    def _post_write(self):
+        if self._post_write_callback:
+            self._post_write_callback(self)
 
     def write(self, s):
         line_first = True
@@ -116,6 +121,12 @@ class CommandLogger(StringIO):
         self.stdout = stdout if stdout else sys.stdout
         self.stderr = stderr if stderr else sys.stderr
 
+    def _store_log_output(self, output_stream):
+        self.command_log.change_and_save(
+            output=output_stream.getvalue(),
+            update_only_changed_fields=True
+        )
+
     def run(self):
         """
         Runs the command function and returns its return value or re-raises any exceptions. The run of the command will
@@ -128,11 +139,11 @@ class CommandLogger(StringIO):
                 stdout=self.stdout, stderr=self.stderr, *self.command_args, **self.command_kwargs
             )
 
-        self.output = LogStringIO()
+        self.command_log = CommandLog.objects.create(start=now(), **self.kwargs)
+
+        self.output = LogStringIO(post_write_callback=self._store_log_output)
         stdout = TeeStringIO(self.stdout, self.output)
         stderr = TeeStringIO(self.stderr, self.output)
-
-        self.command_log = CommandLog.objects.create(start=now(), **self.kwargs)
 
         # register call of the finish method in case the command exits the interpreter prematurely
         atexit.register(lambda: self._finish(error_message='Command was killed'))

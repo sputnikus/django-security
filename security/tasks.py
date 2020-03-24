@@ -92,12 +92,15 @@ class LoggedTask(Task):
         else:
             return task_id
 
+    def _store_log_output(self, output_stream):
+        self.request.celery_task_run_log.change_and_save(
+            output=output_stream.getvalue(),
+            update_only_changed_fields=True
+        )
+
     @property
     def task_run_log(self):
-        return CeleryTaskRunLog.objects.get(
-            celery_task_id=str(self.request.id),
-            retries=self.request.retries
-        )
+        return self.request.celery_task_run_log
 
     def __call__(self, *args, **kwargs):
         """
@@ -117,10 +120,10 @@ class LoggedTask(Task):
         # celery library)
         req._protected = 1
 
-        self._create_task_run_log(args, kwargs)
-
+        celery_task_run_log = self._create_task_run_log(args, kwargs)
+        self.request.celery_task_run_log = celery_task_run_log
         # Every set attr is sent here
-        self.request.output_stream = LogStringIO()
+        self.request.output_stream = LogStringIO(post_write_callback=self._store_log_output)
         self.on_start_task(self.task_run_log, args, kwargs)
         return self.run(*args, **kwargs)
 
