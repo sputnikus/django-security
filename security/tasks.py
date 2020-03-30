@@ -9,6 +9,7 @@ from datetime import timedelta
 
 from django.conf import settings as django_settings
 from django.core.management import call_command, get_commands
+from django.core.management.base import OutputWrapper
 from django.core.exceptions import ImproperlyConfigured
 from django.core.cache import cache
 from django.db import transaction
@@ -98,6 +99,14 @@ class LoggedTask(Task):
             output=output_stream.getvalue(),
             update_only_changed_fields=True
         )
+
+    @property
+    def stdout(self):
+        return OutputWrapper(self.request.output_stream)
+
+    @property
+    def stderr(self):
+        return OutputWrapper(self.request.output_stream)
 
     @property
     def task_run_log(self):

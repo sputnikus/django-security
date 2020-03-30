@@ -306,6 +306,7 @@ class LogStringIO(StringIO):
                 cursor_first = False
                 super().write(cursor_block)
             line_first = False
+        self._post_write()
 
     def isatty(self):
         return True
