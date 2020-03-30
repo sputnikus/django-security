@@ -86,28 +86,28 @@ def truncate_json_data(data):
         return data
 
 
-def truncate_body(content, max_lenght):
+def truncate_body(content, max_length):
     content = force_text(content, errors='replace')
-    if len(content) > max_lenght:
+    if len(content) > max_length:
         try:
             json_content = json.loads(content)
             return (
                 json.dumps(truncate_json_data(json_content))
                 if isinstance(json_content, (dict, list)) and settings.LOG_JSON_STRING_LENGTH is not None
-                else content[:max_lenght + 1]
+                else content[:max_length + 1]
             )
         except JSONDecodeError:
-            return content[:max_lenght + 1]
+            return content[:max_length + 1]
     else:
         return content
 
 
-def clean_body(body, max_lenght):
+def clean_body(body, max_length):
     cleaned_body = truncatechars(
-        truncate_body(body, max_lenght), max_lenght + len(settings.SENSITIVE_DATA_REPLACEMENT)
-    ) if max_lenght is not None else str(body)
+        truncate_body(body, max_length), max_length + len(settings.SENSITIVE_DATA_REPLACEMENT)
+    ) if max_length is not None else str(body)
     cleaned_body = hide_sensitive_data_body(remove_nul_from_string(cleaned_body)) if cleaned_body else cleaned_body
-    cleaned_body = truncatechars(cleaned_body, max_lenght) if max_lenght else cleaned_body
+    cleaned_body = truncatechars(cleaned_body, max_length) if max_length else cleaned_body
     return cleaned_body
 
 

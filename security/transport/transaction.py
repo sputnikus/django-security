@@ -1,8 +1,7 @@
 import itertools
 import logging
+from contextlib import ContextDecorator
 from threading import local
-
-from django.utils.decorators import ContextDecorator
 
 from security.config import settings
 from security.models import OutputLoggedRequest
