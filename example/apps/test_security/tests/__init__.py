@@ -1,10 +1,12 @@
 import io
 import json
+import sys
 from datetime import timedelta
 from unittest import mock
 
 import responses
 from celery.exceptions import CeleryError, TimeoutError
+from freezegun import freeze_time
 
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
@@ -32,7 +34,6 @@ from security.transport.transaction import (
 )
 
 from apps.test_security.tasks import error_task, retry_task, sum_task, unique_task
-from freezegun import freeze_time
 
 
 class TestException(Exception):
@@ -52,7 +53,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         requests.get('http://test.cz')
 
         assert_true(func.called)
-        func_args = func.call_args.args[0]  # data
+        func_args = func.call_args.args[0] if sys.version_info >= (3, 8) else func.call_args_list[0][0][0]  # data
         assert_in('request_timestamp', func_args)
         assert_in('response_timestamp', func_args)
         assert_in('response_time', func_args)
