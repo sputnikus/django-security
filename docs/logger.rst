@@ -22,7 +22,7 @@ There are several decorators for views and generic views that can be used for vi
 Output requests
 ---------------
 
-Logging of output requests is a little bit complicated and is related to the way how output requests are performed. Security provides two ways how to log output requests:
+Logging of output requests is a little bit complicated and is related to the way how output requests are performed. You can enable logging of output requests to stdout via ``SECURITY_LOG_OUTPUT_REQUESTS`` (default ``True``) in following format: ``"{request_timestamp}" "{response_timestamp}" "{response_time}" "{http_code}" "{http_host}" "{http_path}" "{http_method}" "{slug}"``. Security provides two ways how to log output requests:
 
 
 requests

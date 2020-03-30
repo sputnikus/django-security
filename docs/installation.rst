@@ -96,3 +96,7 @@ Setup
 .. attribute:: SECURITY_CELERY_STALE_TASK_TIME_LIMIT_MINUTES
 
   Default wait timeout to set not triggered task to the failed state. Default value is ``60``.
+
+.. attribute:: SECURITY_LOG_OUTPUT_REQUESTS
+
+  Enable logging of output requests via logging module. Default value is ``True``.
