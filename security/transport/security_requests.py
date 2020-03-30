@@ -8,9 +8,7 @@ from django.utils.encoding import force_text
 
 from security.config import settings
 from security.models import LoggedRequest, LoggedRequestStatus, clean_body, clean_headers, clean_queries
-from security.utils import is_base_collection
-
-from .transaction import get_all_request_related_objects, get_request_slug, log_output_request
+from security.utils import is_base_collection, log_output_request, log_context_manager
 
 
 def stringify_dict(d):
@@ -77,7 +75,7 @@ class SecuritySession(Session):
             'path': parsed_url.path,
             'method': method.upper(),
             'queries': clean_queries(get_logged_params(url, params)),
-            'slug': slug or self.slug or get_request_slug(),
+            'slug': slug or self.slug or log_context_manager.get_output_request_slug(),
             'request_timestamp': request_timestamp,
         }
 
@@ -125,7 +123,7 @@ class SecuritySession(Session):
             log_output_request(
                 stringify_dict(logged_kwargs),
                 list(itertools.chain(
-                    related_objects, self.related_objects, get_all_request_related_objects()
+                    related_objects, self.related_objects, log_context_manager.get_output_request_related_objects()
                 ))
             )
 

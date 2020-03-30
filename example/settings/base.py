@@ -86,13 +86,13 @@ SECRET_KEY = 'xe8vyy&0cw*&za++fq(%w6cx=)k53*m-@$1&pst=*oe(b#zgo+'
 
 
 MIDDLEWARE = (
-    'reversion.middleware.RevisionMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'security.middleware.LogMiddleware',
+    'reversion.middleware.RevisionMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
 
@@ -175,3 +175,6 @@ CELERY_EAGER_PROPAGATES_EXCEPTIONS = False
 CELERY_ALWAYS_EAGER = True
 BROKER_BACKEND = 'memory'
 CELERY_DEFAULT_QUEUE = 'default'
+SECURITY_AUTO_GENERATE_TASKS_FOR_DJANGO_COMMANDS = (
+    'check', 'create_user'
+)

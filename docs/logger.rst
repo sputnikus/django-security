@@ -43,14 +43,13 @@ The ``security.transport.security_suds.Client`` has ``slug`` as initial paramete
 Decorators/context processors
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-``security.transport.transaction.log_output_request`` - because logged requests are stored in models, they are subject to rollback, if you are using transactions. To solve this problem you can use this decorator before Django ``transaction.atomic`` decorator. The logs are stored on the end of the transaction (even with raised exception). Decorator can be nested, logs are saved only with the last decorator.
-``security.transport.transaction.log_request_related_objects`` - If you want to join a object with output request log you can use this context processor. In the example user is logged with output request::
+``security.decorators.atomic_log`` - because logged requests are stored in models, they are subject to rollback, if you are using transactions. To solve this problem you can use this decorator before Django ``transaction.atomic`` decorator. The logs are stored on the end of the transaction (even with raised exception). Decorator can be nested, logs are saved only with the last decorator. If you want to join a object with output request log you can use this decorator too. In the example user is logged with output request::
 
-    from security.transport.transaction import log_request_related_objects
+    from security.decorators import atomic_log
     from security.transport import security_requests as requests
 
     user = User.objects.first()
-    with log_request_related_objects(slug='github-request', related_objects=[user]):
+    with atomic_log(output_requests_slug='github-request', output_requests_related_objects=[user]):
         requests.get('https:///github.com/druids/')
 
 

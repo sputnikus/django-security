@@ -5,39 +5,16 @@ from ipware.ip import get_ip
 from django import http
 from django.conf import settings as django_settings
 from django.core.exceptions import ImproperlyConfigured
-from django.db.transaction import get_connection
 from django.urls import is_valid_path, get_callable
 
 from .config import settings
 from .exception import ThrottlingException
 from .models import InputLoggedRequest, InputLoggedRequestType
-from .utils import get_throttling_validators, get_view_from_request_or_none
+from .utils import (
+    get_throttling_validators, get_view_from_request_or_none, log_context_manager
+)
 
-try:
-    from importlib import import_module
-except ImportError:  # For Django < 1.8
-    from django.utils.importlib import import_module
-
-
-
-if 'security.contrib.reversion_log' in django_settings.INSTALLED_APPS:
-    if 'reversion' not in django_settings.INSTALLED_APPS:
-        raise ImproperlyConfigured('For reversion log is necessary install "django-reversion"')
-
-    # Supports two version of reversion library
-    try:
-        from reversion.signals import post_revision_commit
-
-        def create_revision_request_log(sender, revision, versions, **kwargs):
-            from security.contrib.reversion_log.models import InputRequestRevision
-
-            connection = get_connection()
-            if getattr(connection, 'input_logged_request', False):
-                InputRequestRevision.objects.create(logged_request=connection.input_logged_request, revision=revision)
-
-        post_revision_commit.connect(create_revision_request_log)
-    except ImportError:
-        pass
+from importlib import import_module
 
 
 class LogMiddleware:
@@ -55,9 +32,8 @@ class LogMiddleware:
         return response
 
     def process_request(self, request):
-        connection = get_connection()
-
         view = get_view_from_request_or_none(request)
+        input_logged_request = None
         if (get_ip(request) not in settings.LOG_REQUEST_IGNORE_IP
                and request.path not in settings.LOG_REQUEST_IGNORE_URL_PATHS
                and not getattr(view, 'log_exempt', False)):
@@ -66,12 +42,8 @@ class LogMiddleware:
                 input_logged_request.request_body = ''
             input_logged_request.save()
             request.input_logged_request = input_logged_request
-            connection.input_logged_request = input_logged_request
 
-        output_logged_requests = getattr(connection, 'output_logged_requests', [])
-        output_logged_requests.append([])
-        request.output_logged_requests = output_logged_requests
-        connection.output_logged_requests = output_logged_requests
+        log_context_manager.start(input_logged_request=input_logged_request)
 
         # Return a redirect if necessary
         if self.should_redirect_with_slash(request):
@@ -133,14 +105,12 @@ class LogMiddleware:
             input_logged_request.update_from_response(response)
             input_logged_request.save()
 
-        output_logged_requests = (
-            request.output_logged_requests.pop() if hasattr(request, 'output_logged_requests') else ()
-        )
-        [logged_request.create(input_logged_request) for logged_request in output_logged_requests]
+        log_context_manager.end()
         return response
 
     def process_exception(self, request, exception):
         if hasattr(request, 'input_logged_request'):
+
             logged_request = request.input_logged_request
             logged_request.error_description = traceback.format_exc()
             logged_request.exception_name = exception.__class__.__name__

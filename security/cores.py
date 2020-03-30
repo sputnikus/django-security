@@ -42,7 +42,18 @@ def display_as_code(value):
     return format_html('<code style="white-space:pre-wrap;">{}</code>', value) if value else value
 
 
-class RequestsLogISCore(UIRESTModelISCore):
+
+class DisplayRelatedObjectsMixin:
+
+    @short_description(_('related objects'))
+    def display_related_objects(self, obj, request):
+        return render_model_objects_with_link(
+            request,
+            [related_object.object for related_object in obj.related_objects.all() if related_object.object]
+        )
+
+
+class RequestsLogISCore(DisplayRelatedObjectsMixin, UIRESTModelISCore):
 
     abstract = True
 
@@ -74,13 +85,6 @@ class RequestsLogISCore(UIRESTModelISCore):
     def error_description_code(self, obj=None):
         return display_as_code(obj.error_description) if obj else None
 
-    @short_description(_('related objects'))
-    def display_related_objects(self, obj, request):
-        return render_model_objects_with_link(
-            request,
-            [related_object.object for related_object in obj.related_objects.all() if related_object.object]
-        )
-
 
 class InputRequestsLogISCore(RequestsLogISCore):
 
@@ -108,11 +112,6 @@ class InputRequestsLogISCore(RequestsLogISCore):
 
         app_names = {app.name for app in apps.get_app_configs()}
 
-        if 'security.contrib.reversion_log' in app_names and obj and obj.input_logged_request_revisions.exists():
-            from .contrib.reversion_log.views import RequestRevisionTabularInlineFormView
-
-            form_fieldsets.append((_('Revisions'), {'inline_view': RequestRevisionTabularInlineFormView}))
-
         if (settings.SHOW_DEBUG_TOOLBAR and 'security.contrib.debug_toolbar_log' in app_names
                 and obj and hasattr(obj, 'input_logged_request_toolbar')):
             form_fieldsets.append((None, {'fields': ('debug_toolbar',)}))
@@ -123,7 +122,6 @@ class InputRequestsLogISCore(RequestsLogISCore):
         return mark_safe(obj.input_logged_request_toolbar.toolbar)
 
 
-
 class OutputRequestsLogISCore(RequestsLogISCore):
 
     model = OutputLoggedRequest
@@ -132,7 +130,7 @@ class OutputRequestsLogISCore(RequestsLogISCore):
     ui_list_fields = (
         'created_at', 'changed_at', 'request_timestamp', 'response_timestamp', 'response_time', 'status',
         'response_code', 'host', 'short_path', 'method', 'slug', 'short_response_body', 'short_request_body',
-        'input_logged_request', 'short_queries', 'short_request_headers'
+        'input_logged_request', 'command_log', 'celery_task_run_log', 'short_queries', 'short_request_headers'
     )
 
     form_fieldsets = (
@@ -145,7 +143,7 @@ class OutputRequestsLogISCore(RequestsLogISCore):
     )
 
 
-class CommandLogISCore(UIRESTModelISCore):
+class CommandLogISCore(DisplayRelatedObjectsMixin, UIRESTModelISCore):
 
     model = CommandLog
 
@@ -158,7 +156,7 @@ class CommandLogISCore(UIRESTModelISCore):
     form_fieldsets = (
         (None, {
             'fields': ('created_at', 'changed_at', 'name', 'input', 'output_html', 'error_message',
-                       'display_related_objects'),
+                       'display_related_objects', 'output_logged_requests',),
             'class': 'col-sm-6'
         }),
         (None, {
@@ -177,13 +175,6 @@ class CommandLogISCore(UIRESTModelISCore):
             return display_as_code(output)
         return None
 
-    @short_description(_('related objects'))
-    def display_related_objects(self, obj, request):
-        return render_model_objects_with_link(
-            request,
-            [related_object.object for related_object in obj.related_objects.all() if related_object.object]
-        )
-
 
 class CeleryTaskLogTabs(TabsViewMixin):
 
@@ -197,7 +188,7 @@ class CeleryTaskLogTableView(CeleryTaskLogTabs, TableView):
     pass
 
 
-class CeleryTaskRunLogISCore(UIRESTModelISCore):
+class CeleryTaskRunLogISCore(DisplayRelatedObjectsMixin, UIRESTModelISCore):
 
     model = CeleryTaskRunLog
 
@@ -216,7 +207,7 @@ class CeleryTaskRunLogISCore(UIRESTModelISCore):
 
     form_fields = (
         'start', 'stop', 'time', 'state', 'result', 'error_message', 'output_html', 'retries',
-        'estimated_time_of_next_retry'
+        'estimated_time_of_next_retry', 'display_related_objects'
     )
 
     ui_list_view = CeleryTaskLogTableView
@@ -250,7 +241,7 @@ class CeleryTaskRunLogInlineTableView(InlineTableView):
 CeleryTaskLog.get_state.filter = CeleryTaskLogStateFilter
 
 
-class CeleryTaskLogISCore(UIRESTModelISCore):
+class CeleryTaskLogISCore(DisplayRelatedObjectsMixin, UIRESTModelISCore):
 
     model = CeleryTaskLog
 
@@ -268,7 +259,8 @@ class CeleryTaskLogISCore(UIRESTModelISCore):
         (None, {
             'fields': (
                 'created_at', 'changed_at', 'name', 'get_state', 'get_start', 'get_stop',
-                'estimated_time_of_first_arrival', 'expires', 'stale', 'queue_name', 'input', 'display_related_objects'
+                'estimated_time_of_first_arrival', 'expires', 'stale', 'queue_name', 'input', 'display_related_objects',
+                'output_logged_requests',
             )
         }),
         (_('celery task runs'), {'inline_view': CeleryTaskRunLogInlineTableView}),
@@ -287,10 +279,3 @@ class CeleryTaskLogISCore(UIRESTModelISCore):
             self.menu_group,
             'celerytaskrunlog',
         }
-
-    @short_description(_('related objects'))
-    def display_related_objects(self, obj, request):
-        return render_model_objects_with_link(
-            request,
-            [related_object.object for related_object in obj.related_objects.all() if related_object.object]
-        )

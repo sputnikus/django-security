@@ -29,11 +29,11 @@ from security.models import (
     CeleryTaskLog, CeleryTaskLogState, CeleryTaskRunLog, CeleryTaskRunLogState, CommandLog, InputLoggedRequest,
     LoggedRequestStatus, OutputLoggedRequest
 )
-from security.tasks import call_django_command
 from security.transport import security_requests as requests
-from security.transport.transaction import (
-    atomic_log, get_all_request_related_objects, get_request_slug, log_request_related_objects
-)
+from security.decorators import atomic_log
+from security.utils import log_context_manager
+from security.tasks import get_django_command_task
+from security.management import call_command
 
 from apps.test_security.tasks import error_task, retry_task, sum_task, unique_task
 
@@ -50,6 +50,10 @@ class BaseTestCaseMixin:
 
     def create_user(self, username='test', email='test@test.cz'):
         return User.objects._create_user(username, email, 'test', is_staff=True, is_superuser=True)
+
+
+def test_call_command(*args, **kwargs):
+    call_command(*args, **kwargs, stdout=io.StringIO(), stderr=io.StringIO())
 
 
 class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
@@ -81,7 +85,25 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         assert_equal(InputLoggedRequest.objects.count(), 1)
         input_logged_request = InputLoggedRequest.objects.get()
         assert_equal(
-            input_logged_request.input_logged_request_revisions.get().revision.version_set.get().content_type,
+            input_logged_request.related_objects.get().object.version_set.get().content_type,
+            ContentType.objects.get_for_model(User)
+        )
+
+    def test_data_change_should_be_connected_with_celery_task_run_log(self):
+        get_django_command_task('create_user').apply_async()
+        assert_equal(CeleryTaskRunLog.objects.count(), 1)
+        celery_task_run_log = CeleryTaskRunLog.objects.get()
+        assert_equal(
+            celery_task_run_log.related_objects.get().object.version_set.get().content_type,
+            ContentType.objects.get_for_model(User)
+        )
+
+    def test_data_change_should_be_connected_with_command_log(self):
+        test_call_command('create_user')
+        assert_equal(CommandLog.objects.count(), 1)
+        command_log = CommandLog.objects.get()
+        assert_equal(
+            command_log.related_objects.get().object.version_set.get().content_type,
             ContentType.objects.get_for_model(User)
         )
 
@@ -232,13 +254,13 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
     @override_settings(SECURITY_COMMAND_LOG_EXCLUDED_COMMANDS=())
     def test_command_should_be_logged(self):
         assert_equal(CommandLog.objects.count(), 0)
-        call_command('showmigrations', stdout=io.StringIO(), stderr=io.StringIO())
+        test_call_command('showmigrations')
         assert_equal(CommandLog.objects.count(), 1)
 
     @override_settings(SECURITY_COMMAND_LOG_EXCLUDED_COMMANDS=('showmigrations',))
     def test_excluded_command_should_not_be_logged(self):
         assert_equal(CommandLog.objects.count(), 0)
-        call_command('showmigrations', stdout=io.StringIO(), stderr=io.StringIO())
+        test_call_command('showmigrations')
         assert_equal(CommandLog.objects.count(), 0)
 
     def test_throttling_should_be_raised(self):
@@ -369,7 +391,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         assert_is_not_none(CeleryTaskRunLog.objects.get().error_message)
 
     def test_django_command_should_be_run_via_task(self):
-        call_django_command.apply_async(args=('check',))
+        get_django_command_task('check').apply_async()
         assert_equal(CeleryTaskLog.objects.count(), 1)
         assert_equal(CeleryTaskLog.objects.get().get_state(), CeleryTaskLogState.SUCCEEDED)
         assert_equal(CeleryTaskRunLog.objects.count(), 1)
@@ -467,7 +489,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
             expires=now() - timedelta(minutes=4),
             stale=now() - timedelta(minutes=3)
         )
-        call_command('set_stale_tasks_to_error_state')
+        test_call_command('set_stale_tasks_to_error_state')
         assert_equal(celery_task_log.refresh_from_db().get_state(), CeleryTaskLogState.EXPIRED)
         assert_false(CeleryTaskLog.objects.filter_stale().exists())
 
@@ -495,7 +517,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
             retries=0
         )
 
-        call_command('set_stale_tasks_to_error_state')
+        test_call_command('set_stale_tasks_to_error_state')
         assert_equal(celery_task_log.refresh_from_db().get_state(), CeleryTaskLogState.FAILED)
 
     @override_settings(CELERYD_TASK_STALE_TIME_LIMIT=None)
@@ -521,33 +543,36 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         user2 = self.create_user('test2', 'test2@test.cz')
 
         responses.add(responses.GET, 'http://test.cz', body='test')
-        assert_equal(get_all_request_related_objects(), [])
-        with log_request_related_objects(slug='test1', related_objects=[user1]):
-            assert_equal(set(get_all_request_related_objects()), {user1})
+        assert_equal(log_context_manager.get_output_request_related_objects(), [])
+        with atomic_log(output_requests_slug='test1', output_requests_related_objects=[user1]):
+            assert_equal(set(log_context_manager.get_output_request_related_objects()), {user1})
 
             requests.get('http://test.cz')
-            assert_equal(OutputLoggedRequest.objects.count(), 1)
-            assert_equal(OutputLoggedRequest.objects.get().related_objects.get().object, user1)
-            assert_equal(OutputLoggedRequest.objects.first().slug, 'test1')
-            with log_request_related_objects(slug='test2',related_objects=[user2]):
-                assert_equal(set(get_all_request_related_objects()), {user1, user2})
+            with atomic_log(output_requests_slug='test2', output_requests_related_objects=[user2]):
+                assert_equal(set(log_context_manager.get_output_request_related_objects()), {user1, user2})
                 requests.get('http://test.cz')
-                assert_equal(OutputLoggedRequest.objects.count(), 2)
-                assert_equal(
-                    {
-                        related_object.object
-                        for related_object in OutputLoggedRequest.objects.first().related_objects.all()
-                    },
-                    {user1, user2}
-                )
-                assert_equal(OutputLoggedRequest.objects.first().slug, 'test2')
-            assert_equal(set(get_all_request_related_objects()), {user1})
+            assert_equal(set(log_context_manager.get_output_request_related_objects()), {user1})
             requests.get('http://test.cz')
-            assert_equal(OutputLoggedRequest.objects.count(), 3)
-            assert_equal(OutputLoggedRequest.objects.first().related_objects.get().object, user1)
-            assert_equal(OutputLoggedRequest.objects.first().slug, 'test1')
-        assert_equal(get_all_request_related_objects(), [])
-        assert_is_none(get_request_slug())
+
+        assert_equal(OutputLoggedRequest.objects.count(), 3)
+        logged_request3, logged_request2, logged_request1 = OutputLoggedRequest.objects.all()
+
+        assert_equal(logged_request1.related_objects.get().object, user1)
+        assert_equal(logged_request1.slug, 'test1')
+
+        assert_equal(
+            {
+                related_object.object
+                for related_object in logged_request2.related_objects.all()
+            },
+            {user1, user2}
+        )
+        assert_equal(logged_request2.slug, 'test2')
+
+        assert_equal(logged_request3.related_objects.get().object, user1)
+        assert_equal(logged_request3.slug, 'test1')
+        assert_equal(log_context_manager.get_output_request_related_objects(), [])
+        assert_is_none(log_context_manager.get_output_request_slug())
 
     @data_provider('create_user')
     def test_task_log_is_processing_should_return_if_task_is_active_or_waiting(self, user):

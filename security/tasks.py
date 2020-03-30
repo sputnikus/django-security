@@ -7,22 +7,23 @@ import uuid
 
 from datetime import timedelta
 
-from django.conf import settings
-from django.core.management import call_command
+from django.conf import settings as django_settings
+from django.core.management import call_command, get_commands
 from django.core.exceptions import ImproperlyConfigured
 from django.core.cache import cache
 from django.db import transaction
 from django.utils.timezone import now
 
 try:
-    from celery import Task
-    from celery import shared_task
+    from celery import Task, shared_task, current_app
     from celery.result import AsyncResult
     from celery.exceptions import CeleryError, TimeoutError
     from kombu.utils import uuid as task_uuid
 except ImportError:
     raise ImproperlyConfigured('Missing celery library, please install it')
 
+from .decorators import atomic_log
+from .config import settings
 from .models import CeleryTaskRunLog, CeleryTaskLog, CeleryTaskLogState, CeleryTaskRunLogState
 from .utils import LogStringIO
 
@@ -121,11 +122,12 @@ class LoggedTask(Task):
         req._protected = 1
 
         celery_task_run_log = self._create_task_run_log(args, kwargs)
-        self.request.celery_task_run_log = celery_task_run_log
         # Every set attr is sent here
+        self.request.celery_task_run_log = celery_task_run_log
         self.request.output_stream = LogStringIO(post_write_callback=self._store_log_output)
         self.on_start_task(self.task_run_log, args, kwargs)
-        return self.run(*args, **kwargs)
+        with atomic_log(celery_task_run_log=celery_task_run_log):
+            return self.run(*args, **kwargs)
 
     def on_apply_task(self, task_log, args, kwargs, options):
         """
@@ -339,8 +341,8 @@ class LoggedTask(Task):
             return stale_time_limit
         elif self.stale_time_limit is not None:
             return self.stale_time_limit
-        elif hasattr(settings, 'CELERYD_TASK_STALE_TIME_LIMIT'):
-            return settings.CELERYD_TASK_STALE_TIME_LIMIT
+        elif hasattr(django_settings, 'CELERYD_TASK_STALE_TIME_LIMIT'):
+            return django_settings.CELERYD_TASK_STALE_TIME_LIMIT
         else:
             return None
 
@@ -385,7 +387,7 @@ class LoggedTask(Task):
         time_limit = self._get_time_limit(time_limit)
         eta = self._compute_eta(eta, countdown, apply_time)
         countdown = None
-        queue = str(options.get('queue', getattr(self, 'queue', settings.CELERY_DEFAULT_QUEUE)))
+        queue = str(options.get('queue', getattr(self, 'queue', django_settings.CELERY_DEFAULT_QUEUE)))
 
         stale_time_limit = self._get_stale_time_limit(stale_time_limit)
         expires = self._compute_expires(expires, time_limit, stale_time_limit, apply_time)
@@ -493,17 +495,29 @@ def string_to_obj(obj_string):
     return pickle.loads(base64.decodebytes(obj_string.encode('utf8')))
 
 
-@shared_task(
-    base=LoggedTask,
-    bind=True,
-    name='call_django_command'
-)
-def call_django_command(self, command_name, command_args=None):
-    command_args = [] if command_args is None else command_args
-    call_command(
-        command_name,
-        settings=os.environ.get('DJANGO_SETTINGS_MODULE'),
-        *command_args,
-        stdout=self.request.output_stream,
-        stderr=self.request.output_stream,
-    )
+def get_django_command_task(command_name):
+    if command_name not in current_app.tasks:
+        raise ImproperlyConfigured('Command was not found please check AUTO_GENERATE_TASKS_FOR_DJANGO_COMMANDS setting')
+    return current_app.tasks[command_name]
+
+
+for name in get_commands():
+    if name in settings.AUTO_GENERATE_TASKS_FOR_DJANGO_COMMANDS:
+        def generate_command_task(command_name):
+            @shared_task(
+                base=LoggedTask,
+                bind=True,
+                name=command_name
+            )
+            def command_task(self, command_args=None, **kwargs):
+                command_args = [] if command_args is None else command_args
+                call_command(
+                    command_name,
+                    settings=os.environ.get('DJANGO_SETTINGS_MODULE'),
+                    *command_args,
+                    stdout=self.request.output_stream,
+                    stderr=self.request.output_stream,
+                    **kwargs
+                )
+
+        generate_command_task(name)

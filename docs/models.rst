@@ -166,6 +166,14 @@ Models
 
     Relation to the output logged request.
 
+  .. attribute:: command_log
+
+    Relation to the command log.
+
+  .. attribute:: celery_task_run_log
+
+    Relation to the celery task run log.
+
   .. attribute:: content_type
 
     Content type of the related object.
