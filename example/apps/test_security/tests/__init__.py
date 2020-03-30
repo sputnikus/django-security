@@ -1,40 +1,45 @@
 import io
 import json
-
+import sys
 from datetime import timedelta
-
-from celery.exceptions import CeleryError, TimeoutError
-
-from django.contrib.auth.models import User
-from django.contrib.contenttypes.models import ContentType
-from django.test import override_settings
-from django.db import transaction
-from django.utils.timezone import now
+from distutils.version import StrictVersion
+from unittest import mock
 
 import responses
-
+from celery.exceptions import CeleryError, TimeoutError
 from freezegun import freeze_time
 
-from security.models import (
-    InputLoggedRequest, OutputLoggedRequest, CommandLog, LoggedRequestStatus, CeleryTaskLog, CeleryTaskRunLog,
-    CeleryTaskLogState, CeleryTaskRunLogState
-)
-from security.management import call_command
-from security.transport import security_requests as requests
-from security.transport.transaction import (
-    atomic_log, log_request_related_objects, get_all_request_related_objects, get_request_slug
-)
-from security.tasks import call_django_command
+from django import get_version
+from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
+from django.db import transaction
+from django.test import override_settings
+from django.utils.timezone import now
 
 from germanium.decorators import data_provider
 from germanium.test_cases.client import ClientTestCase
 from germanium.tools import (
-    assert_in, assert_not_in, assert_equal, assert_true, assert_false, assert_http_redirect, assert_http_bad_request,
-    assert_http_application_error, assert_http_ok, assert_http_not_found, assert_raises, assert_http_too_many_requests,
-    assert_is_not_none, assert_raises, assert_is_none, assert_not_raises
+    assert_equal, assert_false, assert_http_not_found, assert_http_ok, assert_http_redirect,
+    assert_http_too_many_requests, assert_in, assert_is_none, assert_is_not_none, assert_not_in, assert_not_raises,
+    assert_raises, assert_true
 )
 
-from apps.test_security.tasks import sum_task, error_task, retry_task, unique_task
+from security.management import call_command
+from security.models import (
+    CeleryTaskLog, CeleryTaskLogState, CeleryTaskRunLog, CeleryTaskRunLogState, CommandLog, InputLoggedRequest,
+    LoggedRequestStatus, OutputLoggedRequest
+)
+from security.tasks import call_django_command
+from security.transport import security_requests as requests
+from security.transport.transaction import (
+    atomic_log, get_all_request_related_objects, get_request_slug, log_request_related_objects
+)
+
+from apps.test_security.tasks import error_task, retry_task, sum_task, unique_task
+
+
+TRUNCATION_CHAR = '…' if StrictVersion(get_version()) > StrictVersion('2.2') else '...'
+TRUNCATION_DIFF = 0 if StrictVersion(get_version()) > StrictVersion('2.2') else -2
 
 
 class TestException(Exception):
@@ -48,6 +53,21 @@ class BaseTestCaseMixin:
 
 
 class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
+
+    @mock.patch('security.transport.security_requests.log_output_request')
+    def test_every_output_request_has_data_for_stdout_logging(self, func):
+        requests.get('http://test.cz')
+
+        assert_true(func.called)
+        func_args = func.call_args.args[0] if sys.version_info >= (3, 8) else func.call_args_list[0][0][0]  # data
+        assert_in('request_timestamp', func_args)
+        assert_in('response_timestamp', func_args)
+        assert_in('response_time', func_args)
+        assert_in('response_code', func_args)
+        assert_in('host', func_args)
+        assert_in('path', func_args)
+        assert_in('method', func_args)
+        assert_in('slug', func_args)
 
     def test_every_request_should_be_logged(self):
         assert_equal(InputLoggedRequest.objects.count(), 0)
@@ -93,28 +113,28 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         self.post('/admin/login/', data={'username': 20 * 'a', 'password': 20 * 'b'})
         input_logged_request = InputLoggedRequest.objects.get()
         assert_equal(len(input_logged_request.request_body), 10)
-        assert_true(input_logged_request.request_body.endswith('…'))
+        assert_true(input_logged_request.request_body.endswith(TRUNCATION_CHAR))
 
     @override_settings(SECURITY_LOG_RESPONSE_BODY_LENGTH=10)
     def test_response_body_should_be_truncated(self):
         self.post('/admin/login/', data={'username': 20 * 'a', 'password': 20 * 'b'})
         input_logged_request = InputLoggedRequest.objects.get()
         assert_equal(len(input_logged_request.response_body), 10)
-        assert_true(input_logged_request.response_body.endswith('…'))
+        assert_true(input_logged_request.response_body.endswith(TRUNCATION_CHAR))
 
     @override_settings(SECURITY_LOG_REQUEST_BODY_LENGTH=None)
     def test_request_body_truncation_should_be_turned_off(self):
         self.post('/admin/login/', data={'username': 2000 * 'a', 'password': 2000 * 'b'})
         input_logged_request = InputLoggedRequest.objects.get()
         assert_equal(len(input_logged_request.request_body), 4183)
-        assert_false(input_logged_request.request_body.endswith('…'))
+        assert_false(input_logged_request.request_body.endswith(TRUNCATION_CHAR))
 
     @override_settings(SECURITY_LOG_RESPONSE_BODY_LENGTH=None)
     def test_response_body_truncation_should_be_turned_off(self):
         resp = self.post('/admin/login/', data={'username': 20 * 'a', 'password': 20 * 'b'})
         input_logged_request = InputLoggedRequest.objects.get()
         assert_equal(input_logged_request.response_body, str(resp.content))
-        assert_false(input_logged_request.response_body.endswith('…'))
+        assert_false(input_logged_request.response_body.endswith(TRUNCATION_CHAR))
 
     @override_settings(SECURITY_LOG_RESPONSE_BODY_CONTENT_TYPES=())
     def test_not_allowed_content_type_should_not_be_logged(self):
@@ -135,17 +155,18 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         input_logged_request = InputLoggedRequest.objects.get()
         assert_equal(
             json.loads(input_logged_request.request_body),
-            json.loads('{"a": "aaaaaaaaa…", "b": "bbbbbbbbb…"}')
+            json.loads('{"a": "%s%s", "b": "%s%s"}' % ((9 + TRUNCATION_DIFF) * 'a', TRUNCATION_CHAR, (9 + TRUNCATION_DIFF) * 'b', TRUNCATION_CHAR))
         )
-        assert_false(input_logged_request.request_body.endswith('…'))
+        assert_false(input_logged_request.request_body.endswith(TRUNCATION_CHAR))
 
     @override_settings(SECURITY_LOG_REQUEST_BODY_LENGTH=50, SECURITY_LOG_JSON_STRING_LENGTH=None)
     def test_json_request_should_not_be_truncated_with_another_method(self):
         self.c.post('/admin/login/', data=json.dumps({'a': 50 * 'a'}),
                     content_type='application/json')
         input_logged_request = InputLoggedRequest.objects.get()
-        assert_equal(input_logged_request.request_body, '{"a": "' + 42* 'a' + '…')
-        assert_true(input_logged_request.request_body.endswith('…'))
+
+        assert_equal(input_logged_request.request_body, '{"a": "' + (42 + TRUNCATION_DIFF) * 'a' + TRUNCATION_CHAR)
+        assert_true(input_logged_request.request_body.endswith(TRUNCATION_CHAR))
 
     @override_settings(SECURITY_LOG_REQUEST_BODY_LENGTH=100, SECURITY_LOG_JSON_STRING_LENGTH=10)
     def test_json_request_should_be_truncated_with_another_method_and_standard_method_too(self):
@@ -153,7 +174,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
                     content_type='application/json')
         input_logged_request = InputLoggedRequest.objects.get()
         assert_equal(len(input_logged_request.request_body), 100)
-        assert_true(input_logged_request.request_body.endswith('…'))
+        assert_true(input_logged_request.request_body.endswith(TRUNCATION_CHAR))
 
     def test_response_with_exception_should_be_logged(self):
         assert_equal(InputLoggedRequest.objects.count(), 0)

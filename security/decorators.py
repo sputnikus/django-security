@@ -1,6 +1,4 @@
-from functools import wraps
-
-from django.utils.decorators import available_attrs
+from functools import WRAPPER_ASSIGNMENTS, wraps
 
 from .utils import get_throttling_validators
 
@@ -11,7 +9,7 @@ def add_attribute_wrapper(name, value):
         def _wrapper(*args, **kwargs):
             return view_func(*args, **kwargs)
         setattr(_wrapper, name, value)
-        return wraps(view_func, assigned=available_attrs(view_func))(_wrapper)
+        return wraps(view_func, assigned=WRAPPER_ASSIGNMENTS)(_wrapper)
 
     return decorator
 

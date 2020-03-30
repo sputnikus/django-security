@@ -1,16 +1,21 @@
 from django.contrib import admin
-from django.urls import path
 
 from apps.test_security.views import (
-    proxy_view, hide_request_body_view, log_exempt_view, throttling_exempt_view, extra_throttling_view
+    extra_throttling_view, hide_request_body_view, log_exempt_view, proxy_view, throttling_exempt_view
 )
 
 
+try:
+    from django.conf.urls import url
+except ImportError:
+    from django.urls import re_path as url
+
+
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('proxy/', proxy_view),
-    path('hide-request-body/', hide_request_body_view),
-    path('log-exempt/', log_exempt_view),
-    path('throttling-exempt/', throttling_exempt_view),
-    path('extra-throttling/', extra_throttling_view),
+    url(r'^admin/', admin.site.urls),
+    url(r'^proxy/', proxy_view),
+    url(r'^hide-request-body/', hide_request_body_view),
+    url(r'^log-exempt/', log_exempt_view),
+    url(r'^throttling-exempt/', throttling_exempt_view),
+    url(r'^extra-throttling/', extra_throttling_view),
 ]
