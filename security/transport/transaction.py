@@ -4,6 +4,7 @@ from threading import local
 
 from django.utils.decorators import ContextDecorator
 
+from security.config import settings
 from security.models import OutputLoggedRequest
 
 
@@ -73,19 +74,21 @@ def log_output_request(data, related_objects=None):
         output_logged_request = OutputLoggedRequest.objects.create(**data)
         if related_objects:
             output_logged_request.related_objects.add(*related_objects)
-    output_logged_request_logger.info(
-        ('"{request_timestamp}" "{response_timestamp}" "{response_time}" "{http_code}" "{http_host}" "{http_path}" '
-         '"{http_method}" "{slug}"').format(
-            request_timestamp=data['request_timestamp'],
-            response_timestamp=data['response_timestamp'],
-            response_time=data['response_time'],
-            http_code=data['response_code'],
-            http_host=data['host'],
-            http_path=data['path'],
-            http_method=data['method'],
-            slug=data['slug'],
+
+    if settings.LOG_OUTPUT_REQUESTS:
+        output_logged_request_logger.info(
+            ('"{request_timestamp}" "{response_timestamp}" "{response_time}" "{http_code}" "{http_host}" "{http_path}" '
+             '"{http_method}" "{slug}"').format(
+                request_timestamp=data['request_timestamp'],
+                response_timestamp=data['response_timestamp'],
+                response_time=data['response_time'],
+                http_code=data['response_code'],
+                http_host=data['host'],
+                http_path=data['path'],
+                http_method=data['method'],
+                slug=data['slug'],
+            )
         )
-    )
 
 
 def is_active_logged_requests():

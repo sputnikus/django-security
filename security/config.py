@@ -44,6 +44,7 @@ DEFAULTS = {
     'BACKUP_STORAGE_PATH': None,
     'DEBUG_TOOLBAR': False,
     'SHOW_DEBUG_TOOLBAR': False,
+    'LOG_OUTPUT_REQUESTS': True,
 }
 
 
