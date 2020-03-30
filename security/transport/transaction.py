@@ -1,5 +1,5 @@
 import itertools
-
+import logging
 from threading import local
 
 from django.utils.decorators import ContextDecorator
@@ -9,6 +9,8 @@ from security.models import OutputLoggedRequest
 
 _input_logged_request = local()
 _output_logged_requests_list = local()
+
+output_logged_request_logger = logging.getLogger('security.output_request')
 
 
 class OutputLoggedRequestContext:
@@ -71,6 +73,19 @@ def log_output_request(data, related_objects=None):
         output_logged_request = OutputLoggedRequest.objects.create(**data)
         if related_objects:
             output_logged_request.related_objects.add(*related_objects)
+    output_logged_request_logger.info(
+        ('"{request_timestamp}" "{response_timestamp}" "{response_time}" "{http_code}" "{http_host}" "{http_path}" '
+         '"{http_method}" "{slug}"').format(
+            request_timestamp=data['request_timestamp'],
+            response_timestamp=data['response_timestamp'],
+            response_time=data['response_time'],
+            http_code=data['response_code'],
+            http_host=data['host'],
+            http_path=data['path'],
+            http_method=data['method'],
+            slug=data['slug'],
+        )
+    )
 
 
 def is_active_logged_requests():
@@ -78,8 +93,7 @@ def is_active_logged_requests():
     :param using: database alias
     :return: True if block of code is surrounded with atomic_log operator
     """
-    return hasattr( _output_logged_requests_list, 'value') and  _output_logged_requests_list.value
-
+    return hasattr(_output_logged_requests_list, 'value') and _output_logged_requests_list.value
 
 
 def get_all_request_related_objects():

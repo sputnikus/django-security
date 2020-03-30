@@ -1,7 +1,7 @@
 import itertools
+from urllib.parse import parse_qs, urlparse
 
 from requests import *
-from urllib.parse import parse_qs, urlparse
 
 from django.utils import timezone
 from django.utils.encoding import force_text
@@ -10,7 +10,7 @@ from security.config import settings
 from security.models import LoggedRequest, LoggedRequestStatus, clean_body, clean_headers, clean_queries
 from security.utils import is_base_collection
 
-from .transaction import log_output_request, get_all_request_related_objects, get_request_slug
+from .transaction import get_all_request_related_objects, get_request_slug, log_output_request
 
 
 def stringify_dict(d):

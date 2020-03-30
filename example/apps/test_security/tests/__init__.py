@@ -1,40 +1,38 @@
 import io
 import json
-
 from datetime import timedelta
+from unittest import mock
 
+import responses
 from celery.exceptions import CeleryError, TimeoutError
 
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
-from django.test import override_settings
 from django.db import transaction
+from django.test import override_settings
 from django.utils.timezone import now
-
-import responses
-
-from freezegun import freeze_time
-
-from security.models import (
-    InputLoggedRequest, OutputLoggedRequest, CommandLog, LoggedRequestStatus, CeleryTaskLog, CeleryTaskRunLog,
-    CeleryTaskLogState, CeleryTaskRunLogState
-)
-from security.management import call_command
-from security.transport import security_requests as requests
-from security.transport.transaction import (
-    atomic_log, log_request_related_objects, get_all_request_related_objects, get_request_slug
-)
-from security.tasks import call_django_command
 
 from germanium.decorators import data_provider
 from germanium.test_cases.client import ClientTestCase
 from germanium.tools import (
-    assert_in, assert_not_in, assert_equal, assert_true, assert_false, assert_http_redirect, assert_http_bad_request,
-    assert_http_application_error, assert_http_ok, assert_http_not_found, assert_raises, assert_http_too_many_requests,
-    assert_is_not_none, assert_raises, assert_is_none, assert_not_raises
+    assert_equal, assert_false, assert_http_not_found, assert_http_ok, assert_http_redirect,
+    assert_http_too_many_requests, assert_in, assert_is_none, assert_is_not_none, assert_not_in, assert_not_raises,
+    assert_raises, assert_true
 )
 
-from apps.test_security.tasks import sum_task, error_task, retry_task, unique_task
+from security.management import call_command
+from security.models import (
+    CeleryTaskLog, CeleryTaskLogState, CeleryTaskRunLog, CeleryTaskRunLogState, CommandLog, InputLoggedRequest,
+    LoggedRequestStatus, OutputLoggedRequest
+)
+from security.tasks import call_django_command
+from security.transport import security_requests as requests
+from security.transport.transaction import (
+    atomic_log, get_all_request_related_objects, get_request_slug, log_request_related_objects
+)
+
+from apps.test_security.tasks import error_task, retry_task, sum_task, unique_task
+from freezegun import freeze_time
 
 
 class TestException(Exception):
@@ -48,6 +46,21 @@ class BaseTestCaseMixin:
 
 
 class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
+
+    @mock.patch('security.transport.security_requests.log_output_request')
+    def test_every_output_request_has_data_for_stdout_logging(self, func):
+        requests.get('http://test.cz')
+
+        assert_true(func.called)
+        func_args = func.call_args.args[0]  # data
+        assert_in('request_timestamp', func_args)
+        assert_in('response_timestamp', func_args)
+        assert_in('response_time', func_args)
+        assert_in('response_code', func_args)
+        assert_in('host', func_args)
+        assert_in('path', func_args)
+        assert_in('method', func_args)
+        assert_in('slug', func_args)
 
     def test_every_request_should_be_logged(self):
         assert_equal(InputLoggedRequest.objects.count(), 0)
