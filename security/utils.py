@@ -1,25 +1,25 @@
 import atexit
+import logging
 import re
 import sys
 import traceback
-import itertools
-from datetime import datetime, time, timedelta
+from contextlib import ContextDecorator
 from importlib import import_module
 from io import StringIO
 from threading import local
 
-from contextlib import ContextDecorator
-
 from django.conf import settings as django_settings
-from django.core.signals import request_finished
 from django.core.exceptions import ImproperlyConfigured
+from django.core.signals import request_finished
 from django.db.transaction import get_connection
 from django.urls import resolve
 from django.urls.exceptions import Resolver404
-from django.utils import timezone
 from django.utils.timezone import now
 
 from .config import settings
+
+
+output_logged_request_logger = logging.getLogger('security.output_request')
 
 
 class LogManagementError(Exception):
@@ -258,6 +258,21 @@ def log_output_request(data, related_objects=None):
         log_context_manager.log_output_requests(output_logged_request_context)
     else:
         output_logged_request_context.create()
+
+    if settings.LOG_OUTPUT_REQUESTS:
+        output_logged_request_logger.info(
+            ('"{request_timestamp}" "{response_timestamp}" "{response_time}" "{http_code}" "{http_host}" "{http_path}" '
+             '"{http_method}" "{slug}"').format(
+                request_timestamp=data['request_timestamp'],
+                response_timestamp=data['response_timestamp'],
+                response_time=data['response_time'],
+                http_code=data['response_code'],
+                http_host=data['host'],
+                http_path=data['path'],
+                http_method=data['method'],
+                slug=data['slug'],
+            )
+        )
 
 
 def is_base_collection(v):
