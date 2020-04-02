@@ -207,7 +207,7 @@ class CeleryTaskRunLogISCore(DisplayRelatedObjectsMixin, UIRESTModelISCore):
 
     form_fields = (
         'start', 'stop', 'time', 'state', 'result', 'error_message', 'output_html', 'retries',
-        'estimated_time_of_next_retry', 'display_related_objects'
+        'estimated_time_of_next_retry', 'output_logged_requests', 'display_related_objects'
     )
 
     ui_list_view = CeleryTaskLogTableView
@@ -259,8 +259,7 @@ class CeleryTaskLogISCore(DisplayRelatedObjectsMixin, UIRESTModelISCore):
         (None, {
             'fields': (
                 'created_at', 'changed_at', 'name', 'get_state', 'get_start', 'get_stop',
-                'estimated_time_of_first_arrival', 'expires', 'stale', 'queue_name', 'input', 'display_related_objects',
-                'output_logged_requests',
+                'estimated_time_of_first_arrival', 'expires', 'stale', 'queue_name', 'input', 'display_related_objects'
             )
         }),
         (_('celery task runs'), {'inline_view': CeleryTaskRunLogInlineTableView}),
