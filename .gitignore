@@ -67,3 +67,5 @@ dist/
 # Vim #
 #######
 *.swp
+
+django_security_logger.egg-info

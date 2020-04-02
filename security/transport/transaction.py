@@ -1,16 +1,12 @@
 import itertools
-import logging
 from contextlib import ContextDecorator
 from threading import local
 
-from security.config import settings
 from security.models import OutputLoggedRequest
 
 
 _input_logged_request = local()
 _output_logged_requests_list = local()
-
-output_logged_request_logger = logging.getLogger('security.output_request')
 
 
 class OutputLoggedRequestContext:
@@ -58,36 +54,6 @@ def atomic_log(function=None):
         return AtomicLog()(function)
     else:
         return AtomicLog()
-
-
-def log_output_request(data, related_objects=None):
-    """
-    Helper for logging output requests
-    :param data: dict of input attributes of OutputLoggedRequest model
-    :param related_objects: objects that will be related to OutputLoggedRequest object
-    """
-    if is_active_logged_requests():
-        output_logged_requests = _output_logged_requests_list.value[-1]
-        output_logged_requests.append(OutputLoggedRequestContext(data, related_objects))
-    else:
-        output_logged_request = OutputLoggedRequest.objects.create(**data)
-        if related_objects:
-            output_logged_request.related_objects.add(*related_objects)
-
-    if settings.LOG_OUTPUT_REQUESTS:
-        output_logged_request_logger.info(
-            ('"{request_timestamp}" "{response_timestamp}" "{response_time}" "{http_code}" "{http_host}" "{http_path}" '
-             '"{http_method}" "{slug}"').format(
-                request_timestamp=data['request_timestamp'],
-                response_timestamp=data['response_timestamp'],
-                response_time=data['response_time'],
-                http_code=data['response_code'],
-                http_host=data['host'],
-                http_path=data['path'],
-                http_method=data['method'],
-                slug=data['slug'],
-            )
-        )
 
 
 def is_active_logged_requests():
