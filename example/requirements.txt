@@ -1,5 +1,5 @@
 Django~=2.2
-django-germanium==2.1.2
+django-germanium==2.2.0
 django-ipware>=1.0.0
 coverage==5.0.4
 django-reversion>=2.0.13
