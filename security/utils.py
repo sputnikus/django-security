@@ -263,14 +263,14 @@ def log_output_request(data, related_objects=None):
         output_logged_request_logger.info(
             ('"{request_timestamp}" "{response_timestamp}" "{response_time}" "{http_code}" "{http_host}" "{http_path}" '
              '"{http_method}" "{slug}"').format(
-                request_timestamp=data['request_timestamp'],
-                response_timestamp=data['response_timestamp'],
-                response_time=data['response_time'],
-                http_code=data['response_code'],
-                http_host=data['host'],
-                http_path=data['path'],
-                http_method=data['method'],
-                slug=data['slug'],
+                request_timestamp=data.get('request_timestamp', ''),
+                response_timestamp=data.get('response_timestamp', ''),
+                response_time=data.get('response_time', ''),
+                http_code=data.get('response_code', ''),
+                http_host=data.get('host', ''),
+                http_path=data.get('path', ''),
+                http_method=data.get('method', ''),
+                slug=data.get('slug', ''),
             )
         )
 
