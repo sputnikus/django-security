@@ -8,7 +8,7 @@ import uuid
 from datetime import timedelta
 
 from django.conf import settings as django_settings
-from django.core.management import call_command, get_commands
+from django.core.management import call_command, get_commands, load_command_class
 from django.core.management.base import OutputWrapper
 from django.core.exceptions import ImproperlyConfigured
 from django.core.cache import cache
@@ -19,6 +19,7 @@ try:
     from celery import Task, shared_task, current_app
     from celery.result import AsyncResult
     from celery.exceptions import CeleryError, TimeoutError
+    from celery.worker.request import Request
     from kombu.utils import uuid as task_uuid
 except ImportError:
     raise ImproperlyConfigured('Missing celery library, please install it')
@@ -42,7 +43,6 @@ def default_unique_key_generator(task, task_args, task_kwargs):
 
 
 class LoggedTask(Task):
-
     abstract = True
 
     _log_messages = {
@@ -61,6 +61,7 @@ class LoggedTask(Task):
     # Unique task if task with same input already exists no extra task is created and old task result is returned
     unique = False
     unique_key_generator = default_unique_key_generator
+    _stackprotected = True
 
     def _get_log_message(self, log_name):
         return self._log_messages[log_name]
@@ -513,10 +514,16 @@ def get_django_command_task(command_name):
 for name in get_commands():
     if name in settings.AUTO_GENERATE_TASKS_FOR_DJANGO_COMMANDS:
         def generate_command_task(command_name):
-            @shared_task(
+            shared_task_kwargs = dict(
                 base=LoggedTask,
                 bind=True,
-                name=command_name
+                name=command_name,
+                ignore_result=True
+            )
+            shared_task_kwargs.update(settings.AUTO_GENERATE_TASKS_FOR_DJANGO_COMMANDS[command_name])
+
+            @shared_task(
+                **shared_task_kwargs
             )
             def command_task(self, command_args=None, **kwargs):
                 command_args = [] if command_args is None else command_args
