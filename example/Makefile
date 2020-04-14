@@ -84,6 +84,9 @@ callcommand:
 runserver:
 	$(PYTHON_BIN)/python manage.py runserver --insecure $(DJANGO_POSTFIX)
 
+makemigrations:
+	$(PYTHON_BIN)/python manage.py makemigrations
+
 install: cleanvar bootstrap initlog initdb syncdb initdata initenv
 
 update: clean cleanvirtualenv cleanjs bootstrap syncdb initenv

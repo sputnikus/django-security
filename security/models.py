@@ -162,7 +162,7 @@ class LoggedRequest(SmartModel):
     host = models.CharField(_('host'), max_length=255, null=False, blank=False, db_index=True)
     host._filter = CaseSensitiveStringFieldFilter
     method = models.SlugField(_('method'), max_length=7, null=False, blank=False, db_index=True)
-    path = models.CharField(_('URL path'), max_length=255, null=False, blank=True, db_index=True)
+    path = models.CharField(_('URL path'), max_length=2000, null=False, blank=True, db_index=True)
     path._filter = CaseSensitiveStringFieldFilter
     queries = JSONField(_('queries'), null=True, blank=True)
     is_secure = models.BooleanField(_('HTTPS connection'), default=False, null=False, blank=False)
