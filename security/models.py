@@ -470,6 +470,8 @@ class CeleryTaskRunLog(SmartModel):
                                                         blank=True)
     related_objects = GenericManyToManyField()
 
+    objects = BaseLogQuerySet.as_manager()
+
     class Meta:
         verbose_name = _('celery task run')
         verbose_name_plural = _('celery tasks run')
