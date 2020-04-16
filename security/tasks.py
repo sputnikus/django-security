@@ -397,8 +397,7 @@ class LoggedTask(Task):
         time_limit = self._get_time_limit(time_limit)
         eta = self._compute_eta(eta, countdown, apply_time)
         countdown = None
-        queue = str(options.get('queue', getattr(self, 'queue', django_settings.CELERY_DEFAULT_QUEUE)))
-
+        queue = str(options.get('queue', getattr(self, 'queue', self._get_app().conf.task_default_queue)))
         stale_time_limit = self._get_stale_time_limit(stale_time_limit)
         expires = self._compute_expires(expires, time_limit, stale_time_limit, apply_time)
 

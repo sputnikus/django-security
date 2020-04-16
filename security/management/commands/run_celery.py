@@ -1,13 +1,18 @@
 import shlex
 import subprocess
 
+from django.conf import settings as django_settings
 from django.core.management.base import BaseCommand
 
 
-def restart_celery(celery_type, celery_settings, extra_arguments):
+def start_celery(celery_type, celery_settings, extra_arguments, autoreload=False):
     starter_celery_cmd = 'celery {} -l info -A {} {}'.format(celery_type, celery_settings, extra_arguments)
-    kill_worker_cmd = 'pkill -9 -f "{}"'.format(starter_celery_cmd)
-    subprocess.call(shlex.split(kill_worker_cmd))
+    if celery_type == 'worker' and hasattr(django_settings, 'CELERY_LISTEN_QUEUES'):
+        starter_celery_cmd += ' -Q {}'.format(django_settings.CELERY_LISTEN_QUEUES)
+
+    if autoreload:
+        kill_worker_cmd = 'pkill -9 -f "{}"'.format(starter_celery_cmd)
+        subprocess.call(shlex.split(kill_worker_cmd))
     subprocess.call(shlex.split(starter_celery_cmd))
 
 
@@ -36,10 +41,11 @@ class Command(BaseCommand):
             try:
                 from django.utils.autoreload import run_with_reloader
                 run_with_reloader(
-                    restart_celery,
+                    start_celery,
                     celery_type=options.get('type'),
                     celery_settings=options.get('celery_settings'),
-                    extra_arguments=options.get('extra_args', '')
+                    extra_arguments=options.get('extra_args', ''),
+                    autoreload=True
                 )
             except ImportError:
                 from django.utils import autoreload
@@ -48,7 +54,7 @@ class Command(BaseCommand):
                 ))
         else:
             self.stdout.write('Starting celery...')
-            restart_celery(
+            start_celery(
                 celery_type=options.get('type'),
                 celery_settings=options.get('celery_settings'),
                 extra_arguments=options.get('extra_args', '')
