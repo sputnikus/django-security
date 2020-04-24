@@ -84,17 +84,16 @@ def log_exempt_all(klass):
     return klass
 
 
-def atomic_log(using=None, input_logged_request=None, command_log=None, celery_task_run_log=None,
+def atomic_log(input_logged_request=None, command_log=None, celery_task_run_log=None,
                output_requests_related_objects=None, output_requests_slug=None):
     """
     Decorator that surrounds atomic block, ensures that logged output requests will be stored inside database in case
     of DB rollback
     """
-    if callable(using):
-        return AtomicLog()(using)
+    if callable(input_logged_request):
+        return AtomicLog()(input_logged_request)
     else:
         return AtomicLog(
-            using,
             input_logged_request,
             command_log,
             celery_task_run_log,

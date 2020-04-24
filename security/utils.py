@@ -121,14 +121,13 @@ class LogContextManager(local):
         self._assert_active()
         return self._stack[-1]
 
-    def start(self, using=None, input_logged_request=None, command_log=None, celery_task_run_log=None,
+    def start(self, input_logged_request=None, command_log=None, celery_task_run_log=None,
               output_requests_related_objects=None, output_requests_slug=None):
         """
         Begins a context log for this thread.
 
         This MUST be balanced by a call to `end`
         """
-        self._using = using
         if self.is_active():
             self._stack.append(
                 self._current_frame.fork(
@@ -145,14 +144,14 @@ class LogContextManager(local):
                     input_logged_request,
                     command_log,
                     celery_task_run_log,
-                    output_requests_related_objects,
+                    output_requests_related_objects or [],
                     output_requests_slug
                 )
             )
 
     def end(self):
         self._assert_active()
-        connection = get_connection(self._using)
+        connection = get_connection(settings.LOG_DB_NAME)
         stack_frame = self._stack.pop()
         if self._stack and connection.in_atomic_block:
             self._current_frame.join(stack_frame)
@@ -166,7 +165,6 @@ class LogContextManager(local):
 
     def clear(self):
         self._stack = []
-        self._using = None
 
     def _request_finished_receiver(self, **kwargs):
         """
@@ -178,7 +176,7 @@ class LogContextManager(local):
             self.end()
 
     def log_output_requests(self, output_logged_request_context):
-        connection = get_connection(self._using)
+        connection = get_connection(settings.LOG_DB_NAME)
 
         if connection.in_atomic_block:
             self._current_frame.output_logged_requests.append(output_logged_request_context)
@@ -222,9 +220,8 @@ class AtomicLog(ContextDecorator):
     stores it to the database
     """
 
-    def __init__(self, using=None, input_logged_request=None, command_log=None, celery_task_run_log=None,
+    def __init__(self, input_logged_request=None, command_log=None, celery_task_run_log=None,
                  output_requests_related_objects=None, output_requests_slug=None):
-        self._using = using
         self._command_log = command_log
         self._celery_task_run_log = celery_task_run_log
         self._input_logged_request = input_logged_request
@@ -235,7 +232,6 @@ class AtomicLog(ContextDecorator):
 
     def __enter__(self):
         log_context_manager.start(
-            self._using,
             self._input_logged_request,
             self._command_log,
             self._celery_task_run_log,
@@ -448,3 +444,6 @@ def get_view_from_request_or_none(request):
         return resolve(request.path).func
     except Resolver404:
         return None
+
+
+is_running_migration = False

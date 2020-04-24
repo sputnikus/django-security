@@ -117,6 +117,11 @@ class InputRequestsLogISCore(RequestsLogISCore):
             form_fieldsets.append((None, {'fields': ('debug_toolbar',)}))
         return form_fieldsets
 
+    @short_description(_('user'))
+    @filter_by('user_id')
+    def user(self, obj):
+        return obj.user
+
     @short_description('')
     def debug_toolbar(self, obj):
         return mark_safe(obj.input_logged_request_toolbar.toolbar)

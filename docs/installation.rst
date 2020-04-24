@@ -40,6 +40,46 @@ Next you must add  ``security.middleware.LogMiddleware`` to list of middlewares,
         ...
     )
 
+Recommended settings
+--------------------
+
+If your database configuration uses atomic requests, it's highly recommended to use second non atomic connection to your database for security logs. Possible rollback will not remove logs.
+
+Example::
+
+    DATABASES = {
+        'default': {
+            'NAME': 'db_name',
+            'USER': 'db_user',
+            'PASSWORD': 'db_password',
+            'HOST': 'postgres',
+            'PORT': 5432,
+            'ENGINE': 'django.contrib.gis.db.backends.postgis',
+            'ATOMIC_REQUESTS': True,
+        },
+        'log': {
+            'NAME': 'db_name',
+            'USER': 'db_user',
+            'PASSWORD': 'db_password',
+            'HOST': 'postgres',
+            'PORT': 5432,
+            'ENGINE': 'django.contrib.gis.db.backends.postgis',
+            'ATOMIC_REQUESTS': False,
+            'TEST': {
+                'MIRROR': 'default', # Test purposes
+            },
+        },
+    }
+    DATABASE_ROUTERS = ['security.db_router.MirrorSecurityLoggerRouter']  # DB router which defines connection for logs
+    SECURITY_DB_NAME = 'log'
+
+
+For test purposes you will need to configure both databases to be tested::
+
+    from django.test.testcases import TestCase
+
+    class YourTestCase(TestCase):
+        databases = ('default', 'log')
 
 
 Setup
@@ -104,3 +144,7 @@ Setup
 .. attribute:: SECURITY_AUTO_GENERATE_TASKS_FOR_DJANGO_COMMANDS
 
   List or set of Django commands which will be automatically transformed into celery tasks.
+
+.. attribute:: SECURITY_LOG_DB_NAME
+
+  Name of the database which security uses to log events.
