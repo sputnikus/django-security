@@ -49,7 +49,7 @@ class LoggedTask(Task):
         'expire': 'Task "%(task_name)s" (%(task)s) is expired',
         'failure': 'Task "%(task_name)s" (%(task)s) is failed',
         'retry': 'Task "%(task_name)s" (%(task)s) is retried',
-        'success': 'Task "%(task_name)s" (%(task)s) is complete',
+        'success': 'Task "%(task_name)s" (%(task)s) is completed',
         'apply': 'Task "%(task_name)s" (%(task)s) is applied',
         'start': 'Task "%(task_name)s" (%(task)s) is running',
     }
@@ -155,11 +155,15 @@ class LoggedTask(Task):
                 **(kwargs or {})
             ),
             extra=dict(
-                task_input=task_log.input,
                 task_args=args,
+                task_id=task_log.celery_task_id,
+                task_input=task_log.input,
                 task_kwargs=kwargs,
-                task_log_id=task_log.pk
-            )
+                task_log_id=task_log.pk,
+                task_name=task_log.name,
+                task_queue=task_log.queue_name,
+                task_state=task_log.get_state().name,
+            ),
         )
 
     def on_retry_task(self, task_run_log, args, kwargs, exc, eta):
@@ -181,11 +185,17 @@ class LoggedTask(Task):
                 **(kwargs or {})
             ),
             extra=dict(
-                task_exception=str(exc),
                 task_args=args,
+                task_exception=str(exc),
+                task_id=task_run_log.celery_task_id,
                 task_kwargs=kwargs,
                 task_log_id=None if not task_log else task_log.pk,
-                task_run_log_id=task_run_log.pk
+                task_name=task_run_log.name,
+                task_queue=task_log.queue_name,
+                task_retries=self.request.retries,
+                task_run_log_id=task_run_log.pk,
+                task_started_at=task_run_log.start,
+                task_state=task_run_log.state.name,
             )
         )
         stop = now()
@@ -216,9 +226,14 @@ class LoggedTask(Task):
             ),
             extra=dict(
                 task_args=args,
+                task_id=task_run_log.celery_task_id,
                 task_kwargs=kwargs,
                 task_log_id=None if not task_log else task_log.pk,
-                task_run_log_id=task_run_log.pk
+                task_name=task_run_log.name,
+                task_queue=task_log.queue_name,
+                task_run_log_id=task_run_log.pk,
+                task_started_at=task_run_log.start,
+                task_state=task_run_log.state.name,
             )
         )
 
@@ -241,10 +256,19 @@ class LoggedTask(Task):
             ),
             extra=dict(
                 task_args=args,
+                task_duration=task_run_log.time,
+                task_empty_error=task_run_log.error_message is None or len(task_run_log.error_message) < 1,
+                task_empty_output=task_run_log.output is None or len(task_run_log.output) < 1,
+                task_id=task_run_log.celery_task_id,
                 task_kwargs=kwargs,
-                task_retval=retval,
                 task_log_id=None if not task_log else task_log.pk,
-                task_run_log_id=task_run_log.pk
+                task_name=task_run_log.name,
+                task_queue=task_log.queue_name,
+                task_retries=task_run_log.retries,
+                task_retval=retval,
+                task_run_log_id=task_run_log.pk,
+                task_started_at=task_run_log.start,
+                task_state=task_run_log.state.name,
             )
         )
 
@@ -283,11 +307,20 @@ class LoggedTask(Task):
                 **(kwargs or {})
             ),
             extra=dict(
-                task_exception=str(exc),
                 task_args=args,
+                task_duration=task_run_log.time,
+                task_empty_error=task_run_log.error_message is None or len(task_run_log.error_message) < 1,
+                task_empty_output=task_run_log.output is None or len(task_run_log.output) < 1,
+                task_exception=str(exc),
+                task_id=task_run_log.celery_task_id,
                 task_kwargs=kwargs,
                 task_log_id=None if not task_log else task_log.pk,
-                task_run_log_id=task_run_log.pk
+                task_name=task_run_log.name,
+                task_queue=task_log.queue_name,
+                task_retries=task_run_log.retries,
+                task_run_log_id=task_run_log.pk,
+                task_started_at=task_run_log.start,
+                task_state=task_run_log.state.name,
             )
         )
         stop = now()
@@ -308,8 +341,13 @@ class LoggedTask(Task):
                 task_name=task_log.name
             ),
             extra=dict(
+                task_expired_at=task_log.stale,
+                task_id=task_log.celery_task_id,
                 task_input=task_log.input,
-                task_log_id=task_log.pk
+                task_log_id=task_log.pk,
+                task_name=task_log.name,
+                task_queue=task_log.queue_name,
+                task_state=task_log.get_state().name,
             )
         )
         task_log.change_and_save(is_set_as_stale=True)
