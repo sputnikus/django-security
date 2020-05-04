@@ -47,6 +47,7 @@ DEFAULTS = {
     'LOG_OUTPUT_REQUESTS': True,
     'AUTO_GENERATE_TASKS_FOR_DJANGO_COMMANDS': {},
     'CELERY_HEALTH_CHECK_DEFAULT_QUEUE': getattr(django_settings, 'CELERY_DEFAULT_QUEUE', 'default'),
+    'LOG_DB_NAME': None,
 }
 
 

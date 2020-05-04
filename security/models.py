@@ -7,6 +7,7 @@ from jsonfield import JSONField
 
 from django.conf import settings as django_settings
 from django.core.serializers.json import DjangoJSONEncoder
+from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.template.defaultfilters import truncatechars
@@ -14,8 +15,10 @@ from django.urls import resolve
 from django.urls.exceptions import Resolver404
 from django.utils import timezone
 from django.utils.encoding import force_text
+from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import localtime
+
 
 try:
     from django.core.urlresolvers import get_resolver
@@ -134,7 +137,7 @@ class InputLoggedRequestManager(models.Manager):
     """
 
     def prepare_from_request(self, request):
-        user = hasattr(request, 'user') and request.user.is_authenticated and request.user or None
+        user_pk = request.user.pk if hasattr(request, 'user') and request.user.is_authenticated else None
         path = truncatechars(request.path, 200)
 
         try:
@@ -145,7 +148,7 @@ class InputLoggedRequestManager(models.Manager):
         return self.model(
             request_headers=clean_headers(get_headers(request)),
             request_body=clean_body(request.body, settings.LOG_REQUEST_BODY_LENGTH),
-            user=user,
+            user_id=user_pk,
             method=request.method.upper()[:7],
             host=request.get_host(),
             path=path,
@@ -211,7 +214,7 @@ class LoggedRequest(SmartModel):
     short_path.order_by = 'path'
 
     def short_response_body(self):
-        return truncatechars(self.response_body, 50)
+        return truncatechars(self.response_body, 50) if self.response_body is not None else None
     short_response_body.short_description = _('response body')
     short_response_body.filter_by = 'response_body'
 
@@ -236,8 +239,7 @@ class LoggedRequest(SmartModel):
 
 class InputLoggedRequest(LoggedRequest):
 
-    user = models.ForeignKey(django_settings.AUTH_USER_MODEL, verbose_name=_('user'), null=True, blank=True,
-                             on_delete=models.SET_NULL)
+    user_id = models.TextField(verbose_name=_('user ID'), null=True, blank=True, db_index=True)
     ip = models.GenericIPAddressField(_('IP address'), null=False, blank=False, db_index=True)
     type = NumEnumField(verbose_name=_('type'), enum=InputLoggedRequestType,
                         default=InputLoggedRequestType.COMMON_REQUEST,
@@ -245,6 +247,18 @@ class InputLoggedRequest(LoggedRequest):
     related_objects = GenericManyToManyField()
 
     objects = InputLoggedRequestManager.from_queryset(BaseLogQuerySet)()
+
+    class Meta:
+        verbose_name = _('input logged request')
+        verbose_name_plural = _('input logged requests')
+        ordering = ('-created_at',)
+
+    class SmartMeta:
+        is_cleaned_pre_save = False
+
+    @cached_property
+    def user(self):
+        return get_user_model().objects.filter(pk=self.user_id).first()
 
     def update_from_response(self, response):
         self.response_timestamp = timezone.now()
@@ -260,14 +274,6 @@ class InputLoggedRequest(LoggedRequest):
             response_body = ''
 
         self.response_body = response_body
-
-    class Meta:
-        verbose_name = _('input logged request')
-        verbose_name_plural = _('input logged requests')
-        ordering = ('-created_at',)
-
-    class SmartMeta:
-        is_cleaned_pre_save = False
 
 
 class OutputLoggedRequest(LoggedRequest):
