@@ -4,7 +4,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('security', '0018_migration'),
+        ('security', '0001_migration'),
     ]
 
     operations = [
