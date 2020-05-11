@@ -112,8 +112,9 @@ class LogMiddleware:
         if hasattr(request, 'input_logged_request'):
 
             logged_request = request.input_logged_request
-            logged_request.error_description = traceback.format_exc()
-            logged_request.exception_name = exception.__class__.__name__
             if isinstance(exception, ThrottlingException):
                 logged_request.type = InputLoggedRequestType.THROTTLED_REQUEST
                 return self._render_throttling(request, exception)
+            else:
+                logged_request.error_description = traceback.format_exc()
+                logged_request.exception_name = exception.__class__.__name__
