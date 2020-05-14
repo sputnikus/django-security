@@ -63,12 +63,15 @@ class LogContextStackFrame:
 
     def fork(self, input_logged_request, command_log, celery_task_run_log, output_requests_related_objects,
              output_requests_slug):
+        output_requests_related_objects = (
+            list(output_requests_related_objects) if output_requests_related_objects else []
+        )
         return LogContextStackFrame(
             input_logged_request or self.input_logged_request,
             command_log or self.command_log,
             celery_task_run_log or self.celery_task_run_log,
             output_requests_related_objects=(
-                self.output_requests_related_objects + list(output_requests_related_objects)
+                self.output_requests_related_objects + output_requests_related_objects
             ),
             output_requests_slug=self.output_requests_slug if output_requests_slug is None else output_requests_slug
         )
