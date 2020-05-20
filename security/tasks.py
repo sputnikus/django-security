@@ -488,8 +488,7 @@ class LoggedTask(Task):
                     is_async=True, args=args, kwargs=kwargs, related_objects=related_objects, **options,
                 )
         except (InterfaceError, OperationalError) as ex:
-            logger.error(str(ex))
-            logger.info('Closing old database connections...')
+            logger.warn('Closing old database connections, following exception thrown: %s', str(ex))
             close_old_connections()
 
     def delay_on_commit(self, *args, **kwargs):
