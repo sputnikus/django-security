@@ -12,7 +12,8 @@ from django.core.management import call_command, get_commands, load_command_clas
 from django.core.management.base import OutputWrapper
 from django.core.exceptions import ImproperlyConfigured
 from django.core.cache import cache
-from django.db import transaction
+from django.db import close_old_connections, transaction
+from django.db.utils import InterfaceError, OperationalError
 from django.utils.timezone import now
 
 try:
@@ -479,12 +480,16 @@ class LoggedTask(Task):
 
     def apply_async(self, args=None, kwargs=None, related_objects=None, **options):
         app = self._get_app()
-        if self.request.id or app.conf.task_always_eager:
-            return super().apply_async(args=args, kwargs=kwargs, related_objects=related_objects, **options)
-        else:
-            return self._first_apply(
-                is_async=True, args=args, kwargs=kwargs, related_objects=related_objects, **options
-            )
+        try:
+            if self.request.id or app.conf.task_always_eager:
+                return super().apply_async(args=args, kwargs=kwargs, related_objects=related_objects, **options)
+            else:
+                return self._first_apply(
+                    is_async=True, args=args, kwargs=kwargs, related_objects=related_objects, **options,
+                )
+        except (InterfaceError, OperationalError) as ex:
+            logger.warn('Closing old database connections, following exception thrown: %s', str(ex))
+            close_old_connections()
 
     def delay_on_commit(self, *args, **kwargs):
         self.apply_async_on_commit(args, kwargs)
