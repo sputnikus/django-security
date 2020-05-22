@@ -184,7 +184,12 @@ class LogContextManager(local):
         if connection.in_atomic_block:
             self._current_frame.output_logged_requests.append(output_logged_request_context)
         else:
-            output_logged_request_context.create()
+            output_logged_request_context.create(
+                input_logged_request=self.input_logged_request,
+                command_log=self.command_log,
+                celery_task_run_log=self.celery_task_run_log
+            )
+
 
     def get_output_request_related_objects(self):
         if not self.is_active():
