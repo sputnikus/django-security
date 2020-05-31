@@ -114,6 +114,10 @@ class LoggedTask(Task):
     def task_run_log(self):
         return self.request.celery_task_run_log
 
+    @property
+    def task_log(self):
+        return self.request.celery_task_log
+
     def __call__(self, *args, **kwargs):
         """
         Overrides parent which works with thread stack. We didn't want to allow change context which was generated in
@@ -163,7 +167,7 @@ class LoggedTask(Task):
                 task_log_id=task_log.pk,
                 task_name=task_log.name,
                 task_queue=task_log.queue_name,
-                task_state=task_log.get_state().name,
+                task_state=task_log.state.name,
             ),
         )
 
@@ -208,6 +212,11 @@ class LoggedTask(Task):
             output=self.request.output_stream.getvalue(),
             estimated_time_of_next_retry=eta
         )
+        task_log = task_run_log.get_task_log()
+        if task_log:
+            task_log.change_and_save(
+                state=CeleryTaskLogState.RETRIED
+            )
 
     def on_start_task(self, task_run_log, args, kwargs):
         """
@@ -237,6 +246,10 @@ class LoggedTask(Task):
                 task_state=task_run_log.state.name,
             )
         )
+        if task_log:
+            task_log.change_and_save(
+                state=CeleryTaskLogState.ACTIVE
+            )
 
     def on_success_task(self, task_run_log, args, kwargs, retval):
         """
@@ -284,6 +297,11 @@ class LoggedTask(Task):
             result=retval,
             output=self.request.output_stream.getvalue()
         )
+        if task_log:
+            task_log.change_and_save(
+                state=CeleryTaskLogState.SUCCEEDED
+            )
+
         self._clear_unique_key(args, kwargs)
 
     def on_success(self, retval, task_id, args, kwargs):
@@ -332,6 +350,11 @@ class LoggedTask(Task):
             error_message=str(exc),
             output=self.request.output_stream.getvalue()
         )
+        if task_log:
+            task_log.change_and_save(
+                state=CeleryTaskLogState.FAILED
+            )
+
         self._clear_unique_key(args, kwargs)
 
     def expire_task(self, task_log):
@@ -348,11 +371,17 @@ class LoggedTask(Task):
                 task_log_id=task_log.pk,
                 task_name=task_log.name,
                 task_queue=task_log.queue_name,
-                task_state=task_log.get_state().name,
+                task_state=task_log.state.name,
             )
         )
-        task_log.change_and_save(is_set_as_stale=True)
-        task_log.runs.filter(state=CeleryTaskRunLogState.ACTIVE).update(state=CeleryTaskRunLogState.EXPIRED)
+        task_log.change_and_save(
+            state=CeleryTaskLogState.EXPIRED
+        )
+        task_log.runs.filter(
+            state=CeleryTaskRunLogState.ACTIVE
+        ).update(
+            state=CeleryTaskRunLogState.EXPIRED
+        )
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         try:
@@ -537,7 +566,10 @@ class LoggedTask(Task):
             raise TimeoutError('The operation timed out.')
 
     def is_processing(self, related_objects=None):
-        return CeleryTaskLog.objects.filter_processing(self.name, related_objects=related_objects).exists()
+        return CeleryTaskLog.objects.filter_processing(
+            name=self.name,
+            related_objects=related_objects
+        ).exists()
 
 
 def obj_to_string(obj):

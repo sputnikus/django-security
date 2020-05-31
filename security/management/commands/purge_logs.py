@@ -14,7 +14,7 @@ from django.utils.module_loading import import_string
 from django.utils.encoding import force_bytes, force_text
 
 from security.config import settings
-from security.models import InputLoggedRequest, OutputLoggedRequest, CommandLog, CeleryTaskLog
+from security.models import InputLoggedRequest, OutputLoggedRequest, CommandLog, CeleryTaskLog, CeleryTaskRunLog
 
 from io import BytesIO, TextIOWrapper
 
@@ -56,7 +56,8 @@ class Command(BaseCommand):
         'input-request': InputLoggedRequest,
         'output-request': OutputLoggedRequest,
         'command': CommandLog,
-        'celery': CeleryTaskLog
+        'celery': CeleryTaskLog,
+        'celery-run': CeleryTaskRunLog,
     }
 
     def add_arguments(self, parser):
