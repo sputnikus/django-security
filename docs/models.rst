@@ -259,9 +259,9 @@ Models
 
     Time when a task will be marked as stale and will be automatically set as expired.
 
-  .. attribute:: is_set_as_stale
+  .. attribute:: state
 
-    Boolean value that identifies if task is expired.
+    State of the task (WAITING, ACTIVE, SUCCEEDED, FAILED, RETRIED, EXPIRED).
 
   .. method:: get_start
 
@@ -270,10 +270,6 @@ Models
   .. method:: get_stop
 
     Date and time when task finished.
-
-  .. method:: get_state
-
-    State of the task (WAITING, ACTIVE, SUCCEEDED, FAILED, RETRIED, EXPIRED).
 
 
 .. class:: security.models.CeleryTaskRunLog

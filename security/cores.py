@@ -3,7 +3,7 @@ import json
 from django.apps import apps
 from django.core.serializers.json import DjangoJSONEncoder
 from django.template.defaultfilters import truncatechars
-from django.utils.html import format_html, format_html_join, mark_safe
+from django.utils.html import format_html, format_html_join, mark_safe, format_html_join
 from django.utils.translation import ugettext_lazy as _
 
 from pyston.paginator import BaseOffsetPaginatorWithoutTotal
@@ -20,10 +20,6 @@ from security.config import settings
 from security.models import CommandLog, InputLoggedRequest, OutputLoggedRequest, CeleryTaskLog, CeleryTaskRunLog
 
 from ansi2html import Ansi2HTMLConverter
-
-from .filters import CeleryTaskLogStateFilter
-
-from django.utils.html import format_html_join
 
 
 def render_model_objects_with_link(request, objs):
@@ -243,9 +239,6 @@ class CeleryTaskRunLogInlineTableView(InlineTableView):
         }
 
 
-CeleryTaskLog.get_state.filter = CeleryTaskLogStateFilter
-
-
 class CeleryTaskLogISCore(DisplayRelatedObjectsMixin, UIRESTModelISCore):
 
     model = CeleryTaskLog
@@ -257,13 +250,13 @@ class CeleryTaskLogISCore(DisplayRelatedObjectsMixin, UIRESTModelISCore):
     rest_paginator = BaseOffsetPaginatorWithoutTotal
 
     ui_list_fields = (
-        'created_at', 'changed_at', 'name', 'short_input', 'get_state', 'get_start', 'get_stop', 'queue_name'
+        'created_at', 'changed_at', 'name', 'short_input', 'state', 'get_start', 'get_stop', 'queue_name'
     )
 
     form_fieldsets = (
         (None, {
             'fields': (
-                'created_at', 'changed_at', 'name', 'get_state', 'get_start', 'get_stop',
+                'created_at', 'changed_at', 'name', 'state', 'get_start', 'get_stop',
                 'estimated_time_of_first_arrival', 'expires', 'stale', 'queue_name', 'input', 'display_related_objects'
             )
         }),

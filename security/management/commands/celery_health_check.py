@@ -43,9 +43,7 @@ class Command(BaseCommand):
         )
 
     def _get_queryset(self, queue_name):
-        return CeleryTaskLog.objects.filter(is_set_as_stale=False, queue_name=queue_name).exclude(
-            celery_task_id__in=CeleryTaskRunLog.objects.values('celery_task_id'),
-        ).order_by('created_at')
+        return CeleryTaskLog.objects.filter_waiting().order_by('created_at')
 
     def _handle_max_created_at_diff(self, queryset, queue_name, max_created_at_diff):
         if max_created_at_diff < 0:
