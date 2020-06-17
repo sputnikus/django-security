@@ -35,25 +35,26 @@ class OutputLoggedRequestContext:
         self.data = data
         self.related_objects = related_objects
 
-    def create(self, input_logged_request=None, command_log=None, celery_task_run_log=None):
+    def create(self, logs=None):
         from security.models import OutputLoggedRequest
 
+        logs = [] if logs is None else logs
         output_logged_request = OutputLoggedRequest.objects.create(
-            input_logged_request=input_logged_request,
-            command_log=command_log,
-            celery_task_run_log=celery_task_run_log,
             **self.data
         )
-        output_logged_request.related_objects.add(*self.related_objects)
+        related_objects = list(self.related_objects) + logs
+        output_logged_request.related_objects.add(*related_objects)
         return output_logged_request
 
 
 class LogContextStackFrame:
 
-    def __init__(self, input_logged_request, command_log, celery_task_run_log, output_requests_related_objects,
+    def __init__(self, input_logged_request, command_log, celery_task_log, celery_task_run_log,
+                 output_requests_related_objects,
                  output_requests_slug):
         self.input_logged_request = input_logged_request
         self.command_log = command_log
+        self.celery_task_log = celery_task_log
         self.celery_task_run_log = celery_task_run_log
         self.output_requests_related_objects = (
             list(output_requests_related_objects) if output_requests_related_objects else []
@@ -61,14 +62,15 @@ class LogContextStackFrame:
         self.output_requests_slug = output_requests_slug
         self.output_logged_requests = []
 
-    def fork(self, input_logged_request, command_log, celery_task_run_log, output_requests_related_objects,
-             output_requests_slug):
+    def fork(self, input_logged_request, command_log, celery_task_log, celery_task_run_log,
+             output_requests_related_objects, output_requests_slug):
         output_requests_related_objects = (
             list(output_requests_related_objects) if output_requests_related_objects else []
         )
         return LogContextStackFrame(
             input_logged_request or self.input_logged_request,
             command_log or self.command_log,
+            celery_task_log or self.celery_task_log,
             celery_task_run_log or self.celery_task_run_log,
             output_requests_related_objects=(
                 self.output_requests_related_objects + output_requests_related_objects
@@ -79,13 +81,19 @@ class LogContextStackFrame:
     def join(self, other_context):
         self.output_logged_requests += other_context.output_logged_requests
 
+    def get_logs(self):
+        return list(
+            filter(None, [
+                self.input_logged_request,
+                self.command_log,
+                self.celery_task_log,
+                self.celery_task_run_log,
+            ])
+        )
+
     def save(self):
         for output_logged_request in self.output_logged_requests:
-            output_logged_request.create(
-                input_logged_request=self.input_logged_request,
-                command_log=self.command_log,
-                celery_task_run_log=self.celery_task_run_log
-            )
+            output_logged_request.create(self.get_logs())
 
 
 class LogContextManager(local):
@@ -116,15 +124,22 @@ class LogContextManager(local):
         return self._current_frame.command_log
 
     @property
+    def celery_task_log(self):
+        return self._current_frame.celery_task_log
+
+    @property
     def celery_task_run_log(self):
         return self._current_frame.celery_task_run_log
+
+    def get_logs(self):
+        return self._current_frame.get_logs()
 
     @property
     def _current_frame(self):
         self._assert_active()
         return self._stack[-1]
 
-    def start(self, input_logged_request=None, command_log=None, celery_task_run_log=None,
+    def start(self, input_logged_request=None, command_log=None, celery_task_log=None, celery_task_run_log=None,
               output_requests_related_objects=None, output_requests_slug=None):
         """
         Begins a context log for this thread.
@@ -136,6 +151,7 @@ class LogContextManager(local):
                 self._current_frame.fork(
                     input_logged_request,
                     command_log,
+                    celery_task_log,
                     celery_task_run_log,
                     output_requests_related_objects,
                     output_requests_slug
@@ -146,6 +162,7 @@ class LogContextManager(local):
                 LogContextStackFrame(
                     input_logged_request,
                     command_log,
+                    celery_task_log,
                     celery_task_run_log,
                     output_requests_related_objects or [],
                     output_requests_slug
@@ -184,12 +201,7 @@ class LogContextManager(local):
         if connection.in_atomic_block:
             self._current_frame.output_logged_requests.append(output_logged_request_context)
         else:
-            output_logged_request_context.create(
-                input_logged_request=self.input_logged_request,
-                command_log=self.command_log,
-                celery_task_run_log=self.celery_task_run_log
-            )
-
+            output_logged_request_context.create(logs=self.get_logs())
 
     def get_output_request_related_objects(self):
         if not self.is_active():
@@ -228,9 +240,10 @@ class AtomicLog(ContextDecorator):
     stores it to the database
     """
 
-    def __init__(self, input_logged_request=None, command_log=None, celery_task_run_log=None,
+    def __init__(self, input_logged_request=None, command_log=None, celery_task_log=None, celery_task_run_log=None,
                  output_requests_related_objects=None, output_requests_slug=None):
         self._command_log = command_log
+        self._celery_task_log = celery_task_log
         self._celery_task_run_log = celery_task_run_log
         self._input_logged_request = input_logged_request
         self._output_requests_related_objects = (
@@ -242,6 +255,7 @@ class AtomicLog(ContextDecorator):
         log_context_manager.start(
             self._input_logged_request,
             self._command_log,
+            self._celery_task_log,
             self._celery_task_run_log,
             self._output_requests_related_objects,
             self._output_requests_slug,
@@ -404,6 +418,10 @@ class CommandLogger(StringIO):
             )
 
         self.command_log = CommandLog.objects.create(start=now(), **self.kwargs)
+        if log_context_manager.is_active():
+            related_objects = log_context_manager.get_logs()
+            for related_object in related_objects:
+                self.command_log.related_objects.add(related_object)
 
         self.output = LogStringIO(post_write_callback=self._store_log_output)
         stdout = TeeStringIO(self.stdout, self.output)

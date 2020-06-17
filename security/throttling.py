@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from ipware.ip import get_ip
+from ipware.ip import get_client_ip
 
 from django.conf import settings
 from django.utils import timezone
@@ -45,7 +45,7 @@ class PerRequestThrottlingValidator(ThrottlingValidator):
             qs = InputLoggedRequest.objects.filter(slug__isnull=True)
 
         count_same_requests = qs.filter(
-            ip=get_ip(request), path=request.path,
+            ip=get_client_ip(request)[0], path=request.path,
             request_timestamp__gte=timezone.now() - timedelta(seconds=self.timeframe),
             method=request.method.upper()
         ).count()
@@ -56,7 +56,7 @@ class LoginThrottlingValidator(ThrottlingValidator):
 
     def _validate(self, request):
         count_same_requests = InputLoggedRequest.objects.filter(
-            ip=get_ip(request), path=request.path,
+            ip=get_client_ip(request)[0], path=request.path,
             request_timestamp__gte=timezone.now() - timedelta(seconds=self.timeframe),
             type=self.type).count()
         return count_same_requests <= self.throttle_at
