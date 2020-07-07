@@ -62,6 +62,7 @@ class DisplayRelatedObjectsMixin:
     @short_description(_('raised output logged requests'))
     def display_output_logged_requests(self, obj, request):
         return render_model_objects_with_link(
+            request,
             OutputLoggedRequest.objects.filter(
                 related_objects__object_id=obj.pk,
                 related_objects__object_ct=ContentType.objects.get_for_model(obj)
@@ -71,6 +72,7 @@ class DisplayRelatedObjectsMixin:
     @short_description(_('raised command logs'))
     def display_command_logs(self, obj, request):
         return display_related_objects(
+            request,
             CommandLog.objects.filter(
                 related_objects__object_id=obj.pk,
                 related_objects__object_ct=ContentType.objects.get_for_model(obj)
@@ -80,6 +82,7 @@ class DisplayRelatedObjectsMixin:
     @short_description(_('raised celery task logs'))
     def display_celery_task_logs(self, obj, request):
         return render_model_objects_with_link(
+            request,
             CeleryTaskLog.objects.filter(
                 related_objects__object_id=obj.pk,
                 related_objects__object_ct=ContentType.objects.get_for_model(obj)
