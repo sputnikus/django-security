@@ -34,7 +34,7 @@ def display_as_code(value):
 def display_related_objects(request, related_objects):
     return render_model_objects_with_link(
         request,
-        [related_object.object for related_object in related_objects]
+        [related_object.object for related_object in related_objects if related_object.object]
     )
 
 
