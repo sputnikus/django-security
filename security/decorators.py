@@ -84,7 +84,7 @@ def log_exempt_all(klass):
     return klass
 
 
-def atomic_log(input_logged_request=None, command_log=None, celery_task_run_log=None,
+def atomic_log(input_logged_request=None, command_log=None, celery_task_log=None, celery_task_run_log=None,
                output_requests_related_objects=None, output_requests_slug=None):
     """
     Decorator that surrounds atomic block, ensures that logged output requests will be stored inside database in case
@@ -96,6 +96,7 @@ def atomic_log(input_logged_request=None, command_log=None, celery_task_run_log=
         return AtomicLog(
             input_logged_request,
             command_log,
+            celery_task_log,
             celery_task_run_log,
             output_requests_related_objects,
             output_requests_slug

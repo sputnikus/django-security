@@ -239,7 +239,11 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         assert_equal(InputLoggedRequest.objects.count(), 2)
         assert_equal(OutputLoggedRequest.objects.count(), 1)
         output_logged_request = OutputLoggedRequest.objects.get()
-        assert_equal(output_logged_request.related_objects.get().object, user)
+        assert_equal(output_logged_request.related_objects.count(), 2)
+        user_related_object, input_request_related_object = output_logged_request.related_objects.all()
+
+        assert_equal(user_related_object.object, user)
+        assert_equal(input_request_related_object.object, InputLoggedRequest.objects.first())
 
     def test_sensitive_data_body_in_json_should_be_hidden(self):
         self.c.post('/admin/login/', data=json.dumps({'username': 'test', 'password': 'secret-password'}),

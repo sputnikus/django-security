@@ -2,7 +2,7 @@ import re
 import json
 from json import JSONDecodeError
 
-from ipware.ip import get_ip
+from ipware.ip import get_client_ip
 from jsonfield import JSONField
 
 from django.conf import settings as django_settings
@@ -153,7 +153,7 @@ class InputLoggedRequestManager(models.Manager):
             path=path,
             queries=clean_queries(request.GET.dict()),
             is_secure=request.is_secure(),
-            ip=get_ip(request),
+            ip=get_client_ip(request)[0],
             request_timestamp=timezone.now(),
             slug=slug
         )
@@ -277,30 +277,6 @@ class InputLoggedRequest(LoggedRequest):
 
 class OutputLoggedRequest(LoggedRequest):
 
-    input_logged_request = models.ForeignKey(
-        to='InputLoggedRequest',
-        verbose_name=_('input logged request'),
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name='output_logged_requests'
-    )
-    command_log = models.ForeignKey(
-        to='CommandLog',
-        verbose_name=_('command log'),
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name='output_logged_requests'
-    )
-    celery_task_run_log = models.ForeignKey(
-        to='CeleryTaskRunLog',
-        verbose_name=_('celery task run log'),
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name='output_logged_requests'
-    )
     related_objects = GenericManyToManyField()
 
     objects = BaseLogQuerySet.as_manager()

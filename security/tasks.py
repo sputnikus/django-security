@@ -28,7 +28,7 @@ except ImportError:
 from .decorators import atomic_log
 from .config import settings
 from .models import CeleryTaskRunLog, CeleryTaskLog, CeleryTaskLogState, CeleryTaskRunLogState
-from .utils import LogStringIO
+from .utils import LogStringIO, log_context_manager
 
 
 logger = logging.getLogger(__name__)
@@ -424,6 +424,10 @@ class LoggedTask(Task):
         else:
             return None
 
+    def _get_related_objects(self, related_objects):
+        related_objects = [] if related_objects is None else list(related_objects)
+        return related_objects + log_context_manager.get_logs()
+
     def _create_task_log(self, task_id, task_args, task_kwargs, apply_time, eta, expires, stale_time_limit,
                          queue, related_objects):
         task_input = []
@@ -443,8 +447,11 @@ class LoggedTask(Task):
             expires=expires,
             stale=apply_time + timedelta(seconds=stale_time_limit) if stale_time_limit is not None else None
         )
-        if related_objects:
-            celery_task_log.related_objects.add(*related_objects)
+        related_objects = [] if related_objects is None else list(related_objects)
+        if log_context_manager.is_active():
+            related_objects += log_context_manager.get_logs()
+
+        celery_task_log.related_objects.add(*related_objects)
         return celery_task_log
 
     def _create_task_run_log(self, task_args, task_kwargs):

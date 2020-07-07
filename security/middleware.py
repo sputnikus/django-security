@@ -1,6 +1,6 @@
 import traceback
 
-from ipware.ip import get_ip
+from ipware.ip import get_client_ip
 
 from django import http
 from django.conf import settings as django_settings
@@ -34,7 +34,7 @@ class LogMiddleware:
     def process_request(self, request):
         view = get_view_from_request_or_none(request)
         input_logged_request = None
-        if (get_ip(request) not in settings.LOG_REQUEST_IGNORE_IP
+        if (get_client_ip(request)[0] not in settings.LOG_REQUEST_IGNORE_IP
                and request.path not in settings.LOG_REQUEST_IGNORE_URL_PATHS
                and not getattr(view, 'log_exempt', False)):
             input_logged_request = InputLoggedRequest.objects.prepare_from_request(request)

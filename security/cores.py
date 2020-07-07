@@ -5,6 +5,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.template.defaultfilters import truncatechars
 from django.utils.html import format_html, format_html_join, mark_safe, format_html_join
 from django.utils.translation import ugettext_lazy as _
+from django.contrib.contenttypes.models import ContentType
 
 from pyston.paginator import BaseOffsetPaginatorWithoutTotal
 from pyston.utils.decorators import filter_by, order_by
@@ -13,21 +14,13 @@ from is_core.generic_views.inlines.inline_table_views import InlineTableView
 from is_core.generic_views.mixins import TabItem, TabsViewMixin
 from is_core.generic_views.table_views import TableView
 from is_core.main import UIRESTModelISCore
-from is_core.utils import get_obj_url
+from is_core.utils import render_model_objects_with_link, render_model_object_with_link
 from is_core.utils.decorators import short_description
 
 from security.config import settings
 from security.models import CommandLog, InputLoggedRequest, OutputLoggedRequest, CeleryTaskLog, CeleryTaskRunLog
 
 from ansi2html import Ansi2HTMLConverter
-
-
-def render_model_objects_with_link(request, objs):
-    return format_html_join(
-        ', ',
-        '<a href="{}">{}</a>',
-        ((get_obj_url(request, obj), str(obj)) for obj in objs)
-    )
 
 
 def display_json(value):
@@ -38,14 +31,59 @@ def display_as_code(value):
     return format_html('<code style="white-space:pre-wrap;">{}</code>', value) if value else value
 
 
+def display_related_objects(request, related_objects):
+    return render_model_objects_with_link(
+        request,
+        [related_object.object for related_object in related_objects]
+    )
+
+
+def get_content_type_of_parent_related_classes():
+    return {
+        ContentType.objects.get_for_model(model_class)
+        for model_class in (CommandLog, InputLoggedRequest, OutputLoggedRequest, CeleryTaskLog, CeleryTaskRunLog)
+    }
+
 
 class DisplayRelatedObjectsMixin:
 
     @short_description(_('related objects'))
     def display_related_objects(self, obj, request):
+        return display_related_objects(
+            request, obj.related_objects.exclude(object_ct__in=get_content_type_of_parent_related_classes())
+        )
+
+    @short_description(_('source'))
+    def display_source(self, obj, request):
+        return display_related_objects(
+            request, obj.related_objects.filter(object_ct__in=get_content_type_of_parent_related_classes())
+        )
+
+    @short_description(_('raised output logged requests'))
+    def display_output_logged_requests(self, obj, request):
         return render_model_objects_with_link(
-            request,
-            [related_object.object for related_object in obj.related_objects.all() if related_object.object]
+            OutputLoggedRequest.objects.filter(
+                related_objects__object_id=obj.pk,
+                related_objects__object_ct=ContentType.objects.get_for_model(obj)
+            )
+        )
+
+    @short_description(_('raised command logs'))
+    def display_command_logs(self, obj, request):
+        return display_related_objects(
+            CommandLog.objects.filter(
+                related_objects__object_id=obj.pk,
+                related_objects__object_ct=ContentType.objects.get_for_model(obj)
+            )
+        )
+
+    @short_description(_('raised celery task logs'))
+    def display_celery_task_logs(self, obj, request):
+        return render_model_objects_with_link(
+            CeleryTaskLog.objects.filter(
+                related_objects__object_id=obj.pk,
+                related_objects__object_ct=ContentType.objects.get_for_model(obj)
+            )
         )
 
 
@@ -58,27 +96,27 @@ class RequestsLogISCore(DisplayRelatedObjectsMixin, UIRESTModelISCore):
     rest_paginator = BaseOffsetPaginatorWithoutTotal
 
     @short_description(_('queries'))
-    def queries_code(self, obj=None):
+    def queries_code(self, obj):
         return display_as_code(display_json(obj.queries)) if obj else None
 
     @short_description(_('request body'))
-    def request_body_code(self, obj=None):
+    def request_body_code(self, obj):
         return display_as_code(obj.request_body) if obj else None
 
     @short_description(_('request headers'))
-    def request_headers_code(self, obj=None):
+    def request_headers_code(self, obj):
         return display_as_code(display_json(obj.request_headers)) if obj else None
 
     @short_description(_('response body'))
-    def response_body_code(self, obj=None):
+    def response_body_code(self, obj):
         return display_as_code(obj.response_body) if obj else None
 
     @short_description(_('response headers'))
-    def response_headers_code(self, obj=None):
+    def response_headers_code(self, obj):
         return display_as_code(display_json(obj.response_headers)) if obj else None
 
     @short_description(_('error description'))
-    def error_description_code(self, obj=None):
+    def error_description_code(self, obj):
         return display_as_code(obj.error_description) if obj else None
 
 
@@ -99,8 +137,9 @@ class InputRequestsLogISCore(RequestsLogISCore):
         (_('Response'), {'fields': ('response_timestamp', 'response_code', 'status', 'response_headers_code',
                                     'response_body_code', 'type', 'error_description_code')}),
         (_('User information'), {'fields': ('user', 'ip')}),
-        (_('Extra information'), {'fields': ('slug', 'response_time', 'output_logged_requests',
-                                             'display_related_objects')}),
+        (_('Extra information'), {'fields': ('slug', 'response_time', 'display_related_objects',
+                                             'display_output_logged_requests', 'display_command_logs',
+                                             'display_celery_task_logs')}),
     )
 
     def get_form_fieldsets(self, request, obj=None):
@@ -131,7 +170,7 @@ class OutputRequestsLogISCore(RequestsLogISCore):
     ui_list_fields = (
         'created_at', 'changed_at', 'request_timestamp', 'response_timestamp', 'response_time', 'status',
         'response_code', 'host', 'short_path', 'method', 'slug', 'short_response_body', 'short_request_body',
-        'input_logged_request', 'command_log', 'celery_task_run_log', 'short_queries', 'short_request_headers'
+        'short_queries', 'short_request_headers'
     )
 
     form_fieldsets = (
@@ -139,8 +178,7 @@ class OutputRequestsLogISCore(RequestsLogISCore):
                                    'queries_code', 'request_headers_code', 'request_body_code', 'is_secure')}),
         (_('Response'), {'fields': ('response_timestamp', 'response_code', 'status', 'response_headers_code',
                                     'response_body_code', 'error_description_code')}),
-        (_('Extra information'), {'fields': ('slug', 'response_time', 'input_logged_request',
-                                             'display_related_objects')}),
+        (_('Extra information'), {'fields': ('slug', 'response_time', 'display_related_objects', 'display_source')}),
     )
 
 
@@ -157,7 +195,8 @@ class CommandLogISCore(DisplayRelatedObjectsMixin, UIRESTModelISCore):
     form_fieldsets = (
         (None, {
             'fields': ('created_at', 'changed_at', 'name', 'input', 'output_html', 'error_message',
-                       'display_related_objects', 'output_logged_requests',),
+                       'display_related_objects', 'display_source', 'display_output_logged_requests',
+                       'display_command_logs', 'display_celery_task_logs'),
             'class': 'col-sm-6'
         }),
         (None, {
@@ -203,20 +242,26 @@ class CeleryTaskRunLogISCore(DisplayRelatedObjectsMixin, UIRESTModelISCore):
     )
 
     ui_list_fields = (
-        'created_at', 'changed_at', 'name', 'state', 'start', 'stop', 'time', 'result', 'retries', 'get_task_log'
+        'celery_task_id', 'created_at', 'changed_at', 'name', 'state', 'start', 'stop', 'time', 'result', 'retries',
+        'get_task_log'
     )
 
     form_fields = (
-        'start', 'stop', 'time', 'state', 'result', 'error_message', 'output_html', 'retries',
-        'estimated_time_of_next_retry', 'output_logged_requests', 'display_related_objects'
+        'celery_task_id', 'task_log', 'start', 'stop', 'time', 'state', 'result', 'error_message', 'output_html',
+        'retries','estimated_time_of_next_retry', 'display_related_objects', 'display_output_logged_requests',
+        'display_command_logs', 'display_celery_task_logs'
     )
 
     ui_list_view = CeleryTaskLogTableView
 
     default_ordering = ('-created_at',)
 
+    @short_description(_('celery task log'))
+    def task_log(self, obj):
+        return obj.get_task_log()
+
     @short_description(_('output'))
-    def output_html(self, obj=None):
+    def output_html(self, obj):
         if obj and obj.output is not None:
             conv = Ansi2HTMLConverter()
             output = mark_safe(conv.convert(obj.output, full=False))
@@ -250,14 +295,16 @@ class CeleryTaskLogISCore(DisplayRelatedObjectsMixin, UIRESTModelISCore):
     rest_paginator = BaseOffsetPaginatorWithoutTotal
 
     ui_list_fields = (
-        'created_at', 'changed_at', 'name', 'short_input', 'state', 'get_start', 'get_stop', 'queue_name'
+        'celery_task_id', 'created_at', 'changed_at', 'name', 'short_input', 'state', 'get_start', 'get_stop',
+        'queue_name'
     )
 
     form_fieldsets = (
         (None, {
             'fields': (
-                'created_at', 'changed_at', 'name', 'state', 'get_start', 'get_stop',
-                'estimated_time_of_first_arrival', 'expires', 'stale', 'queue_name', 'input', 'display_related_objects'
+                'celery_task_id', 'created_at', 'changed_at', 'name', 'state', 'get_start', 'get_stop',
+                'estimated_time_of_first_arrival', 'expires', 'stale', 'queue_name', 'input', 'display_related_objects',
+                'display_source'
             )
         }),
         (_('celery task runs'), {'inline_view': CeleryTaskRunLogInlineTableView}),
@@ -268,7 +315,7 @@ class CeleryTaskLogISCore(DisplayRelatedObjectsMixin, UIRESTModelISCore):
     @filter_by('input')
     @order_by('input')
     @short_description(_('input'))
-    def short_input(self, obj=None):
+    def short_input(self, obj):
         return truncatechars(obj.input, 50)
 
     def is_active_menu_item(self, request, active_group):
