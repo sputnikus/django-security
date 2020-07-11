@@ -1,12 +1,11 @@
 import traceback
 
-from ipware.ip import get_client_ip
-
 from django import http
 from django.conf import settings as django_settings
 from django.core.exceptions import ImproperlyConfigured
 from django.urls import is_valid_path, get_callable
 
+from .compatibility import get_client_ip
 from .config import settings
 from .exception import ThrottlingException
 from .models import InputLoggedRequest, InputLoggedRequestType

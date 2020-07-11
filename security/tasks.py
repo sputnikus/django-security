@@ -297,6 +297,7 @@ class LoggedTask(Task):
             result=retval,
             output=self.request.output_stream.getvalue()
         )
+
         if task_log:
             task_log.change_and_save(
                 state=CeleryTaskLogState.SUCCEEDED
@@ -507,7 +508,7 @@ class LoggedTask(Task):
             )
 
     def apply(self, args=None, kwargs=None, related_objects=None, **options):
-        if self.request.id:
+        if 'retries' in options:
             return super().apply(args=args, kwargs=kwargs, **options)
         else:
             return self._first_apply(
@@ -548,8 +549,6 @@ class LoggedTask(Task):
 
         self.on_retry_task(self.task_run_log, args, kwargs, exc, eta)
 
-        # Celery retry not working in eager mode. This simple hack fix it.
-        self.request.is_eager = False
         return super().retry(
             args=args, kwargs=kwargs, exc=exc, throw=throw,
             eta=eta, max_retries=max_retries, **options
