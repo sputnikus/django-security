@@ -1,12 +1,11 @@
 from datetime import timedelta
 
-from ipware.ip import get_client_ip
-
 from django.conf import settings
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 from django.urls import resolve
 
+from .compatibility import get_client_ip
 from .exception import ThrottlingException
 from .models import InputLoggedRequest, InputLoggedRequestType
 

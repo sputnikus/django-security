@@ -2,7 +2,6 @@ import re
 import json
 from json import JSONDecodeError
 
-from ipware.ip import get_client_ip
 from jsonfield import JSONField
 
 from django.conf import settings as django_settings
@@ -43,6 +42,7 @@ try:
 except ImportError:
     CaseSensitiveStringFieldFilter = object
 
+from .compatibility import get_client_ip
 from .enums import InputLoggedRequestType, LoggedRequestStatus, CeleryTaskLogState, CeleryTaskRunLogState
 
 
