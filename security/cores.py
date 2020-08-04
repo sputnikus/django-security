@@ -7,7 +7,6 @@ from django.utils.html import format_html, format_html_join, mark_safe, format_h
 from django.utils.translation import ugettext_lazy as _
 from django.contrib.contenttypes.models import ContentType
 
-from pyston.paginator import BaseOffsetPaginatorWithoutTotal
 from pyston.utils.decorators import filter_by, order_by
 
 from is_core.generic_views.inlines.inline_table_views import InlineTableView
@@ -16,6 +15,7 @@ from is_core.generic_views.table_views import TableView
 from is_core.main import UIRESTModelISCore
 from is_core.utils import render_model_objects_with_link, render_model_object_with_link
 from is_core.utils.decorators import short_description
+from is_core.rest.paginators import CursorBasedPaginator
 
 from security.config import settings
 from security.models import CommandLog, InputLoggedRequest, OutputLoggedRequest, CeleryTaskLog, CeleryTaskRunLog
@@ -96,7 +96,7 @@ class RequestsLogISCore(DisplayRelatedObjectsMixin, UIRESTModelISCore):
 
     can_create = can_update = can_delete = False
 
-    rest_paginator = BaseOffsetPaginatorWithoutTotal
+    rest_paginator = CursorBasedPaginator
 
     @short_description(_('queries'))
     def queries_code(self, obj):
@@ -239,7 +239,7 @@ class CeleryTaskRunLogISCore(DisplayRelatedObjectsMixin, UIRESTModelISCore):
 
     can_create = can_update = can_delete = False
 
-    rest_paginator = BaseOffsetPaginatorWithoutTotal
+    rest_paginator = CursorBasedPaginator
     rest_extra_filter_fields = (
         'celery_task_id',
     )
@@ -295,7 +295,7 @@ class CeleryTaskLogISCore(DisplayRelatedObjectsMixin, UIRESTModelISCore):
 
     can_create = can_update = can_delete = False
 
-    rest_paginator = BaseOffsetPaginatorWithoutTotal
+    rest_paginator = CursorBasedPaginator
 
     ui_list_fields = (
         'celery_task_id', 'created_at', 'changed_at', 'name', 'short_input', 'state', 'get_start', 'get_stop',
