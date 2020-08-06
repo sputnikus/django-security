@@ -5,18 +5,16 @@ import gzip
 from datetime import datetime, time, timedelta
 
 from django.core import serializers
-from django.core.files.base import ContentFile
 from django.core.serializers.json import DjangoJSONEncoder
 from django.core.management.base import CommandError
 from django.core.management.base import BaseCommand
 from django.utils.timezone import now, utc
 from django.utils.module_loading import import_string
-from django.utils.encoding import force_bytes, force_text
 
 from security.config import settings
 from security.models import InputLoggedRequest, OutputLoggedRequest, CommandLog, CeleryTaskLog, CeleryTaskRunLog
 
-from io import BytesIO, TextIOWrapper
+from io import TextIOWrapper
 
 
 storage = import_string(settings.BACKUP_STORAGE_CLASS)()
@@ -61,7 +59,7 @@ class Command(BaseCommand):
     }
 
     def add_arguments(self, parser):
-        parser.add_argument('--type', action='store', dest='type', default='input',
+        parser.add_argument('--type', action='store', dest='type', default='input-request',
                             help='Tells Django what type of requests should be removed '
                                  '({}).'.format('/'.join(self.models.keys())))
         parser.add_argument('--expiration', action='store', dest='expiration',
@@ -76,25 +74,33 @@ class Command(BaseCommand):
             min_timestamp = datetime.combine(timestamp, time.min).replace(tzinfo=utc)
             max_timestamp = datetime.combine(timestamp, time.max).replace(tzinfo=utc)
             qs_filtered_by_day = qs.filter(created_at__range=(min_timestamp, max_timestamp))
-            if backup_path:
-                log_file_name = os.path.join(backup_path, str(timestamp.date()))
 
-                if storage.exists('{}.json.gz'.format(log_file_name)):
-                    i = 1
-                    while storage.exists('{}({}).json.gz'.format(log_file_name, i)):
-                        i += 1
-                    log_file_name = '{}({})'.format(log_file_name, i)
+            while qs_filtered_by_day.exists():
+                restricted_qs_filtered_by_day = qs_filtered_by_day[:settings.PURGE_LOG_BATCH]
+                self.stdout.write(
+                    2 * ' ' + 'Cleaning logs for date {} ({})'.format(
+                        timestamp.date(), restricted_qs_filtered_by_day.count()
+                    )
+                )
+                if backup_path:
+                    log_file_name = os.path.join(backup_path, str(timestamp.date()))
 
-                self.stdout.write(4 * ' ' + 'generate backup file: {}.json.gz'.format(log_file_name))
+                    if storage.exists('{}.json.gz'.format(log_file_name)):
+                        i = 1
+                        while storage.exists('{}({}).json.gz'.format(log_file_name, i)):
+                            i += 1
+                        log_file_name = '{}({})'.format(log_file_name, i)
 
-                with storage.open('{}.json.gz'.format(log_file_name), 'wb') as f:
-                    with TextIOWrapper(gzip.GzipFile(filename='{}.json'.format(log_file_name),
-                                                     fileobj=f, mode='wb')) as gzf:
-                        json.dump(
-                            lazy_serialize_qs_without_pk(qs_filtered_by_day), gzf, cls=DjangoJSONEncoder, indent=5
-                        )
-            self.stdout.write(4 * ' ' + 'clean logs for day {}'.format(timestamp.date()))
-            qs_filtered_by_day.delete()
+                    self.stdout.write(4 * ' ' + 'generating backup file: {}.json.gz'.format(log_file_name))
+
+                    with storage.open('{}.json.gz'.format(log_file_name), 'wb') as f:
+                        with TextIOWrapper(gzip.GzipFile(filename='{}.json'.format(log_file_name),
+                                                         fileobj=f, mode='wb')) as gzf:
+                            json.dump(
+                                lazy_serialize_qs_without_pk(restricted_qs_filtered_by_day), gzf, cls=DjangoJSONEncoder, indent=5
+                            )
+                self.stdout.write(4 * ' ' + 'deleting logs')
+                qs.filter(pk__in=restricted_qs_filtered_by_day.values('pk')).delete()
 
     def handle(self, expiration, type, **options):
         # Check we have the correct values
@@ -130,7 +136,7 @@ class Command(BaseCommand):
                     self.stdout.write('Clean data')
                     self.backup_logs_and_clean_data(qs, options.get('backup'))
                 except IOError as ex:
-                    self.stderr.write(force_text(ex))
+                    self.stderr.write(str(ex))
 
     def get_model(self, type):
         model = self.models.get(type)
