@@ -7,6 +7,8 @@ import uuid
 
 from datetime import timedelta
 
+from distutils.version import StrictVersion
+
 from django.conf import settings as django_settings
 from django.core.management import call_command, get_commands, load_command_class
 from django.core.management.base import OutputWrapper
@@ -17,6 +19,7 @@ from django.db.utils import InterfaceError, OperationalError
 from django.utils.timezone import now
 
 try:
+    from celery import VERSION as CELERY_VERSION
     from celery import Task, shared_task, current_app
     from celery.result import AsyncResult
     from celery.exceptions import CeleryError, TimeoutError
@@ -32,6 +35,8 @@ from .utils import LogStringIO, log_context_manager
 
 
 logger = logging.getLogger(__name__)
+
+CELERY_VERSION = StrictVersion('.'.join((str(i) for i in CELERY_VERSION if i)))
 
 
 def default_unique_key_generator(task, task_args, task_kwargs):
@@ -548,6 +553,10 @@ class LoggedTask(Task):
             eta = now() + timedelta(seconds=countdown)
 
         self.on_retry_task(self.task_run_log, args, kwargs, exc, eta)
+
+        if CELERY_VERSION < StrictVersion('4.4.3'):
+            # Celery < 4.4.3 retry not working in eager mode. This simple hack fix it.
+            self.request.is_eager = False
 
         return super().retry(
             args=args, kwargs=kwargs, exc=exc, throw=throw,
