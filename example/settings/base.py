@@ -112,6 +112,7 @@ INSTALLED_APPS = (
     'django.contrib.humanize',
 
     # apps
+    'django_celery_extensions',
     'security',
     'reversion',
     'apps.test_security',
@@ -174,7 +175,8 @@ CELERY_EAGER_PROPAGATES_EXCEPTIONS = False
 CELERY_ALWAYS_EAGER = True
 BROKER_BACKEND = 'memory'
 CELERY_DEFAULT_QUEUE = 'default'
-SECURITY_AUTO_GENERATE_TASKS_FOR_DJANGO_COMMANDS = {
+
+DJANGO_CELERY_EXTENSIONS_AUTO_GENERATE_TASKS_DJANGO_COMMANDS = {
     'check': {},
     'create_user': {},
 }

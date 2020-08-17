@@ -105,7 +105,7 @@ Celery tasks log
 
 If you want to log celery tasks you must firsly install celery library (celery==4.3.0). Then you must define your task as in example::
 
-    from security.tasks import LoggedTask
+    from security.task import LoggedTask
 
     @celery_app.task(
         base=LoggedTask,
@@ -116,13 +116,7 @@ If you want to log celery tasks you must firsly install celery library (celery==
 
 Task result will be automatically logged to the ``security.models.CeleryTaskLog``.
 
-You can use predefined celery task ``security.tasks.call_django_command`` to run arbitrary django command. For example::
-
-    from security.tasks import call_django_command
-
-    call_django_command.apply_async(args=('check',))
-
-.. class:: security.tasks.LoggedTask
+.. class:: security.task.LoggedTask
 
   There are several methods of ``LoggedTask`` which you can use for your advanced tasks logic.
 
