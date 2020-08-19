@@ -96,8 +96,6 @@ class RequestsLogISCore(DisplayRelatedObjectsMixin, UIRESTModelISCore):
 
     can_create = can_update = can_delete = False
 
-    rest_paginator = CursorBasedPaginator
-
     @short_description(_('queries'))
     def queries_code(self, obj):
         return display_as_code(display_json(obj.queries)) if obj else None
@@ -129,7 +127,7 @@ class InputRequestsLogISCore(RequestsLogISCore):
     abstract = True
 
     ui_list_fields = (
-        'created_at', 'changed_at', 'request_timestamp', 'response_timestamp', 'response_time', 'status',
+        'id', 'created_at', 'changed_at', 'request_timestamp', 'response_timestamp', 'response_time', 'status',
         'response_code', 'host', 'short_path', 'slug', 'ip', 'user', 'method', 'type', 'short_response_body',
         'short_request_body', 'short_queries', 'short_request_headers'
     )
@@ -171,7 +169,7 @@ class OutputRequestsLogISCore(RequestsLogISCore):
     abstract = True
 
     ui_list_fields = (
-        'created_at', 'changed_at', 'request_timestamp', 'response_timestamp', 'response_time', 'status',
+        'id', 'created_at', 'changed_at', 'request_timestamp', 'response_timestamp', 'response_time', 'status',
         'response_code', 'host', 'short_path', 'method', 'slug', 'short_response_body', 'short_request_body',
         'short_queries', 'short_request_headers'
     )
@@ -192,7 +190,7 @@ class CommandLogISCore(DisplayRelatedObjectsMixin, UIRESTModelISCore):
     can_create = can_update = can_delete = False
 
     ui_list_fields = (
-        'created_at', 'changed_at', 'name', 'start', 'stop', 'time', 'executed_from_command_line', 'is_successful'
+        'id', 'created_at', 'changed_at', 'name', 'start', 'stop', 'time', 'executed_from_command_line', 'is_successful'
     )
 
     form_fieldsets = (
@@ -239,7 +237,6 @@ class CeleryTaskRunLogISCore(DisplayRelatedObjectsMixin, UIRESTModelISCore):
 
     can_create = can_update = can_delete = False
 
-    rest_paginator = CursorBasedPaginator
     rest_extra_filter_fields = (
         'celery_task_id',
     )
@@ -294,8 +291,6 @@ class CeleryTaskLogISCore(DisplayRelatedObjectsMixin, UIRESTModelISCore):
     abstract = True
 
     can_create = can_update = can_delete = False
-
-    rest_paginator = CursorBasedPaginator
 
     ui_list_fields = (
         'celery_task_id', 'created_at', 'changed_at', 'name', 'short_input', 'state', 'get_start', 'get_stop',
