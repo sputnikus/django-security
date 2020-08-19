@@ -1,6 +1,7 @@
 import os
 import json
 import gzip
+import math
 
 from datetime import datetime, time, timedelta
 
@@ -48,6 +49,12 @@ def lazy_serialize_qs_without_pk(qs):
     return StreamList()
 
 
+def get_querysets_by_batch(qs, batch):
+    steps = math.ceil(qs.count() / batch)
+    for _ in range(steps):
+        yield qs[:batch]
+
+
 class Command(BaseCommand):
 
     models = {
@@ -75,11 +82,10 @@ class Command(BaseCommand):
             max_timestamp = datetime.combine(timestamp, time.max).replace(tzinfo=utc)
             qs_filtered_by_day = qs.filter(created_at__range=(min_timestamp, max_timestamp))
 
-            while qs_filtered_by_day.exists():
-                restricted_qs_filtered_by_day = qs_filtered_by_day[:settings.PURGE_LOG_BATCH]
+            for qs_batch in get_querysets_by_batch(qs_filtered_by_day, settings.PURGE_LOG_BACKUP_BATCH):
                 self.stdout.write(
                     2 * ' ' + 'Cleaning logs for date {} ({})'.format(
-                        timestamp.date(), restricted_qs_filtered_by_day.count()
+                        timestamp.date(), qs_batch.count()
                     )
                 )
                 if backup_path:
@@ -97,10 +103,12 @@ class Command(BaseCommand):
                         with TextIOWrapper(gzip.GzipFile(filename='{}.json'.format(log_file_name),
                                                          fileobj=f, mode='wb')) as gzf:
                             json.dump(
-                                lazy_serialize_qs_without_pk(restricted_qs_filtered_by_day), gzf, cls=DjangoJSONEncoder, indent=5
+                                lazy_serialize_qs_without_pk(qs_batch), gzf, cls=DjangoJSONEncoder, indent=5
                             )
                 self.stdout.write(4 * ' ' + 'deleting logs')
-                qs.filter(pk__in=restricted_qs_filtered_by_day.values('pk')).delete()
+
+                for qs_batch_to_delete in get_querysets_by_batch(qs_batch, settings.PURGE_LOG_DELETE_BATCH):
+                    qs_filtered_by_day.filter(pk__in=qs_batch_to_delete).delete()
 
     def handle(self, expiration, type, **options):
         # Check we have the correct values
@@ -115,7 +123,7 @@ class Command(BaseCommand):
             raise CommandError('Invalid expiration format')
 
         model = self.get_model(type)
-        qs = model.objects.filter(created_at__lte=UNIT_OPTIONS[unit](amount))
+        qs = model.objects.filter(created_at__lte=UNIT_OPTIONS[unit](amount)).order_by('created_at', 'pk')
 
         if qs.count() == 0:
             self.stdout.write('There are no logs to delete.')
