@@ -1,6 +1,6 @@
 from settings.celery import app as celery_app
 
-from security.tasks import LoggedTask
+from security.task import LoggedTask
 
 
 @celery_app.task(

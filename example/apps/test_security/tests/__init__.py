@@ -26,6 +26,8 @@ from germanium.tools import (
     assert_raises, assert_true
 )
 
+from django_celery_extensions.task import get_django_command_task
+
 from security.config import settings
 from security.decorators import atomic_log
 from security.management import call_command
@@ -33,7 +35,6 @@ from security.models import (
     CeleryTaskLog, CeleryTaskLogState, CeleryTaskRunLog, CeleryTaskRunLogState, CommandLog, InputLoggedRequest,
     LoggedRequestStatus, OutputLoggedRequest
 )
-from security.tasks import get_django_command_task
 from security.transport import security_requests as requests
 from security.utils import log_context_manager
 
@@ -392,6 +393,13 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         output_logged_request = OutputLoggedRequest.objects.get()
         assert_equal(output_logged_request.queries, {'b': '6', 'a': ['3', '1', '2'], 'c': '5'})
 
+    @data_consumer('create_user')
+    def test_apply_task_with_related_objects_should_be_stored(self, user):
+        sum_task.apply_async(args=(5, 8), related_objects=[user])
+        assert_equal(CeleryTaskLog.objects.count(), 1)
+        assert_equal(CeleryTaskLog.objects.get().state, CeleryTaskLogState.SUCCEEDED)
+        assert_equal(CeleryTaskLog.objects.get().related_objects.get().object, user)
+
     def test_celery_task_should_be_logged(self):
         sum_task.apply_async(args=(5, 8))
         assert_equal(CeleryTaskLog.objects.count(), 1)
@@ -454,7 +462,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         )
 
     @freeze_time(now())
-    @override_settings(CELERYD_TASK_STALE_TIME_LIMIT=30)
+    @override_settings(DJANGO_CELERY_EXTENSIONS_TASK_STALE_TIME_LIMIT=30)
     def test_celery_task_should_have_rightly_set_stale_time(self):
         sum_task.apply_async(args=(5, 8))
         celery_task_log = CeleryTaskLog.objects.get()
@@ -463,7 +471,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         assert_equal(celery_task_log.stale, now() + timedelta(seconds=30))
 
     @freeze_time(now())
-    @override_settings(CELERYD_TASK_STALE_TIME_LIMIT=30, CELERYD_TASK_TIME_LIMIT=10)
+    @override_settings(DJANGO_CELERY_EXTENSIONS_TASK_STALE_TIME_LIMIT=30, CELERYD_TASK_TIME_LIMIT=10)
     def test_celery_task_should_have_rightly_set_expires_time(self):
         sum_task.apply_async(args=(5, 8))
         celery_task_log = CeleryTaskLog.objects.get()
@@ -472,7 +480,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         assert_equal(celery_task_log.stale, now() + timedelta(seconds=30))
 
     @freeze_time(now())
-    @override_settings(CELERYD_TASK_STALE_TIME_LIMIT=30, CELERYD_TASK_TIME_LIMIT=10)
+    @override_settings(DJANGO_CELERY_EXTENSIONS_TASK_STALE_TIME_LIMIT=30, CELERYD_TASK_TIME_LIMIT=10)
     def test_celery_task_should_have_rightly_set_expires_time_if_soft_time_limit_is_set_in_task_call(self):
         sum_task.apply_async(args=(5, 8), time_limit=20)
         celery_task_log = CeleryTaskLog.objects.get()
@@ -481,7 +489,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         assert_equal(celery_task_log.stale, now() + timedelta(seconds=30))
 
     @freeze_time(now())
-    @override_settings(CELERYD_TASK_STALE_TIME_LIMIT=30, CELERYD_TASK_TIME_LIMIT=10)
+    @override_settings(DJANGO_CELERY_EXTENSIONS_TASK_STALE_TIME_LIMIT=30, CELERYD_TASK_TIME_LIMIT=10)
     def test_celery_task_should_have_rightly_set_expires_time_if_stale_time_limit_is_set_in_task_call(self):
         sum_task.apply_async(args=(5, 8), stale_time_limit=100)
         celery_task_log = CeleryTaskLog.objects.get()
@@ -490,7 +498,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         assert_equal(celery_task_log.expires, now() + timedelta(seconds=90))
 
     @freeze_time(now())
-    @override_settings(CELERYD_TASK_STALE_TIME_LIMIT=30, CELERYD_TASK_TIME_LIMIT=10)
+    @override_settings(DJANGO_CELERY_EXTENSIONS_TASK_STALE_TIME_LIMIT=30, CELERYD_TASK_TIME_LIMIT=10)
     def test_celery_task_should_have_rightly_set_expires_time_according_to_default_task_stale_limit_value(self):
         error_task.apply_async()
         celery_task_log = CeleryTaskLog.objects.get()
@@ -499,7 +507,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         assert_equal(celery_task_log.expires, now() + timedelta(seconds=60 * 60 - 10))
 
     @freeze_time(now())
-    @override_settings(CELERYD_TASK_STALE_TIME_LIMIT=30, CELERYD_TASK_TIME_LIMIT=10)
+    @override_settings(DJANGO_CELERY_EXTENSIONS_TASK_STALE_TIME_LIMIT=30, CELERYD_TASK_TIME_LIMIT=10)
     def test_stale_waiting_celery_task_should_be_set_as_failed_with_command(self):
         sum_task.apply_async(args=(5, 8))
         celery_task_log = CeleryTaskLog.objects.create(
@@ -518,7 +526,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         assert_false(CeleryTaskLog.objects.filter_processing().exists())
 
     @freeze_time(now())
-    @override_settings(CELERYD_TASK_STALE_TIME_LIMIT=30, CELERYD_TASK_TIME_LIMIT=10)
+    @override_settings(DJANGO_CELERY_EXTENSIONS_TASK_STALE_TIME_LIMIT=30, CELERYD_TASK_TIME_LIMIT=10)
     def test_stale_failed_celery_task_should_not_be_set_as_failed_with_command(self):
         sum_task.apply_async(args=(5, 8))
         celery_task_log = CeleryTaskLog.objects.create(
@@ -545,7 +553,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         assert_equal(celery_task_log.refresh_from_db().state, CeleryTaskLogState.FAILED)
 
     @freeze_time(now())
-    @override_settings(CELERYD_TASK_STALE_TIME_LIMIT=30, CELERYD_TASK_TIME_LIMIT=10)
+    @override_settings(DJANGO_CELERY_EXTENSIONS_TASK_STALE_TIME_LIMIT=30, CELERYD_TASK_TIME_LIMIT=10)
     def test_stale_succeded_celery_task_should_not_be_set_as_succeeded_with_command(self):
         sum_task.apply_async(args=(5, 8))
         celery_task_log = CeleryTaskLog.objects.create(
@@ -571,20 +579,20 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         test_call_command('set_celery_task_log_state')
         assert_equal(celery_task_log.refresh_from_db().state, CeleryTaskLogState.SUCCEEDED)
 
-    @override_settings(CELERYD_TASK_STALE_TIME_LIMIT=None)
+    @override_settings(DJANGO_CELERY_EXTENSIONS_TASK_STALE_TIME_LIMIT=None)
     def test_unique_task_shoud_have_set_stale_limit(self):
         with assert_raises(CeleryError):
             unique_task.delay()
-        with override_settings(CELERYD_TASK_STALE_TIME_LIMIT=10):
+        with override_settings(DJANGO_CELERY_EXTENSIONS_TASK_STALE_TIME_LIMIT=10):
             with assert_not_raises(CeleryError):
                 unique_task.delay()
 
-    @override_settings(CELERYD_TASK_STALE_TIME_LIMIT=5)
+    @override_settings(DJANGO_CELERY_EXTENSIONS_TASK_STALE_TIME_LIMIT=5)
     def test_apply_async_and_get_result_should_return_time_error_for_zero_timeout(self):
         with assert_raises(TimeoutError):
             unique_task.apply_async_and_get_result(timeout=0)
 
-    @override_settings(CELERYD_TASK_STALE_TIME_LIMIT=5)
+    @override_settings(DJANGO_CELERY_EXTENSIONS_TASK_STALE_TIME_LIMIT=5)
     def test_apply_async_and_get_result_should_return_task_result(self):
         assert_equal(unique_task.apply_async_and_get_result(), 'unique')
 
@@ -643,7 +651,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         user2 = self.create_user(username='test2', email='test2@test.cz')
         assert_false(sum_task.is_processing(related_objects=(user2,)))
 
-        celery_task_run_log = CeleryTaskRunLog(
+        CeleryTaskRunLog(
             celery_task_id='test',
             name='sum_task'
         )

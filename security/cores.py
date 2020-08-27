@@ -248,7 +248,7 @@ class CeleryTaskRunLogISCore(DisplayRelatedObjectsMixin, UIRESTModelISCore):
 
     form_fields = (
         'celery_task_id', 'task_log', 'start', 'stop', 'time', 'state', 'result', 'error_message', 'output_html',
-        'retries','estimated_time_of_next_retry', 'display_related_objects', 'display_output_logged_requests',
+        'retries', 'estimated_time_of_next_retry', 'display_related_objects', 'display_output_logged_requests',
         'display_command_logs', 'display_celery_task_logs'
     )
 
