@@ -3,8 +3,6 @@ import base64
 import logging
 import pickle
 
-import uuid
-
 from datetime import timedelta
 
 from distutils.version import StrictVersion
@@ -13,7 +11,6 @@ from django.conf import settings as django_settings
 from django.core.management import call_command, get_commands, load_command_class
 from django.core.management.base import OutputWrapper
 from django.core.exceptions import ImproperlyConfigured
-from django.core.cache import cache
 from django.db import close_old_connections, transaction
 from django.db.utils import InterfaceError, OperationalError
 from django.utils.timezone import now
@@ -23,7 +20,6 @@ try:
     from celery.result import AsyncResult
     from celery.exceptions import CeleryError, TimeoutError
     from celery.worker.request import Request
-    from kombu.utils import uuid as task_uuid
 except ImportError:
     raise ImproperlyConfigured('Missing celery library, please install it')
 
@@ -53,35 +49,6 @@ class LoggedTask(DjangoTask):
 
     def _get_log_message(self, log_name):
         return self._log_messages[log_name]
-
-    def _get_unique_key(self, task_args, task_kwargs):
-        return (
-            str(uuid.uuid5(uuid.NAMESPACE_DNS, self.unique_key_generator(task_args, task_kwargs)))
-            if self.unique else None
-        )
-
-    def _clear_unique_key(self, task_args, task_kwargs):
-        unique_key = self._get_unique_key(task_args, task_kwargs)
-        if unique_key:
-            cache.delete(unique_key)
-
-    def _get_unique_task_id(self, task_id, task_args, task_kwargs, stale_time_limit):
-        unique_key = self._get_unique_key(task_args, task_kwargs)
-
-        if unique_key and not stale_time_limit:
-            raise CeleryError('For unique tasks is require set task stale_time_limit')
-
-        if unique_key and not self._get_app().conf.task_always_eager:
-            if cache.add(unique_key, task_id, stale_time_limit):
-                return task_id
-            else:
-                unique_task_id = cache.get(unique_key)
-                return (
-                    unique_task_id if unique_task_id
-                    else self._get_unique_task_id(task_id, task_args, task_kwargs, stale_time_limit)
-                )
-        else:
-            return task_id
 
     def _store_log_output(self, output_stream):
         self.request.celery_task_run_log.change_and_save(
@@ -298,6 +265,7 @@ class LoggedTask(DjangoTask):
         self._clear_unique_key(args, kwargs)
 
     def on_success(self, retval, task_id, args, kwargs):
+        super().on_success(retval, task_id, args, kwargs)
         self.on_success_task(self.task_run_log, args, kwargs, retval)
 
     def on_failure_task(self, task_run_log, args, kwargs, exc):
