@@ -225,7 +225,7 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         assert_equal(InputLoggedRequest.objects.count(), 1)
 
     @responses.activate
-    def test_response_with_exception_should_be_logged(self):
+    def test_response_without_exception_should_be_logged(self):
         responses.add(responses.GET, 'http://test.cz', body='test')
         assert_equal(self.get('/proxy/?url=http://test.cz').content, b'test')
         assert_equal(InputLoggedRequest.objects.count(), 1)
