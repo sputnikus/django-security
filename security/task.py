@@ -262,8 +262,6 @@ class LoggedTask(DjangoTask):
                 state=CeleryTaskLogState.SUCCEEDED
             )
 
-        self._clear_unique_key(args, kwargs)
-
     def on_success(self, retval, task_id, args, kwargs):
         super().on_success(retval, task_id, args, kwargs)
         self.on_success_task(self.task_run_log, args, kwargs, retval)
@@ -315,8 +313,6 @@ class LoggedTask(DjangoTask):
             task_log.change_and_save(
                 state=CeleryTaskLogState.FAILED
             )
-
-        self._clear_unique_key(args, kwargs)
 
     def expire_task(self, task_log):
         logger.error(
