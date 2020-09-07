@@ -31,7 +31,7 @@ from .models import CeleryTaskRunLog, CeleryTaskLog, CeleryTaskLogState, CeleryT
 from .utils import LogStringIO, log_context_manager
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(settings.TASK_LOGGER_NAME)
 
 
 class LoggedTask(DjangoTask):
