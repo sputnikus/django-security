@@ -71,7 +71,7 @@ class DisplayRelatedObjectsMixin:
 
     @short_description(_('raised command logs'))
     def display_command_logs(self, obj, request):
-        return display_related_objects(
+        return render_model_objects_with_link(
             request,
             CommandLog.objects.filter(
                 related_objects__object_id=obj.pk,
