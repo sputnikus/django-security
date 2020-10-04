@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-06-17 14:06+0200\n"
+"POT-Creation-Date: 2020-10-05 00:01+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -110,11 +110,11 @@ msgstr[0] "Procesor kontextu"
 msgstr[1] "Procesory kontextu"
 msgstr[2] "Procesory kontextu"
 
-#: cores.py:36
+#: cores.py:50
 msgid "related objects"
 msgstr "vztažené objekty"
 
-#: cores.py:49
+#: cores.py:56
 msgid "source"
 msgstr "zdroj"
 
@@ -122,67 +122,67 @@ msgstr "zdroj"
 msgid "raised output logged requests"
 msgstr "vyvolané výstupní logované dotazy"
 
-#: cores.py:71
+#: cores.py:72
 msgid "raised command logs"
 msgstr "vyvolané spustitelné úlohy"
 
-#: cores.py:80
+#: cores.py:82
 msgid "raised celery task logs"
 msgstr "vyvolané celery úlohy"
 
-#: cores.py:98 models.py:169 models.py:201
+#: cores.py:99 models.py:169 models.py:201
 msgid "queries"
 msgstr "query string"
 
-#: cores.py:102 models.py:176 models.py:222
+#: cores.py:103 models.py:176 models.py:222
 msgid "request body"
 msgstr "tělo dotazu"
 
-#: cores.py:106 models.py:175 models.py:206
+#: cores.py:107 models.py:175 models.py:206
 msgid "request headers"
 msgstr "hlavičky dotazu"
 
-#: cores.py:110 models.py:182 models.py:217
+#: cores.py:111 models.py:182 models.py:217
 msgid "response body"
 msgstr "tělo odpovědi"
 
-#: cores.py:114 models.py:181
+#: cores.py:115 models.py:181
 msgid "response headers"
 msgstr "hlavičky odpovědi"
 
-#: cores.py:118 models.py:187
+#: cores.py:119 models.py:187
 msgid "error description"
 msgstr "popis chyby"
 
-#: cores.py:135 cores.py:177
+#: cores.py:136 cores.py:178
 msgid "Request"
 msgstr "Dotaz"
 
-#: cores.py:137 cores.py:179
+#: cores.py:138 cores.py:180
 msgid "Response"
 msgstr "Odpověď"
 
-#: cores.py:139
+#: cores.py:140
 msgid "User information"
 msgstr "Uživatelské informace"
 
-#: cores.py:140 cores.py:181
+#: cores.py:141 cores.py:182
 msgid "Extra information"
 msgstr "Další informace"
 
-#: cores.py:155
+#: cores.py:156
 msgid "user"
 msgstr "uživatel"
 
-#: cores.py:210 cores.py:263 models.py:315 models.py:522
+#: cores.py:211 cores.py:263 models.py:315 models.py:522
 msgid "output"
 msgstr "výstup"
 
-#: cores.py:222 models.py:426 models.py:552
+#: cores.py:223 models.py:426 models.py:552
 msgid "celery task"
 msgstr "celery úloha"
 
-#: cores.py:223 models.py:543
+#: cores.py:224 models.py:543
 msgid "celery task run"
 msgstr "zpracování celery úlohy"
 
@@ -190,11 +190,11 @@ msgstr "zpracování celery úlohy"
 msgid "celery task log"
 msgstr "log celery úlohy"
 
-#: cores.py:310
+#: cores.py:308
 msgid "celery task runs"
 msgstr "zpracování celery úlohy"
 
-#: cores.py:317 models.py:312 models.py:380
+#: cores.py:315 models.py:312 models.py:380
 msgid "input"
 msgstr "vstup"
 
@@ -319,10 +319,8 @@ msgid "Path"
 msgstr "Cesta"
 
 #: models.py:241
-#, fuzzy
-#| msgid "user"
 msgid "user ID"
-msgstr "uživatel"
+msgstr "ID uživatele"
 
 #: models.py:242
 msgid "IP address"
@@ -358,7 +356,7 @@ msgstr "stop"
 
 #: models.py:309 models.py:479
 msgid "time"
-msgstr ""
+msgstr "čas"
 
 #: models.py:311
 msgid "name"
@@ -444,14 +442,14 @@ msgstr "zpracování celery úlohy"
 msgid "Too Many Requests (429)"
 msgstr "Příliš mnoho HTTP dotazů (429)"
 
-#: throttling.py:36
+#: throttling.py:35
 msgid "Slow down"
 msgstr "Zpomal"
 
-#: throttling.py:69 throttling.py:85
+#: throttling.py:68 throttling.py:84
 msgid "Too many login attempts"
 msgstr "Příliš mnoho pokusů o přihlášení"
 
-#: throttling.py:77 throttling.py:93
+#: throttling.py:76 throttling.py:92
 msgid "You have logged in too many times"
 msgstr "Příliš mnoho přihlášení najednou"
