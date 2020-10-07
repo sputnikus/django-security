@@ -12,6 +12,12 @@ DATABASES = {
         'USER': '',
         'PASSWORD': '',
     },
+    'security': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.path.join(PROJECT_DIR, 'var', 'db', 'log.db'),
+        'USER': '',
+        'PASSWORD': '',
+    },
 }
 
 ROOT_URLCONF = 'urls'
@@ -22,3 +28,6 @@ STATIC_ROOT = ''
 STATICFILES_DIRS = (
     STATICFILES_ROOT,
 )
+
+SECURITY_LOG_DB_NAME = 'security'
+DATABASE_ROUTERS = ['security.db_router.MultipleDBSecurityLoggerRouter']

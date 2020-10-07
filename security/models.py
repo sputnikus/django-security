@@ -23,7 +23,7 @@ try:
 except ImportError:
     from django.urls import get_resolver
 
-from generic_m2m_field.models import GenericManyToManyField
+from generic_m2m_field.models import MultipleDBGenericManyToManyField
 
 from chamber.models import SmartModel, SmartQuerySet
 
@@ -126,7 +126,7 @@ class BaseLogQuerySet(SmartQuerySet):
     def filter_related_with_object(self, related_object):
         return self.filter(
             related_objects__object_id=related_object.pk,
-            related_objects__object_ct=ContentType.objects.get_for_model(related_object)
+            related_objects__object_ct_id=ContentType.objects.get_for_model(related_object).pk
         )
 
 
@@ -243,7 +243,7 @@ class InputLoggedRequest(LoggedRequest):
     type = NumEnumField(verbose_name=_('type'), enum=InputLoggedRequestType,
                         default=InputLoggedRequestType.COMMON_REQUEST,
                         null=False, blank=False, db_index=True)
-    related_objects = GenericManyToManyField()
+    related_objects = MultipleDBGenericManyToManyField()
 
     objects = InputLoggedRequestManager.from_queryset(BaseLogQuerySet)()
 
@@ -277,7 +277,7 @@ class InputLoggedRequest(LoggedRequest):
 
 class OutputLoggedRequest(LoggedRequest):
 
-    related_objects = GenericManyToManyField()
+    related_objects = MultipleDBGenericManyToManyField()
 
     objects = BaseLogQuerySet.as_manager()
 
@@ -316,7 +316,7 @@ class CommandLog(SmartModel):
     is_successful = models.BooleanField(verbose_name=_('finished successfully'),
                                         blank=False, null=False, default=False, editable=False)
     error_message = models.TextField(verbose_name=_('error message'), null=True, blank=True, editable=False)
-    related_objects = GenericManyToManyField()
+    related_objects = MultipleDBGenericManyToManyField()
 
     objects = BaseLogQuerySet.as_manager()
 
@@ -349,7 +349,7 @@ class CeleryTaskLogManager(models.Manager):
             for related_object in related_objects:
                 qs = qs.filter(
                     related_objects__object_id=related_object.pk,
-                    related_objects__object_ct=ContentType.objects.get_for_model(related_object)
+                    related_objects__object_ct_id=ContentType.objects.get_for_model(related_object).pk
                 )
         return qs
 
@@ -418,7 +418,7 @@ class CeleryTaskLog(SmartModel):
         db_index=True
     )
 
-    related_objects = GenericManyToManyField()
+    related_objects = MultipleDBGenericManyToManyField()
 
     objects = CeleryTaskLogManager.from_queryset(BaseLogQuerySet)()
 
@@ -535,7 +535,7 @@ class CeleryTaskRunLog(SmartModel):
         null=True,
         blank=True
     )
-    related_objects = GenericManyToManyField()
+    related_objects = MultipleDBGenericManyToManyField()
 
     objects = BaseLogQuerySet.as_manager()
 
