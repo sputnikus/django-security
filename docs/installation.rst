@@ -54,7 +54,7 @@ Example::
             'PASSWORD': 'db_password',
             'HOST': 'postgres',
             'PORT': 5432,
-            'ENGINE': 'django.contrib.gis.db.backends.postgis',
+            'ENGINE': 'django.db.backends.postgresql_psycopg2',
             'ATOMIC_REQUESTS': True,
         },
         'log': {
@@ -63,7 +63,7 @@ Example::
             'PASSWORD': 'db_password',
             'HOST': 'postgres',
             'PORT': 5432,
-            'ENGINE': 'django.contrib.gis.db.backends.postgis',
+            'ENGINE': 'django.db.backends.postgresql_psycopg2',
             'ATOMIC_REQUESTS': False,
             'TEST': {
                 'MIRROR': 'default', # Test purposes
@@ -80,6 +80,32 @@ For test purposes you will need to configure both databases to be tested::
 
     class YourTestCase(TestCase):
         databases = ('default', 'log')
+
+
+The second solution is have second storage for logs in this case you will use ``MultipleDBSecurityLoggerRouter``::
+
+    DATABASES = {
+        'default': {
+            'NAME': 'db_name',
+            'USER': 'db_user',
+            'PASSWORD': 'db_password',
+            'HOST': 'postgres',
+            'PORT': 5432,
+            'ENGINE': 'django.db.backends.postgresql_psycopg2',
+            'ATOMIC_REQUESTS': True,
+        },
+        'log': {
+            'NAME': 'log_db_name',
+            'USER': 'log_db_user',
+            'PASSWORD': 'log_db_password',
+            'HOST': 'log_db_postgres',
+            'PORT': 5432,
+            'ENGINE': 'django.db.backends.postgresql_psycopg2',
+            'ATOMIC_REQUESTS': False,
+        },
+    }
+    DATABASE_ROUTERS = ['security.db_router.MultipleDBSecurityLoggerRouter']  # DB router which defines connection for logs
+    SECURITY_DB_NAME = 'log'
 
 
 Setup

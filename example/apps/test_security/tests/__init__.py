@@ -51,12 +51,14 @@ class TestException(Exception):
 
 class BaseTestCaseMixin:
 
+    databases = ['default', 'security']
+
     @data_provider
     def create_user(self, username='test', email='test@test.cz'):
         return User.objects._create_user(username, email, 'test', is_staff=True, is_superuser=True)
 
 
-class CeleryHealthCheckCommandTestCaseMixin:
+class CeleryHealthCheckCommandTestCaseMixin(BaseTestCaseMixin):
 
     @data_provider
     def create_waiting_celery_task_log(self, task_uuid=uuid.uuid4(), name=None,
@@ -242,7 +244,6 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         output_logged_request = OutputLoggedRequest.objects.get()
         assert_equal(output_logged_request.related_objects.count(), 2)
         user_related_object, input_request_related_object = output_logged_request.related_objects.all()
-
         assert_equal(user_related_object.object, user)
         assert_equal(input_request_related_object.object, InputLoggedRequest.objects.first())
 
@@ -318,14 +319,14 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
         assert_http_too_many_requests(self.get('/extra-throttling/'))
 
     @responses.activate
-    def test_output_logged_requests_with_atomic_block_should_not_be_logged_if_exception_is_raised(self):
+    def test_output_logged_requests_with_atomic_block_should_be_logged_if_exception_is_raised(self):
         responses.add(responses.GET, 'http://test.cz', body='test')
         with assert_raises(TestException):
             with transaction.atomic():
                 requests.get('http://test.cz')
                 assert_equal(OutputLoggedRequest.objects.count(), 1)
                 raise TestException
-        assert_equal(OutputLoggedRequest.objects.count(), 0)
+        assert_equal(OutputLoggedRequest.objects.count(), 1)
 
     @responses.activate
     def test_output_logged_requests_with_atomic_and_log_atomic_block_should_be_logged_if_exception_is_raised(self):

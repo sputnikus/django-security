@@ -38,9 +38,9 @@ def display_related_objects(request, related_objects):
     )
 
 
-def get_content_type_of_parent_related_classes():
+def get_content_type_pks_of_parent_related_classes():
     return {
-        ContentType.objects.get_for_model(model_class)
+        ContentType.objects.get_for_model(model_class).pk
         for model_class in (CommandLog, InputLoggedRequest, OutputLoggedRequest, CeleryTaskLog, CeleryTaskRunLog)
     }
 
@@ -50,13 +50,13 @@ class DisplayRelatedObjectsMixin:
     @short_description(_('related objects'))
     def display_related_objects(self, obj, request):
         return display_related_objects(
-            request, obj.related_objects.exclude(object_ct__in=get_content_type_of_parent_related_classes())
+            request, obj.related_objects.exclude(object_ct_id__in=get_content_type_pks_of_parent_related_classes())
         )
 
     @short_description(_('source'))
     def display_source(self, obj, request):
         return display_related_objects(
-            request, obj.related_objects.filter(object_ct__in=get_content_type_of_parent_related_classes())
+            request, obj.related_objects.filter(object_ct_id__in=get_content_type_pks_of_parent_related_classes())
         )
 
     @short_description(_('raised output logged requests'))
@@ -65,7 +65,7 @@ class DisplayRelatedObjectsMixin:
             request,
             OutputLoggedRequest.objects.filter(
                 related_objects__object_id=obj.pk,
-                related_objects__object_ct=ContentType.objects.get_for_model(obj)
+                related_objects__object_ct_id=ContentType.objects.get_for_model(obj).pk
             )
         )
 
@@ -75,7 +75,7 @@ class DisplayRelatedObjectsMixin:
             request,
             CommandLog.objects.filter(
                 related_objects__object_id=obj.pk,
-                related_objects__object_ct=ContentType.objects.get_for_model(obj)
+                related_objects__object_ct_id=ContentType.objects.get_for_model(obj).pk
             )
         )
 
@@ -85,7 +85,7 @@ class DisplayRelatedObjectsMixin:
             request,
             CeleryTaskLog.objects.filter(
                 related_objects__object_id=obj.pk,
-                related_objects__object_ct=ContentType.objects.get_for_model(obj)
+                related_objects__object_ct_id=ContentType.objects.get_for_model(obj).pk
             )
         )
 
