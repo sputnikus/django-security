@@ -3,6 +3,13 @@
 django-security-logger changelog
 ================================
 
+1.2.0 - 10/20/2020
+------------------
+
+- purge migrations because of splitting log to the extra database
+- used new version of generic m2m relation which uses relations without FK
+- added multiple database router
+
 1.0.6 - 02/06/2020
 ------------------
 
