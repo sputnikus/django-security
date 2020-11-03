@@ -13,9 +13,9 @@ from is_core.generic_views.inlines.inline_table_views import InlineTableView
 from is_core.generic_views.mixins import TabItem, TabsViewMixin
 from is_core.generic_views.table_views import TableView
 from is_core.main import UIRESTModelISCore
+from is_core.rest.paginators import OffsetBasedPaginatorWithoutTotal
 from is_core.utils import render_model_objects_with_link, render_model_object_with_link
 from is_core.utils.decorators import short_description
-from is_core.rest.paginators import CursorBasedPaginator
 
 from security.config import settings
 from security.models import CommandLog, InputLoggedRequest, OutputLoggedRequest, CeleryTaskLog, CeleryTaskRunLog
@@ -45,7 +45,9 @@ def get_content_type_pks_of_parent_related_classes():
     }
 
 
-class DisplayRelatedObjectsMixin:
+class SecurityISCoreMixin:
+
+    rest_paginator = OffsetBasedPaginatorWithoutTotal
 
     @short_description(_('related objects'))
     def display_related_objects(self, obj, request):
@@ -90,7 +92,7 @@ class DisplayRelatedObjectsMixin:
         )
 
 
-class RequestsLogISCore(DisplayRelatedObjectsMixin, UIRESTModelISCore):
+class RequestsLogISCore(SecurityISCoreMixin, UIRESTModelISCore):
 
     abstract = True
 
@@ -183,7 +185,7 @@ class OutputRequestsLogISCore(RequestsLogISCore):
     )
 
 
-class CommandLogISCore(DisplayRelatedObjectsMixin, UIRESTModelISCore):
+class CommandLogISCore(SecurityISCoreMixin, UIRESTModelISCore):
 
     model = CommandLog
 
@@ -229,7 +231,7 @@ class CeleryTaskLogTableView(CeleryTaskLogTabs, TableView):
     pass
 
 
-class CeleryTaskRunLogISCore(DisplayRelatedObjectsMixin, UIRESTModelISCore):
+class CeleryTaskRunLogISCore(SecurityISCoreMixin, UIRESTModelISCore):
 
     model = CeleryTaskRunLog
 
@@ -284,7 +286,7 @@ class CeleryTaskRunLogInlineTableView(InlineTableView):
         }
 
 
-class CeleryTaskLogISCore(DisplayRelatedObjectsMixin, UIRESTModelISCore):
+class CeleryTaskLogISCore(SecurityISCoreMixin, UIRESTModelISCore):
 
     model = CeleryTaskLog
 
