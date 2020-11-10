@@ -13,7 +13,6 @@ from is_core.generic_views.inlines.inline_table_views import InlineTableView
 from is_core.generic_views.mixins import TabItem, TabsViewMixin
 from is_core.generic_views.table_views import TableView
 from is_core.main import UIRESTModelISCore
-from is_core.rest.paginators import OffsetBasedPaginatorWithoutTotal
 from is_core.utils import render_model_objects_with_link, render_model_object_with_link
 from is_core.utils.decorators import short_description
 
@@ -46,8 +45,6 @@ def get_content_type_pks_of_parent_related_classes():
 
 
 class SecurityISCoreMixin:
-
-    rest_paginator = OffsetBasedPaginatorWithoutTotal
 
     @short_description(_('related objects'))
     def display_related_objects(self, obj, request):
