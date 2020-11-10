@@ -1,13 +1,17 @@
 import json
 
 from django.apps import apps
+from django.contrib.auth import get_user_model
 from django.core.serializers.json import DjangoJSONEncoder
+from django.db.models import TextField
+from django.db.models.functions import Cast
 from django.template.defaultfilters import truncatechars
 from django.utils.html import format_html, format_html_join, mark_safe, format_html_join
 from django.utils.translation import ugettext_lazy as _
 from django.contrib.contenttypes.models import ContentType
 
-from pyston.utils.decorators import filter_by, order_by
+from pyston.filters.default_filters import SimpleMethodEqualFilter
+from pyston.utils.decorators import filter_by, order_by, filter_class
 
 from is_core.generic_views.inlines.inline_table_views import InlineTableView
 from is_core.generic_views.mixins import TabItem, TabsViewMixin
@@ -42,6 +46,21 @@ def get_content_type_pks_of_parent_related_classes():
         ContentType.objects.get_for_model(model_class).pk
         for model_class in (CommandLog, InputLoggedRequest, OutputLoggedRequest, CeleryTaskLog, CeleryTaskRunLog)
     }
+
+
+class UsernameUserFilter(SimpleMethodEqualFilter):
+
+    def get_filter_term(self, value, operator_slug, request):
+        user_model = get_user_model()
+        return {
+            'user_id__in': list(
+                user_model.objects.filter(
+                   **{'{}__contains'.format(user_model.USERNAME_FIELD): value}
+                ).annotate(
+                    str_id=Cast('id', output_field=TextField())
+                ).values_list('str_id', flat=True)
+            )
+        }
 
 
 class SecurityISCoreMixin:
@@ -153,7 +172,7 @@ class InputRequestsLogISCore(RequestsLogISCore):
         return form_fieldsets
 
     @short_description(_('user'))
-    @filter_by('user_id')
+    @filter_class(UsernameUserFilter)
     def user(self, obj):
         return obj.user
 
