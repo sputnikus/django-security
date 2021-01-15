@@ -2,8 +2,6 @@ import re
 import json
 from json import JSONDecodeError
 
-from jsonfield import JSONField
-
 from django.conf import settings as django_settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.contrib.auth import get_user_model
@@ -166,19 +164,19 @@ class LoggedRequest(SmartModel):
     method = models.SlugField(_('method'), max_length=7, null=False, blank=False, db_index=True)
     path = models.CharField(_('URL path'), max_length=2000, null=False, blank=True, db_index=True)
     path._filter = CaseSensitiveStringFieldFilter
-    queries = JSONField(_('queries'), null=True, blank=True)
+    queries = models.JSONField(_('queries'), null=True, blank=True, encoder=DjangoJSONEncoder)
     is_secure = models.BooleanField(_('HTTPS connection'), default=False, null=False, blank=False)
     slug = models.CharField(_('slug'), null=True, blank=True, db_index=True, max_length=255)
 
     # Request information
     request_timestamp = models.DateTimeField(_('request timestamp'), null=False, blank=False, db_index=True)
-    request_headers = JSONField(_('request headers'), null=True, blank=True)
+    request_headers = models.JSONField(_('request headers'), null=True, blank=True, encoder=DjangoJSONEncoder)
     request_body = models.TextField(_('request body'), null=False, blank=True)
 
     # Response information
     response_timestamp = models.DateTimeField(_('response timestamp'), null=True, blank=True, db_index=True)
     response_code = models.PositiveSmallIntegerField(_('response code'), null=True, blank=True)
-    response_headers = JSONField(_('response headers'), null=True, blank=True)
+    response_headers = models.JSONField(_('response headers'), null=True, blank=True, encoder=DjangoJSONEncoder)
     response_body = models.TextField(_('response body'), null=True, blank=True)
     response_time = models.FloatField(_('response time'), null=True, blank=True)
 
@@ -382,17 +380,19 @@ class CeleryTaskLog(SmartModel):
         null=True,
         editable=False
     )
-    task_args = JSONField(
+    task_args = models.JSONField(
         verbose_name=_('task args'),
         null=True,
         blank=True,
-        editable=False
+        editable=False,
+        encoder=DjangoJSONEncoder
     )
-    task_kwargs = JSONField(
+    task_kwargs = models.JSONField(
         verbose_name=_('task kwargs'),
         null=True,
         blank=True,
-        editable=False
+        editable=False,
+        encoder=DjangoJSONEncoder
     )
     estimated_time_of_first_arrival = models.DateTimeField(
         verbose_name=_('estimated time of first arrival'),
@@ -495,23 +495,26 @@ class CeleryTaskRunLog(SmartModel):
         max_length=250,
         db_index=True
     )
-    task_args = JSONField(
+    task_args = models.JSONField(
         verbose_name=_('task args'),
         null=True,
         blank=True,
-        editable=False
+        editable=False,
+        encoder=DjangoJSONEncoder
     )
-    task_kwargs = JSONField(
+    task_kwargs = models.JSONField(
         verbose_name=_('task kwargs'),
         null=True,
         blank=True,
-        editable=False
+        editable=False,
+        encoder=DjangoJSONEncoder
     )
-    result = JSONField(
+    result = models.JSONField(
         verbose_name=_('result'),
         blank=True,
         null=True,
-        editable=False
+        editable=False,
+        encoder=DjangoJSONEncoder
     )
     error_message = models.TextField(
         verbose_name=_('error message'),
