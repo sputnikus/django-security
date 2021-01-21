@@ -40,7 +40,7 @@ def display_related_objects(request, related_objects):
     for related_object in related_objects:
         try:
             related_object_instances.append(related_object.object)
-        except ObjectDoesNotExist:
+        except (ObjectDoesNotExist, AttributeError):
             pass
 
     return render_model_objects_with_link(request, related_object_instances)
