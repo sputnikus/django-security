@@ -2,6 +2,7 @@ import json
 
 from django.apps import apps
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import TextField
 from django.db.models.functions import Cast
@@ -35,10 +36,14 @@ def display_as_code(value):
 
 
 def display_related_objects(request, related_objects):
-    return render_model_objects_with_link(
-        request,
-        [related_object.object for related_object in related_objects if related_object.object]
-    )
+    related_object_instances = []
+    for related_object in related_objects:
+        try:
+            related_object_instances.append(related_object.object)
+        except ObjectDoesNotExist:
+            pass
+
+    return render_model_objects_with_link(request, related_object_instances)
 
 
 def get_content_type_pks_of_parent_related_classes():
