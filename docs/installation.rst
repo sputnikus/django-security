@@ -151,6 +151,10 @@ Setup
 
   Setting contains patterns for regex function that goes through body and headers and replaces sensitive data with defined replacement.
 
+.. attribute:: SECURITY_HIDE_SENSITIVE_DATA
+
+  If set to True enables replacing of sensitive data with defined replacement `SECURITY_HIDE_SENSITIVE_DATA_PATTERNS` inside body and headers. Default value is ``True``.
+
 .. attribute:: SECURITY_SENSITIVE_DATA_REPLACEMENT
 
   Setting contains sensitive data replacement value. Default value is ``'[Filtered]'``.

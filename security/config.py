@@ -18,6 +18,7 @@ DEFAULTS = {
         'runserver', 'makemigrations', 'migrate', 'sqlmigrate', 'showmigrations', 'shell', 'shell_plus', 'test',
         'help', 'reset_db', 'compilemessages', 'makemessages', 'dumpdata', 'loaddata'
     ),
+    'HIDE_SENSITIVE_DATA': True,
     'HIDE_SENSITIVE_DATA_PATTERNS': {
         'BODY': (
             r'"password"\s*:\s*"((?:\\"|[^"])*)',
