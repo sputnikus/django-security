@@ -49,29 +49,32 @@ def display_json(value, indent=4):
 
 
 def hide_sensitive_data_body(content):
-    for pattern in settings.HIDE_SENSITIVE_DATA_PATTERNS.get('BODY', ()):
-        content = regex_sub_groups_global(pattern, settings.SENSITIVE_DATA_REPLACEMENT, content)
+    if settings.HIDE_SENSITIVE_DATA:
+        for pattern in settings.HIDE_SENSITIVE_DATA_PATTERNS.get('BODY', ()):
+            content = regex_sub_groups_global(pattern, settings.SENSITIVE_DATA_REPLACEMENT, content)
     return content
 
 
 def hide_sensitive_data_headers(headers):
-    headers = dict(headers)
-    for pattern in settings.HIDE_SENSITIVE_DATA_PATTERNS.get('HEADERS', ()):
-        for header_name, header in headers.items():
-            if re.match(pattern, header_name, re.IGNORECASE):
-                headers[header_name] = settings.SENSITIVE_DATA_REPLACEMENT
+    if settings.HIDE_SENSITIVE_DATA:
+        headers = dict(headers)
+        for pattern in settings.HIDE_SENSITIVE_DATA_PATTERNS.get('HEADERS', ()):
+            for header_name, header in headers.items():
+                if re.match(pattern, header_name, re.IGNORECASE):
+                    headers[header_name] = settings.SENSITIVE_DATA_REPLACEMENT
     return headers
 
 
 def hide_sensitive_data_queries(queries):
-    queries = dict(queries)
-    for pattern in settings.HIDE_SENSITIVE_DATA_PATTERNS.get('QUERIES', ()):
-        for query_name, query in queries.items():
-            if re.match(pattern, query_name, re.IGNORECASE):
-                queries[query_name] = (
-                    len(query) * [settings.SENSITIVE_DATA_REPLACEMENT] if is_base_collection(query)
-                    else settings.SENSITIVE_DATA_REPLACEMENT
-                )
+    if settings.HIDE_SENSITIVE_DATA:
+        queries = dict(queries)
+        for pattern in settings.HIDE_SENSITIVE_DATA_PATTERNS.get('QUERIES', ()):
+            for query_name, query in queries.items():
+                if re.match(pattern, query_name, re.IGNORECASE):
+                    queries[query_name] = (
+                        len(query) * [settings.SENSITIVE_DATA_REPLACEMENT] if is_base_collection(query)
+                        else settings.SENSITIVE_DATA_REPLACEMENT
+                    )
     return queries
 
 
