@@ -10,6 +10,7 @@ from threading import local
 
 from django.conf import settings as django_settings
 from django.core.exceptions import ImproperlyConfigured
+from django.core.management.base import OutputWrapper
 from django.core.signals import request_finished
 from django.db.transaction import get_connection
 from django.urls import resolve
@@ -325,16 +326,25 @@ class LogStringIO(StringIO):
 
     def write(self, s):
         line_first = True
+
         for line in s.split('\n'):
+            write_cursor = self._last_newline == self.tell()
+
             if not line_first:
                 super().write('\n')
                 self._last_newline = self.tell()
+
             cursor_first = True
             for cursor_block in line.split('\r'):
                 if not cursor_first:
                     self.seek(self._last_newline)
                     self.truncate()
+                    write_cursor = True
                 cursor_first = False
+
+                if write_cursor:
+                    cursor_block = '[{}] {}'.format(now().isoformat(), cursor_block)
+
                 super().write(cursor_block)
             line_first = False
         self._post_write()

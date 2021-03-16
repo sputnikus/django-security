@@ -1,13 +1,10 @@
-import json
-
 from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import TextField
 from django.db.models.functions import Cast
 from django.template.defaultfilters import truncatechars
-from django.utils.html import format_html, format_html_join, mark_safe, format_html_join
+from django.utils.html import mark_safe
 from django.utils.translation import ugettext_lazy as _
 from django.contrib.contenttypes.models import ContentType
 
@@ -18,21 +15,13 @@ from is_core.generic_views.inlines.inline_table_views import InlineTableView
 from is_core.generic_views.mixins import TabItem, TabsViewMixin
 from is_core.generic_views.table_views import TableView
 from is_core.main import UIRESTModelISCore
-from is_core.utils import render_model_objects_with_link, render_model_object_with_link
+from is_core.utils import render_model_objects_with_link, render_model_object_with_link, display_code
 from is_core.utils.decorators import short_description
 
 from security.config import settings
 from security.models import CommandLog, InputLoggedRequest, OutputLoggedRequest, CeleryTaskLog, CeleryTaskRunLog
 
 from ansi2html import Ansi2HTMLConverter
-
-
-def display_json(value):
-    return json.dumps(value, indent=4, ensure_ascii=False, cls=DjangoJSONEncoder)
-
-
-def display_as_code(value):
-    return format_html('<code style="white-space:pre-wrap;">{}</code>', value) if value else value
 
 
 def display_related_objects(request, related_objects):
@@ -119,29 +108,17 @@ class RequestsLogISCore(SecurityISCoreMixin, UIRESTModelISCore):
 
     can_create = can_update = can_delete = False
 
-    @short_description(_('queries'))
-    def queries_code(self, obj):
-        return display_as_code(display_json(obj.queries)) if obj else None
-
     @short_description(_('request body'))
     def request_body_code(self, obj):
-        return display_as_code(obj.request_body) if obj else None
-
-    @short_description(_('request headers'))
-    def request_headers_code(self, obj):
-        return display_as_code(display_json(obj.request_headers)) if obj else None
+        return display_code(obj.request_body) if obj else None
 
     @short_description(_('response body'))
     def response_body_code(self, obj):
-        return display_as_code(obj.response_body) if obj else None
-
-    @short_description(_('response headers'))
-    def response_headers_code(self, obj):
-        return display_as_code(display_json(obj.response_headers)) if obj else None
+        return display_code(obj.response_body) if obj else None
 
     @short_description(_('error description'))
     def error_description_code(self, obj):
-        return display_as_code(obj.error_description) if obj else None
+        return display_code(obj.error_description) if obj else None
 
 
 class InputRequestsLogISCore(RequestsLogISCore):
@@ -157,8 +134,8 @@ class InputRequestsLogISCore(RequestsLogISCore):
 
     form_fieldsets = (
         (_('Request'), {'fields': ('created_at', 'changed_at', 'request_timestamp', 'host', 'method', 'path',
-                                   'queries_code', 'request_headers_code', 'request_body_code', 'is_secure')}),
-        (_('Response'), {'fields': ('response_timestamp', 'response_code', 'status', 'response_headers_code',
+                                   'queries', 'request_headers', 'request_body_code', 'is_secure')}),
+        (_('Response'), {'fields': ('response_timestamp', 'response_code', 'status', 'response_headers',
                                     'response_body_code', 'type', 'error_description_code')}),
         (_('User information'), {'fields': ('user', 'ip')}),
         (_('Extra information'), {'fields': ('slug', 'response_time', 'display_related_objects',
@@ -199,8 +176,8 @@ class OutputRequestsLogISCore(RequestsLogISCore):
 
     form_fieldsets = (
         (_('Request'), {'fields': ('created_at', 'changed_at', 'request_timestamp', 'host', 'method', 'path',
-                                   'queries_code', 'request_headers_code', 'request_body_code', 'is_secure')}),
-        (_('Response'), {'fields': ('response_timestamp', 'response_code', 'status', 'response_headers_code',
+                                   'queries', 'request_headers', 'request_body_code', 'is_secure')}),
+        (_('Response'), {'fields': ('response_timestamp', 'response_code', 'status', 'response_headers',
                                     'response_body_code', 'error_description_code')}),
         (_('Extra information'), {'fields': ('slug', 'response_time', 'display_related_objects', 'display_source')}),
     )

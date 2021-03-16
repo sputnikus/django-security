@@ -499,14 +499,14 @@ class CeleryTaskRunLog(SmartModel):
         db_index=True
     )
     task_args = models.JSONField(
-        verbose_name=_('task args'),
+        verbose_name=_('input args'),
         null=True,
         blank=True,
         editable=False,
         encoder=DjangoJSONEncoder
     )
     task_kwargs = models.JSONField(
-        verbose_name=_('task kwargs'),
+        verbose_name=_('input kwargs'),
         null=True,
         blank=True,
         editable=False,
