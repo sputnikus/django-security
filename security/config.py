@@ -11,7 +11,7 @@ DEFAULTS = {
     'LOG_REQUEST_BODY_LENGTH': 1000,
     'LOG_RESPONSE_BODY_LENGTH': 1000,
     'LOG_RESPONSE_BODY_CONTENT_TYPES': (
-        'application/json', 'application/xml', 'text/xml', 'text/csv', 'text/html', 'application/xhtml+xml'
+        'application/json', 'application/xml', 'text/xml', 'text/csv',
     ),
     'LOG_JSON_STRING_LENGTH': 250,
     'COMMAND_LOG_EXCLUDED_COMMANDS': (

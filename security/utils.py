@@ -10,6 +10,7 @@ from threading import local
 
 from django.conf import settings as django_settings
 from django.core.exceptions import ImproperlyConfigured
+from django.core.management.base import OutputWrapper
 from django.core.signals import request_finished
 from django.db.transaction import get_connection
 from django.urls import resolve
@@ -312,31 +313,50 @@ def remove_nul_from_string(value):
     return value.replace('\x00', '')
 
 
+def is_atty_string(s):
+    return bool(re.search('^\\x1b\[\d+m$', s))
+
+
 class LogStringIO(StringIO):
+
+    BOLD = '\x1b[1m'
+    RESET = '\x1b[0m'
 
     def __init__(self, post_write_callback=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._last_newline = 0
         self._post_write_callback = post_write_callback
+        self._write_time = True
 
     def _post_write(self):
         if self._post_write_callback:
             self._post_write_callback(self)
 
     def write(self, s):
-        line_first = True
-        for line in s.split('\n'):
-            if not line_first:
-                super().write('\n')
-                self._last_newline = self.tell()
+        lines = s.split('\n')
+
+        for i, line in enumerate(lines):
             cursor_first = True
             for cursor_block in line.split('\r'):
                 if not cursor_first:
                     self.seek(self._last_newline)
                     self.truncate()
+                    self._write_time = True
                 cursor_first = False
+
+                if self._write_time and not is_atty_string(cursor_block):
+                    cursor_block = '{}{}[{}]{} {}'.format(
+                        self.RESET, self.BOLD, now().strftime('%d-%m-%Y %H:%M:%S'), self.RESET, cursor_block
+                    )
+                    self._write_time = False
+
                 super().write(cursor_block)
-            line_first = False
+
+            if i != len(lines) - 1:
+                super().write('\n')
+                self._last_newline = self.tell()
+                self._write_time = True
+
         self._post_write()
 
     def isatty(self):
