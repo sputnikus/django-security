@@ -115,10 +115,8 @@ class LoggedTask(DjangoTask):
                 **(kwargs or {})
             ),
             extra=dict(
-                task_args=args,
                 task_id=task_log.celery_task_id,
                 task_input=task_log.input,
-                task_kwargs=kwargs,
                 task_log_id=task_log.pk,
                 task_name=task_log.name,
                 task_queue=task_log.queue_name,
@@ -194,9 +192,7 @@ class LoggedTask(DjangoTask):
                 **(kwargs or {})
             ),
             extra=dict(
-                task_args=args,
                 task_id=task_run_log.celery_task_id,
-                task_kwargs=kwargs,
                 task_log_id=None if not task_log else task_log.pk,
                 task_name=task_run_log.name,
                 task_queue=None if not task_log else task_log.queue_name,
@@ -228,17 +224,14 @@ class LoggedTask(DjangoTask):
                 **(kwargs or {})
             ),
             extra=dict(
-                task_args=args,
                 task_duration=task_run_log.time,
                 task_empty_error=task_run_log.error_message is None or len(task_run_log.error_message) < 1,
                 task_empty_output=task_run_log.output is None or len(task_run_log.output) < 1,
                 task_id=task_run_log.celery_task_id,
-                task_kwargs=kwargs,
                 task_log_id=None if not task_log else task_log.pk,
                 task_name=task_run_log.name,
                 task_queue=None if not task_log else task_log.queue_name,
                 task_retries=task_run_log.retries,
-                task_retval=retval,
                 task_run_log_id=task_run_log.pk,
                 task_started_at=task_run_log.start,
                 task_state=task_run_log.state.name,
