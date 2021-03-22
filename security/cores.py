@@ -16,7 +16,7 @@ from is_core.generic_views.mixins import TabItem, TabsViewMixin
 from is_core.generic_views.table_views import TableView
 from is_core.main import UIRESTModelISCore
 from is_core.utils import render_model_objects_with_link, render_model_object_with_link, display_code
-from is_core.utils.decorators import short_description
+from is_core.utils.decorators import short_description, relation
 
 from security.config import settings
 from security.models import CommandLog, InputLoggedRequest, OutputLoggedRequest, CeleryTaskLog, CeleryTaskRunLog
@@ -239,14 +239,14 @@ class CeleryTaskRunLogISCore(SecurityISCoreMixin, UIRESTModelISCore):
     abstract = True
 
     can_create = can_update = can_delete = False
+    show_in_menu = False
 
     rest_extra_filter_fields = (
         'celery_task_id',
     )
 
     ui_list_fields = (
-        'celery_task_id', 'created_at', 'changed_at', 'name', 'state', 'start', 'stop', 'time', 'result', 'retries',
-        'get_task_log'
+        'celery_task_id', 'created_at', 'changed_at', 'name', 'state', 'start', 'stop', 'time', 'retries'
     )
 
     form_fields = (
@@ -260,6 +260,7 @@ class CeleryTaskRunLogISCore(SecurityISCoreMixin, UIRESTModelISCore):
     default_ordering = ('-created_at',)
 
     @short_description(_('celery task log'))
+    @relation(CeleryTaskLog)
     def task_log(self, obj):
         return obj.get_task_log()
 
@@ -268,7 +269,7 @@ class CeleryTaskRunLogISCore(SecurityISCoreMixin, UIRESTModelISCore):
         if obj and obj.output is not None:
             conv = Ansi2HTMLConverter()
             output = mark_safe(conv.convert(obj.output, full=False))
-            return display_as_code(output)
+            return display_code(output)
         return None
 
 
@@ -276,7 +277,7 @@ class CeleryTaskRunLogInlineTableView(InlineTableView):
 
     model = CeleryTaskRunLog
     fields = (
-        'created_at', 'changed_at', 'start', 'stop', 'time', 'state', 'result', 'retries'
+        'created_at', 'changed_at', 'start', 'stop', 'time', 'state', 'retries'
     )
 
     def _get_list_filter(self):
