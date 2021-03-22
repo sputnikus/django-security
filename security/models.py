@@ -555,4 +555,3 @@ class CeleryTaskRunLog(SmartModel):
 
     def get_task_log(self):
         return CeleryTaskLog.objects.filter(celery_task_id=self.celery_task_id).first()
-    get_task_log.short_description = _('celery task')
