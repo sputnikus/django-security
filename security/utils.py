@@ -3,6 +3,7 @@ import logging
 import re
 import sys
 import traceback
+from time import time
 from contextlib import ContextDecorator
 from importlib import import_module
 from io import StringIO
@@ -16,6 +17,8 @@ from django.db.transaction import get_connection
 from django.urls import resolve
 from django.urls.exceptions import Resolver404
 from django.utils.timezone import now
+from django.db.models import F, Value as V
+from django.db.models.functions import Concat
 
 from .config import settings
 
@@ -322,15 +325,18 @@ class LogStringIO(StringIO):
     BOLD = '\x1b[1m'
     RESET = '\x1b[0m'
 
-    def __init__(self, post_write_callback=None, *args, **kwargs):
+    def __init__(self, flush_callback=None, flush_timeout=5, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._last_newline = 0
-        self._post_write_callback = post_write_callback
+        self._flush_callback = flush_callback
         self._write_time = True
+        self._last_flush_time = time()
+        self._flush_timeout = flush_timeout
 
-    def _post_write(self):
-        if self._post_write_callback:
-            self._post_write_callback(self)
+    def _flush(self):
+        if self._flush_callback and time() - self._last_flush_time > self._flush_timeout:
+            self._flush_callback(self)
+            self._last_flush_time = time()
 
     def write(self, s):
         lines = s.split('\n')
@@ -357,7 +363,7 @@ class LogStringIO(StringIO):
                 self._last_newline = self.tell()
                 self._write_time = True
 
-        self._post_write()
+        self._flush()
 
     def isatty(self):
         return True
@@ -443,7 +449,7 @@ class CommandLogger(StringIO):
             for related_object in related_objects:
                 self.command_log.related_objects.add(related_object)
 
-        self.output = LogStringIO(post_write_callback=self._store_log_output)
+        self.output = LogStringIO(flush_callback=self._store_log_output)
         stdout = TeeStringIO(self.stdout, self.output)
         stderr = TeeStringIO(self.stderr, self.output)
 

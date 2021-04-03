@@ -51,6 +51,7 @@ DEFAULTS = {
     'PURGE_LOG_BACKUP_BATCH': 20000,
     'PURGE_LOG_DELETE_BATCH': 1000,
     'TASK_LOGGER_NAME': 'security.task',
+    'TASK_USE_ON_SUCCESS': False,
 }
 
 
