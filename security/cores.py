@@ -19,7 +19,9 @@ from is_core.utils import render_model_objects_with_link, render_model_object_wi
 from is_core.utils.decorators import short_description, relation
 
 from security.config import settings
-from security.models import CommandLog, InputLoggedRequest, OutputLoggedRequest, CeleryTaskLog, CeleryTaskRunLog
+from security.models import (
+    CommandLog, InputLoggedRequest, OutputLoggedRequest, CeleryTaskInvocationLog, CeleryTaskRunLog
+)
 
 from ansi2html import Ansi2HTMLConverter
 
@@ -38,7 +40,8 @@ def display_related_objects(request, related_objects):
 def get_content_type_pks_of_parent_related_classes():
     return {
         ContentType.objects.get_for_model(model_class).pk
-        for model_class in (CommandLog, InputLoggedRequest, OutputLoggedRequest, CeleryTaskLog, CeleryTaskRunLog)
+        for model_class in (CommandLog, InputLoggedRequest, OutputLoggedRequest, CeleryTaskInvocationLog,
+                            CeleryTaskRunLog)
     }
 
 
@@ -92,10 +95,10 @@ class SecurityISCoreMixin:
         )
 
     @short_description(_('raised celery task logs'))
-    def display_celery_task_logs(self, obj, request):
+    def display_celery_task_invocation_logs(self, obj, request):
         return render_model_objects_with_link(
             request,
-            CeleryTaskLog.objects.filter(
+            CeleryTaskInvocationLog.objects.filter(
                 related_objects__object_id=obj.pk,
                 related_objects__object_ct_id=ContentType.objects.get_for_model(obj).pk
             )
@@ -140,7 +143,7 @@ class InputRequestsLogISCore(RequestsLogISCore):
         (_('User information'), {'fields': ('user', 'ip')}),
         (_('Extra information'), {'fields': ('slug', 'response_time', 'display_related_objects',
                                              'display_output_logged_requests', 'display_command_logs',
-                                             'display_celery_task_logs')}),
+                                             'display_celery_task_invocation_logs')}),
     )
 
     def get_form_fieldsets(self, request, obj=None):
@@ -199,7 +202,7 @@ class CommandLogISCore(SecurityISCoreMixin, UIRESTModelISCore):
                 'fields': (
                     'created_at', 'changed_at', 'name', 'input', 'error_message', 'display_related_objects',
                     'display_source', 'display_output_logged_requests', 'display_command_logs',
-                    'display_celery_task_logs'
+                    'display_celery_task_invocation_logs'
                 ),
                 'class': 'col-sm-6'
             }),
@@ -220,16 +223,31 @@ class CommandLogISCore(SecurityISCoreMixin, UIRESTModelISCore):
         return None
 
 
-class CeleryTaskLogTabs(TabsViewMixin):
+class CeleryTaskInvocationLogTabs(TabsViewMixin):
 
     tabs = (
-        TabItem('list-celerytasklog', _('celery task')),
+        TabItem('list-celerytaskinvocationlog', _('celery task')),
         TabItem('list-celerytaskrunlog', _('celery task run')),
     )
 
 
-class CeleryTaskLogTableView(CeleryTaskLogTabs, TableView):
+class CeleryTaskInvocationLogTableView(CeleryTaskInvocationLogTabs, TableView):
     pass
+
+
+class CeleryTaskInvocationTableView(InlineTableView):
+
+    model = CeleryTaskInvocationLog
+    fields = (
+        'id', 'invocation_id', 'celery_task_id', 'created_at', 'changed_at'
+    )
+
+    def _get_list_filter(self):
+        return {
+            'filter': {
+                'celery_task_id': self.parent_instance.celery_task_id
+            }
+        }
 
 
 class CeleryTaskRunLogISCore(SecurityISCoreMixin, UIRESTModelISCore):
@@ -246,23 +264,24 @@ class CeleryTaskRunLogISCore(SecurityISCoreMixin, UIRESTModelISCore):
     )
 
     ui_list_fields = (
-        'celery_task_id', 'created_at', 'changed_at', 'name', 'state', 'start', 'stop', 'time', 'retries'
+        'id', 'celery_task_id', 'created_at', 'changed_at', 'name', 'state', 'start', 'stop', 'time', 'retries',
+        'queue_name'
     )
 
-    form_fields = (
-        'celery_task_id', 'task_log', 'start', 'stop', 'time', 'state', 'result', 'error_message', 'output_html',
-        'retries', 'estimated_time_of_next_retry', 'display_related_objects', 'display_output_logged_requests',
-        'display_command_logs', 'display_celery_task_logs'
+    form_fieldsets = (
+        (None, {
+            'fields': (
+                'celery_task_id', 'start', 'stop', 'time', 'state', 'result', 'error_message', 'output_html',
+                'retries', 'estimated_time_of_next_retry', 'queue_name', 'display_related_objects',
+                'display_output_logged_requests',  'display_command_logs', 'display_celery_task_invocation_logs'
+            )
+        }),
+        (_('celery task invocations'), {'inline_view': CeleryTaskInvocationTableView}),
     )
 
-    ui_list_view = CeleryTaskLogTableView
+    ui_list_view = CeleryTaskInvocationLogTableView
 
     default_ordering = ('-created_at',)
-
-    @short_description(_('celery task log'))
-    @relation(CeleryTaskLog)
-    def task_log(self, obj):
-        return obj.get_task_log()
 
     @short_description(_('output'))
     def output_html(self, obj):
@@ -288,31 +307,32 @@ class CeleryTaskRunLogInlineTableView(InlineTableView):
         }
 
 
-class CeleryTaskLogISCore(SecurityISCoreMixin, UIRESTModelISCore):
+class CeleryTaskInvocationLogISCore(SecurityISCoreMixin, UIRESTModelISCore):
 
-    model = CeleryTaskLog
+    model = CeleryTaskInvocationLog
 
     abstract = True
 
     can_create = can_update = can_delete = False
 
     ui_list_fields = (
-        'celery_task_id', 'created_at', 'changed_at', 'name', 'short_input', 'state', 'get_start', 'get_stop',
-        'queue_name'
+        'id', 'invocation_id', 'celery_task_id', 'created_at', 'changed_at', 'name', 'short_input', 'state', 'get_start',
+        'get_stop', 'queue_name'
     )
 
     form_fieldsets = (
         (None, {
             'fields': (
-                'celery_task_id', 'created_at', 'changed_at', 'name', 'state', 'get_start', 'get_stop',
-                'estimated_time_of_first_arrival', 'expires', 'stale', 'queue_name', 'input', 'display_related_objects',
-                'display_source'
+                'invocation_id', 'celery_task_id', 'created_at', 'changed_at', 'name', 'state', 'get_start', 'get_stop',
+                'estimated_time_of_first_arrival', 'expires_at', 'stale_at', 'queue_name', 'input',
+                'display_source', 'applied_at', 'triggered_at', 'is_unique', 'is_async', 'is_duplicate', 'is_on_commit',
+                'display_related_objects',
             )
         }),
         (_('celery task runs'), {'inline_view': CeleryTaskRunLogInlineTableView}),
     )
 
-    ui_list_view = CeleryTaskLogTableView
+    ui_list_view = CeleryTaskInvocationLogTableView
 
     @filter_by('input')
     @order_by('input')

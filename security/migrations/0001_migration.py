@@ -32,7 +32,8 @@ class Migration(migrations.Migration):
                 ('expires', models.DateTimeField(blank=True, null=True, verbose_name='time of expiration')),
                 ('stale', models.DateTimeField(blank=True, null=True, verbose_name='stale task time')),
                 ('state',
-                 enumfields.fields.NumEnumField(db_index=True, default=1, enum=security.enums.CeleryTaskLogState,
+                 enumfields.fields.NumEnumField(db_index=True, default=1,
+                                                enum=security.enums.CeleryTaskInvocationLogState,
                                                 verbose_name='state')),
             ],
             options={

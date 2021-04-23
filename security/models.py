@@ -41,7 +41,7 @@ except ImportError:
     CaseSensitiveStringFieldFilter = object
 
 from .compatibility import get_client_ip
-from .enums import InputLoggedRequestType, LoggedRequestStatus, CeleryTaskLogState, CeleryTaskRunLogState
+from .enums import InputLoggedRequestType, LoggedRequestStatus, CeleryTaskInvocationLogState, CeleryTaskRunLogState
 
 
 def display_json(value, indent=4):
@@ -330,19 +330,22 @@ class CommandLog(SmartModel):
         default_ui_filter_by = 'id'
 
 
-class CeleryTaskLogManager(models.Manager):
+class CeleryTaskInvocationLogManager(models.Manager):
 
-    def filter_waiting(self):
+    def filter_not_started(self):
         return self.filter(
-            state=CeleryTaskLogState.WAITING
+            state__in={
+                CeleryTaskInvocationLogState.WAITING,
+                CeleryTaskInvocationLogState.TRIGGERED
+            }
         )
 
     def filter_processing(self, related_objects=None, **kwargs):
         qs = self.filter(
             state__in={
-                CeleryTaskLogState.ACTIVE,
-                CeleryTaskLogState.WAITING,
-                CeleryTaskLogState.RETRIED
+                CeleryTaskInvocationLogState.ACTIVE,
+                CeleryTaskInvocationLogState.WAITING,
+                CeleryTaskInvocationLogState.TRIGGERED
             }
         ).filter(**kwargs)
 
@@ -355,12 +358,18 @@ class CeleryTaskLogManager(models.Manager):
         return qs
 
 
-class CeleryTaskLog(SmartModel):
+class CeleryTaskInvocationLog(SmartModel):
 
+    invocation_id = models.CharField(
+        verbose_name=_('invocation ID'),
+        max_length=250,
+        db_index=True,
+        unique=True
+    )
     celery_task_id = models.CharField(
         verbose_name=_('celery ID'),
-        null=False,
-        blank=False,
+        null=True,
+        blank=True,
         max_length=250,
         db_index=True
     )
@@ -376,6 +385,28 @@ class CeleryTaskLog(SmartModel):
         null=True,
         blank=True,
         max_length=250
+    )
+    applied_at = models.DateTimeField(
+        verbose_name=_('applied at'),
+        null=False,
+        blank=False
+    )
+    triggered_at = models.DateTimeField(
+        verbose_name=_('triggered at'),
+        null=True,
+        blank=True
+    )
+    is_unique = models.BooleanField(
+        verbose_name=_('is unique')
+    )
+    is_async = models.BooleanField(
+        verbose_name=_('is async')
+    )
+    is_duplicate = models.BooleanField(
+        verbose_name=_('is duplicate')
+    )
+    is_on_commit = models.BooleanField(
+        verbose_name=_('is on commit')
     )
     input = models.TextField(
         verbose_name=_('input'),
@@ -399,15 +430,15 @@ class CeleryTaskLog(SmartModel):
     )
     estimated_time_of_first_arrival = models.DateTimeField(
         verbose_name=_('estimated time of first arrival'),
-        null=False,
-        blank=False
+        null=True,
+        blank=True
     )
-    expires = models.DateTimeField(
+    expires_at = models.DateTimeField(
         verbose_name=_('time of expiration'),
         null=True,
         blank=True
     )
-    stale = models.DateTimeField(
+    stale_at = models.DateTimeField(
         verbose_name=_('stale task time'),
         null=True,
         blank=True
@@ -416,14 +447,14 @@ class CeleryTaskLog(SmartModel):
         verbose_name=_('state'),
         null=False,
         blank=False,
-        enum=CeleryTaskLogState,
-        default=CeleryTaskLogState.WAITING,
+        enum=CeleryTaskInvocationLogState,
+        default=CeleryTaskInvocationLogState.WAITING,
         db_index=True
     )
 
     related_objects = MultipleDBGenericManyToManyField()
 
-    objects = CeleryTaskLogManager.from_queryset(BaseLogQuerySet)()
+    objects = CeleryTaskInvocationLogManager.from_queryset(BaseLogQuerySet)()
 
     class Meta:
         verbose_name = _('celery task')
@@ -541,6 +572,12 @@ class CeleryTaskRunLog(SmartModel):
         null=True,
         blank=True
     )
+    queue_name = models.CharField(
+        verbose_name=_('queue name'),
+        null=True,
+        blank=True,
+        max_length=250
+    )
     related_objects = MultipleDBGenericManyToManyField()
 
     objects = BaseLogQuerySet.as_manager()
@@ -553,5 +590,5 @@ class CeleryTaskRunLog(SmartModel):
     def __str__(self):
         return '{} ({})'.format(self.name, self.get_state_display())
 
-    def get_task_log(self):
-        return CeleryTaskLog.objects.filter(celery_task_id=self.celery_task_id).first()
+    def get_task_invocation_logs(self):
+        return CeleryTaskInvocationLog.objects.filter(celery_task_id=self.celery_task_id)

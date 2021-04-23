@@ -4,7 +4,7 @@ from django.db.models.functions import Now
 from django.utils.timezone import timedelta
 
 from security.config import settings
-from security.models import CeleryTaskLog, CeleryTaskRunLog
+from security.models import CeleryTaskInvocationLog, CeleryTaskRunLog
 
 
 class Command(BaseCommand):
@@ -43,7 +43,7 @@ class Command(BaseCommand):
         )
 
     def _get_queryset(self, queue_name):
-        return CeleryTaskLog.objects.filter_waiting().order_by('created_at')
+        return CeleryTaskInvocationLog.objects.filter_not_started().order_by('created_at')
 
     def _handle_max_created_at_diff(self, queryset, queue_name, max_created_at_diff):
         if max_created_at_diff < 0:

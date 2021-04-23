@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-03-16 20:28+0100\n"
+"POT-Creation-Date: 2021-04-09 20:06+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -110,79 +110,79 @@ msgstr[0] "Procesor kontextu"
 msgstr[1] "Procesory kontextu"
 msgstr[2] "Procesory kontextu"
 
-#: cores.py:62
+#: cores.py:65
 msgid "related objects"
 msgstr "vztažené objekty"
 
-#: cores.py:68
+#: cores.py:71
 msgid "source"
 msgstr "zdroj"
 
-#: cores.py:74
+#: cores.py:77
 msgid "raised output logged requests"
 msgstr "vyvolané výstupní logované dotazy"
 
-#: cores.py:84
+#: cores.py:87
 msgid "raised command logs"
 msgstr "vyvolané spustitelné úlohy"
 
-#: cores.py:94
+#: cores.py:97
 msgid "raised celery task logs"
 msgstr "vyvolané celery úlohy"
 
-#: cores.py:111 models.py:177 models.py:223
+#: cores.py:114 models.py:177 models.py:223
 msgid "request body"
 msgstr "tělo dotazu"
 
-#: cores.py:115 models.py:183 models.py:218
+#: cores.py:118 models.py:183 models.py:218
 msgid "response body"
 msgstr "tělo odpovědi"
 
-#: cores.py:119 models.py:188
+#: cores.py:122 models.py:188
 msgid "error description"
 msgstr "popis chyby"
 
-#: cores.py:136 cores.py:178
+#: cores.py:139 cores.py:181
 msgid "Request"
 msgstr "Dotaz"
 
-#: cores.py:138 cores.py:180
+#: cores.py:141 cores.py:183
 msgid "Response"
 msgstr "Odpověď"
 
-#: cores.py:140
+#: cores.py:143
 msgid "User information"
 msgstr "Uživatelské informace"
 
-#: cores.py:141 cores.py:182
+#: cores.py:144 cores.py:185
 msgid "Extra information"
 msgstr "Další informace"
 
-#: cores.py:156
+#: cores.py:159
 msgid "user"
 msgstr "uživatel"
 
-#: cores.py:211 cores.py:263 models.py:316 models.py:528
+#: cores.py:219 cores.py:286 models.py:316 models.py:559
 msgid "output"
 msgstr "výstup"
 
-#: cores.py:223 models.py:429 models.py:558
+#: cores.py:229 models.py:460
 msgid "celery task"
 msgstr "celery úloha"
 
-#: cores.py:224 models.py:549
+#: cores.py:230 models.py:586
 msgid "celery task run"
 msgstr "zpracování celery úlohy"
 
-#: cores.py:259
-msgid "celery task log"
-msgstr "log celery úlohy"
+#: cores.py:279
+msgid "celery task invocations"
+msgstr "vyvolání celery úlohy"
 
-#: cores.py:308
+#: cores.py:332
 msgid "celery task runs"
 msgstr "zpracování celery úlohy"
 
-#: cores.py:315 models.py:313 models.py:381
+#: cores.py:339 models.py:313 models.py:412
 msgid "input"
 msgstr "vstup"
 
@@ -238,25 +238,33 @@ msgstr "Neúspěšné přihlášení při dvoufaktorovém ověření kódu"
 msgid "Waiting"
 msgstr "Čeká"
 
-#: enums.py:29 enums.py:38
+#: enums.py:29
+msgid "Triggered"
+msgstr "Vyvoláno"
+
+#: enums.py:30 enums.py:39
 msgid "Active"
 msgstr "Aktivní"
 
-#: enums.py:30 enums.py:39
+#: enums.py:31 enums.py:40
 msgid "Succeeded"
 msgstr "Dokončený"
 
-#: enums.py:31 enums.py:40
+#: enums.py:32 enums.py:41
 msgid "Failed"
 msgstr "Chyba"
 
-#: enums.py:32 enums.py:41
-msgid "Retried"
-msgstr "Opakovaný"
-
-#: enums.py:33 enums.py:42
+#: enums.py:33 enums.py:43
 msgid "Expired"
 msgstr "Expirovaný"
+
+#: enums.py:34
+msgid "Timeout"
+msgstr "Čas vypršel"
+
+#: enums.py:42
+msgid "Retried"
+msgstr "Opakovaný"
 
 #: models.py:165
 msgid "host"
@@ -346,15 +354,15 @@ msgstr "výstupní logovaný dotaz"
 msgid "output logged requests"
 msgstr "výstupní logované dotazy"
 
-#: models.py:308 models.py:454 models.py:472
+#: models.py:308 models.py:485 models.py:503
 msgid "start"
 msgstr "start"
 
-#: models.py:309 models.py:459 models.py:477
+#: models.py:309 models.py:490 models.py:508
 msgid "stop"
 msgstr "stop"
 
-#: models.py:310 models.py:482
+#: models.py:310 models.py:513
 msgid "time"
 msgstr "čas"
 
@@ -370,7 +378,7 @@ msgstr "spuštěno z příkazové řádky"
 msgid "finished successfully"
 msgstr "úspěšně dokončeno"
 
-#: models.py:319 models.py:523
+#: models.py:319 models.py:554
 msgid "error message"
 msgstr "zpráva chyby"
 
@@ -382,59 +390,87 @@ msgstr "log spustitelné úlohy"
 msgid "command logs"
 msgstr "logy spustitelných úloh"
 
-#: models.py:361 models.py:465
+#: models.py:364
+msgid "invocation ID"
+msgstr "ID vyvolání"
+
+#: models.py:370 models.py:496
 msgid "celery ID"
 msgstr "celery ID"
 
-#: models.py:368 models.py:495
+#: models.py:377 models.py:526
 msgid "task name"
 msgstr "název úlohy"
 
-#: models.py:375
+#: models.py:384 models.py:576
 msgid "queue name"
 msgstr "název fronty"
 
-#: models.py:387
+#: models.py:390
+msgid "applied at"
+msgstr "aplikováno"
+
+#: models.py:395
+msgid "triggered at"
+msgstr "vyvoláno"
+
+#: models.py:400
+msgid "is unique"
+msgstr "unikátní"
+
+#: models.py:403
+msgid "is async"
+msgstr "asynchronní"
+
+#: models.py:406
+msgid "is duplicate"
+msgstr "duplicitní"
+
+#: models.py:409
+msgid "is on commit"
+msgstr "vyvoláno v módu on commit"
+
+#: models.py:418 models.py:533
 msgid "task args"
 msgstr "úloha - args"
 
-#: models.py:394
+#: models.py:425 models.py:540
 msgid "task kwargs"
 msgstr "úloha - kwargs"
 
-#: models.py:401
+#: models.py:432
 msgid "estimated time of first arrival"
 msgstr "předpokládaný čas spuštění prvního zpracování úlohy"
 
-#: models.py:406
+#: models.py:437
 msgid "time of expiration"
 msgstr "čas expirace"
 
-#: models.py:411
+#: models.py:442
 msgid "stale task time"
 msgstr "čas zneplatnění úlohy"
 
-#: models.py:416 models.py:487
+#: models.py:447 models.py:518
 msgid "state"
 msgstr "stav"
 
-#: models.py:430
+#: models.py:461
 msgid "celery tasks"
 msgstr "celery úlohy"
 
-#: models.py:516
+#: models.py:547
 msgid "result"
 msgstr "výsledek"
 
-#: models.py:534
+#: models.py:565
 msgid "retries"
 msgstr "opakování"
 
-#: models.py:540
+#: models.py:571
 msgid "estimated time of arrival"
 msgstr "předpokládaný čas spuštění"
 
-#: models.py:550
+#: models.py:587
 msgid "celery tasks run"
 msgstr "zpracování celery úlohy"
 

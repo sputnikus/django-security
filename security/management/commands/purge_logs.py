@@ -13,7 +13,9 @@ from django.utils.timezone import now, utc
 from django.utils.module_loading import import_string
 
 from security.config import settings
-from security.models import InputLoggedRequest, OutputLoggedRequest, CommandLog, CeleryTaskLog, CeleryTaskRunLog
+from security.models import (
+    InputLoggedRequest, OutputLoggedRequest, CommandLog, CeleryTaskInvocationLog, CeleryTaskRunLog
+)
 
 from io import TextIOWrapper
 
@@ -61,7 +63,7 @@ class Command(BaseCommand):
         'input-request': InputLoggedRequest,
         'output-request': OutputLoggedRequest,
         'command': CommandLog,
-        'celery': CeleryTaskLog,
+        'celery-invocation': CeleryTaskInvocationLog,
         'celery-run': CeleryTaskRunLog,
     }
 

@@ -23,14 +23,15 @@ class InputLoggedRequestType(ChoiceEnum):
     UNSUCCESSFUL_2FA_CODE_VERIFICATION_REQUEST = Choice(6, _('Unsuccessful two factor code verification request'))
 
 
-class CeleryTaskLogState(ChoiceEnum):
+class CeleryTaskInvocationLogState(ChoiceEnum):
 
     WAITING = Choice(1, _('Waiting'))
+    TRIGGERED = Choice(7, _('Triggered'))
     ACTIVE = Choice(2, _('Active'))
     SUCCEEDED = Choice(3, _('Succeeded'))
     FAILED = Choice(4, _('Failed'))
-    RETRIED = Choice(5, _('Retried'))
     EXPIRED = Choice(6, _('Expired'))
+    TIMEOUT = Choice(8, _('Timeout'))
 
 
 class CeleryTaskRunLogState(ChoiceEnum):
