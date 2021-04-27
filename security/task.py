@@ -158,7 +158,7 @@ class LoggedTask(DjangoTask):
     def on_invocation_unique(self, invocation_id, args, kwargs, task_id, options):
         super().on_invocation_unique(invocation_id, args, kwargs, task_id, options)
 
-        invocation_log = self._update_or_create_invocation_log(
+        invocation_log = self._update_invocation_log(
             invocation_id,
             trigger_time=options.get('trigger_time'),
             is_duplicate=True,
