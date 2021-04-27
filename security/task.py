@@ -322,7 +322,7 @@ class LoggedTask(DjangoTask):
         :param task_run_log: logged celery task instance
         :param retval: return value of a task
         """
-        logger.error(
+        logger.info(
             self._get_log_message('success'),
             dict(
                 task=task_run_log.celery_task_id,
