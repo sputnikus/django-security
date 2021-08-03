@@ -40,7 +40,7 @@ from security.models import (
 from security.transport import security_requests as requests
 from security.utils import log_context_manager
 
-from apps.test_security.tasks import error_task, retry_task, sum_task, unique_task
+from apps.test_security.tasks import error_task, retry_task, sum_task, unique_task, ignored_after_success_task
 
 
 TRUNCATION_CHAR = '…' if StrictVersion(get_version()) > StrictVersion('2.2') else '...'
@@ -610,6 +610,18 @@ class SecurityTestCase(BaseTestCaseMixin, ClientTestCase):
 
         test_call_command('set_celery_task_log_state')
         assert_equal(celery_task_log.refresh_from_db().state, CeleryTaskInvocationLogState.SUCCEEDED)
+
+    def test_ignored_after_success_task_should_set_ignored_state_for_second_call(self):
+        ignored_after_success_task.delay()
+        assert_equal(CeleryTaskInvocationLog.objects.count(), 1)
+        assert_equal(CeleryTaskRunLog.objects.count(), 1)
+        assert_equal(CeleryTaskInvocationLog.objects.first().state, CeleryTaskInvocationLogState.SUCCEEDED)
+        assert_equal(CeleryTaskRunLog.objects.first().state, CeleryTaskRunLogState.SUCCEEDED)
+
+        ignored_after_success_task.delay()
+        assert_equal(CeleryTaskInvocationLog.objects.count(), 2)
+        assert_equal(CeleryTaskRunLog.objects.count(), 1)
+        assert_equal(CeleryTaskInvocationLog.objects.first().state, CeleryTaskInvocationLogState.IGNORED)
 
     @override_settings(DJANGO_CELERY_EXTENSIONS_DEFAULT_TASK_STALE_TIME_LIMIT=None)
     def test_unique_task_should_have_set_stale_limit(self):

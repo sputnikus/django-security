@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from settings.celery import app as celery_app
 
 from security.task import LoggedTask
@@ -38,3 +40,12 @@ def retry_task(self):
     unique=True)
 def unique_task(self):
     return 'unique'
+
+
+@celery_app.task(
+    base=LoggedTask,
+    bind=True,
+    name='ignored_after_success_task',
+    ignore_task_after_success_timedelta=timedelta(hours=1, minutes=5))
+def ignored_after_success_task(self):
+    return 'ignored_task_after_success'
