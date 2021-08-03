@@ -79,7 +79,7 @@ class LoggedTask(DjangoTask):
         return celery_task_log
 
     def _update_invocation_log(self, invocation_id, trigger_time, is_duplicate, eta, expires, stale_time_limit,
-                               task_id):
+                               state, task_id):
         celery_task_log = CeleryTaskInvocationLog.objects.get(invocation_id=invocation_id)
         return celery_task_log.change_and_save(
             estimated_time_of_first_arrival=eta,
@@ -87,7 +87,7 @@ class LoggedTask(DjangoTask):
             triggered_at=trigger_time,
             stale_at=trigger_time + timedelta(seconds=stale_time_limit) if stale_time_limit is not None else None,
             is_duplicate=is_duplicate,
-            state=CeleryTaskInvocationLogState.TRIGGERED,
+            state=state,
             celery_task_id=task_id
         )
 
@@ -148,6 +148,7 @@ class LoggedTask(DjangoTask):
             eta=options.get('eta'),
             expires=options.get('expires'),
             stale_time_limit=options.get('stale_time_limit'),
+            state=CeleryTaskInvocationLogState.TRIGGERED,
             task_id=task_id
         )
         self.on_invocation_trigger_log(invocation_log)
@@ -165,9 +166,28 @@ class LoggedTask(DjangoTask):
             eta=options.get('eta'),
             expires=options.get('expires'),
             stale_time_limit=options.get('stale_time_limit'),
+            state=CeleryTaskInvocationLogState.TRIGGERED,
             task_id=task_id
         )
         self.on_invocation_unique_log(invocation_log)
+
+    def on_invocation_ignored_log(self, invocation_log):
+        pass
+
+    def on_invocation_ignored(self, invocation_id, args, kwargs, task_id, options):
+        super().on_invocation_ignored(invocation_id, args, kwargs, task_id, options)
+
+        invocation_log = self._update_invocation_log(
+            invocation_id,
+            trigger_time=options.get('trigger_time'),
+            is_duplicate=False,
+            eta=options.get('eta'),
+            expires=options.get('expires'),
+            stale_time_limit=options.get('stale_time_limit'),
+            state=CeleryTaskInvocationLogState.IGNORED,
+            task_id=task_id
+        )
+        self.on_invocation_ignored_log(invocation_log)
 
     def on_invocation_timeout_log(self, invocation_log):
         pass

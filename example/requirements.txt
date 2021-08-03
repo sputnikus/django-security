@@ -1,8 +1,9 @@
 Django~=3.1
-django-germanium==2.2.0
+django-germanium==2.2.10
 coverage==5.0.4
 django-reversion>=2.0.13
 responses==0.9.0
 celery==5.0.5
 freezegun==0.3.12
+https://github.com/druids/django-celery-extensions/tarball/UniqueTaskPerTime
 -e ../
