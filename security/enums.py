@@ -32,6 +32,7 @@ class CeleryTaskInvocationLogState(ChoiceEnum):
     FAILED = Choice(4, _('Failed'))
     EXPIRED = Choice(6, _('Expired'))
     TIMEOUT = Choice(8, _('Timeout'))
+    IGNORED = Choice(9, _('Ignored'))
 
 
 class CeleryTaskRunLogState(ChoiceEnum):
