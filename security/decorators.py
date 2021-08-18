@@ -1,6 +1,7 @@
 from functools import WRAPPER_ASSIGNMENTS, wraps
 
-from .utils import get_throttling_validators, AtomicLog
+from .utils import get_throttling_validators
+from .logging.common import SecurityLogger
 
 
 def add_attribute_wrapper(name, value):
@@ -84,20 +85,5 @@ def log_exempt_all(klass):
     return klass
 
 
-def atomic_log(input_logged_request=None, command_log=None, celery_task_log=None, celery_task_run_log=None,
-               output_requests_related_objects=None, output_requests_slug=None):
-    """
-    Decorator that surrounds atomic block, ensures that logged output requests will be stored inside database in case
-    of DB rollback
-    """
-    if callable(input_logged_request):
-        return AtomicLog()(input_logged_request)
-    else:
-        return AtomicLog(
-            input_logged_request,
-            command_log,
-            celery_task_log,
-            celery_task_run_log,
-            output_requests_related_objects,
-            output_requests_slug
-        )
+def log_with_data(related_objects=None, slug=None, extra_data=None):
+    return SecurityLogger(related_objects=related_objects, slug=slug, extra_data=extra_data)

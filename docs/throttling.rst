@@ -24,9 +24,9 @@ Validators
 
 There are only three predefined throttling validators:
 
-* ``security.throttling.PerRequestThrottlingValidator`` - init parameters are ``timeframe`` throttling timedelta in seconds, ``throttle_at`` number of request per one IP address per timeframe and error message.
-* ``security.throttling.UnsuccessfulLoginThrottlingValidator`` - validator with same input parameters as previous validator but counts only unsuccessful login request.
-* ``security.throttling.SuccessfulLoginThrottlingValidator`` - validator with same input parameters as previous validator but counts only requests from anonymous (not logged in) user.
+* ``security.backends.{backend}.throttling.PerRequestThrottlingValidator`` - init parameters are ``timeframe`` throttling timedelta in seconds, ``throttle_at`` number of request per one IP address per timeframe and error message.
+* ``security.backends.{backend}.throttling.UnsuccessfulLoginThrottlingValidator`` - validator with same input parameters as previous validator but counts only unsuccessful login request.
+* ``security.backends.{backend}.throttling.SuccessfulLoginThrottlingValidator`` - validator with same input parameters as previous validator but counts only requests from anonymous (not logged in) user.
 
 Custom validator
 ^^^^^^^^^^^^^^^^
@@ -53,7 +53,7 @@ Because throttling can be different per view, there are decorators for changing 
 View
 ----
 
-If ``security.exception.ThrottlingException`` is raised the specific error view is returned. You can change it with only overriding template named 429.html in your templates. With setting ``SECURITY_THROTTLING_FAILURE_VIEW`` you can change view function which default code is::
+If ``security.throttling.exception.ThrottlingException`` is raised the specific error view is returned. You can change it with only overriding template named 429.html in your templates. With setting ``SECURITY_THROTTLING_FAILURE_VIEW`` you can change view function which default code is::
 
     from django.shortcuts import render
     from django.utils.encoding import force_text

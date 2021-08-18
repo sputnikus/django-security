@@ -1,13 +1,11 @@
 from django.contrib import admin
 
 from apps.test_security.views import (
-    extra_throttling_view, hide_request_body_view, log_exempt_view, proxy_view, throttling_exempt_view
+    extra_throttling_view, hide_request_body_view, log_exempt_view, proxy_view, throttling_exempt_view, home_view,
+    error_view
 )
 
-try:
-    from django.conf.urls import url
-except ImportError:
-    from django.urls import re_path as url
+from django.conf.urls import url
 
 
 urlpatterns = [
@@ -17,4 +15,6 @@ urlpatterns = [
     url('log-exempt/', log_exempt_view),
     url('throttling-exempt/', throttling_exempt_view),
     url('extra-throttling/', extra_throttling_view),
+    url('error/', error_view),
+    url('home/', home_view, name='home'),
 ]
