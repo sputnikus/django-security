@@ -3,8 +3,6 @@ from settings.base import *  # pylint: disable=E0401
 
 DEBUG = TEMPLATE_DEBUG = THUMBNAIL_DEBUG = True
 
-ALLOWED_HOSTS = ['localhost']
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -30,4 +28,6 @@ STATICFILES_DIRS = (
 )
 
 SECURITY_LOG_DB_NAME = 'security'
-DATABASE_ROUTERS = ['security.db_router.MultipleDBSecurityLoggerRouter']
+DATABASE_ROUTERS = ['security.backends.sql.db_router.MultipleDBSecurityLoggerRouter']
+
+ALLOWED_HOSTS = ['*']

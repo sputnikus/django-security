@@ -5,13 +5,15 @@ from django.conf import settings as django_settings
 from django.core.exceptions import ImproperlyConfigured
 from django.urls import is_valid_path, get_callable
 
-from .compatibility import get_client_ip
+from ipware.ip import get_client_ip
+
+from security.logging.requests.logger import InputRequestLogger
+from security.throttling.exception import ThrottlingException
+
+from chamber.middleware import get_view_from_request_or_none
+
 from .config import settings
-from .exception import ThrottlingException
-from .models import InputLoggedRequest, InputLoggedRequestType
-from .utils import (
-    get_throttling_validators, get_view_from_request_or_none, log_context_manager
-)
+from .utils import get_throttling_validators
 
 from importlib import import_module
 
@@ -32,17 +34,12 @@ class LogMiddleware:
 
     def process_request(self, request):
         view = get_view_from_request_or_none(request)
-        input_logged_request = None
         if (get_client_ip(request)[0] not in settings.LOG_REQUEST_IGNORE_IP
                and request.path not in settings.LOG_REQUEST_IGNORE_URL_PATHS
                and not getattr(view, 'log_exempt', False)):
-            input_logged_request = InputLoggedRequest.objects.prepare_from_request(request)
-            if getattr(view, 'hide_request_body', False):
-                input_logged_request.request_body = ''
-            input_logged_request.save()
-            request.input_logged_request = input_logged_request
-
-        log_context_manager.start(input_logged_request=input_logged_request)
+            request.input_request_logger = InputRequestLogger(
+                request, hide_request_body=getattr(view, 'hide_request_body', False)
+            )
 
         # Return a redirect if necessary
         if self.should_redirect_with_slash(request):
@@ -86,34 +83,26 @@ class LogMiddleware:
         return get_callable(settings.THROTTLING_FAILURE_VIEW)(request, exception)
 
     def process_view(self, request, callback, callback_args, callback_kwargs):
-        if getattr(request, 'input_logged_request', False):
+        throttling_validators = getattr(callback, 'throttling_validators', None)
+        if throttling_validators is None:
+            throttling_validators = get_throttling_validators('default_validators')
 
-            throttling_validators = getattr(callback, 'throttling_validators', None)
-            if throttling_validators is None:
-                throttling_validators = get_throttling_validators('default_validators')
-
-            try:
-                for validator in throttling_validators:
-                    validator.validate(request)
-            except ThrottlingException as exception:
-                return self.process_exception(request, exception)
+        try:
+            for validator in throttling_validators:
+                validator.validate(request)
+        except ThrottlingException as exception:
+            return self.process_exception(request, exception)
 
     def process_response(self, request, response):
-        input_logged_request = getattr(request, 'input_logged_request', None)
-        if input_logged_request:
-            input_logged_request.update_from_response(response)
-            input_logged_request.save()
-
-        log_context_manager.end()
+        input_request_logger = getattr(request, 'input_request_logger', None)
+        if input_request_logger:
+            input_request_logger.log_response(request, response)
+            input_request_logger.close()
         return response
 
     def process_exception(self, request, exception):
-        if hasattr(request, 'input_logged_request'):
-
-            logged_request = request.input_logged_request
+        input_request_logger = getattr(request, 'input_request_logger', None)
+        if input_request_logger:
+            input_request_logger.log_exception(traceback.format_exc())
             if isinstance(exception, ThrottlingException):
-                logged_request.type = InputLoggedRequestType.THROTTLED_REQUEST
                 return self._render_throttling(request, exception)
-            else:
-                logged_request.error_description = traceback.format_exc()
-                logged_request.exception_name = exception.__class__.__name__

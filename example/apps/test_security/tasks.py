@@ -7,18 +7,16 @@ from security.task import LoggedTask
 
 @celery_app.task(
     base=LoggedTask,
-    bind=True,
     name='sum_task')
-def sum_task(self, a, b):
+def sum_task(a, b):
     return a + b
 
 
 @celery_app.task(
     base=LoggedTask,
-    bind=True,
     name='error_task',
     stale_time_limit=60 * 60)
-def error_task(self):
+def error_task():
     raise RuntimeError('error')
 
 
@@ -35,17 +33,15 @@ def retry_task(self):
 
 @celery_app.task(
     base=LoggedTask,
-    bind=True,
     name='unique_task',
     unique=True)
-def unique_task(self):
+def unique_task():
     return 'unique'
 
 
 @celery_app.task(
     base=LoggedTask,
-    bind=True,
     name='ignored_after_success_task',
     ignore_task_after_success_timedelta=timedelta(hours=1, minutes=5))
-def ignored_after_success_task(self):
+def ignored_after_success_task():
     return 'ignored_task_after_success'

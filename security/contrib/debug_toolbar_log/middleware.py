@@ -3,8 +3,7 @@ from django.conf import settings as django_settings
 from debug_toolbar.toolbar import DebugToolbar
 
 from security.config import settings
-
-from .models import DebugToolbarData
+from security.backends.signals import update_input_request_log
 
 
 class DebugToolbarLogMiddleware:
@@ -33,11 +32,9 @@ class DebugToolbarLogMiddleware:
                 panel.generate_stats(request, response)
                 panel.generate_server_timing(request, response)
 
-            if getattr(request, 'input_logged_request', False):
-
-                DebugToolbarData.objects.create(
-                    logged_request=request.input_logged_request, toolbar=toolbar.render_toolbar()
-                )
+            input_request_logger = getattr(request, 'input_request_logger', None)
+            if input_request_logger:
+                input_request_logger.update_extra_data({'debug_toolbar': toolbar.render_toolbar()})
             return response
         else:
             return self.get_response(request)
