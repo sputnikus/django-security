@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-04-09 20:06+0200\n"
+"POT-Creation-Date: 2021-08-18 09:21+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -242,19 +242,19 @@ msgstr "Čeká"
 msgid "Triggered"
 msgstr "Vyvoláno"
 
-#: enums.py:30 enums.py:39
+#: enums.py:30 enums.py:40
 msgid "Active"
 msgstr "Aktivní"
 
-#: enums.py:31 enums.py:40
+#: enums.py:31 enums.py:41
 msgid "Succeeded"
 msgstr "Dokončený"
 
-#: enums.py:32 enums.py:41
+#: enums.py:32 enums.py:42
 msgid "Failed"
 msgstr "Chyba"
 
-#: enums.py:33 enums.py:43
+#: enums.py:33 enums.py:44
 msgid "Expired"
 msgstr "Expirovaný"
 
@@ -262,7 +262,11 @@ msgstr "Expirovaný"
 msgid "Timeout"
 msgstr "Čas vypršel"
 
-#: enums.py:42
+#: enums.py:35
+msgid "Ignored"
+msgstr "Ignorováno"
+
+#: enums.py:43
 msgid "Retried"
 msgstr "Opakovaný"
 
