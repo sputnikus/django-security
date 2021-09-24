@@ -10,7 +10,7 @@ from germanium.test_cases.client import ClientTestCase
 from germanium.tools import (
     assert_equal, assert_false, assert_http_not_found, assert_http_ok, assert_http_redirect,
     assert_http_too_many_requests, assert_in, assert_is_none, assert_is_not_none, assert_not_in,
-    assert_raises, assert_true, assert_equal_model_fields
+    assert_raises, assert_true, assert_equal_model_fields, assert_length_equal, all_eq_obj, not_none_eq_obj
 )
 
 from security.config import settings
@@ -22,11 +22,9 @@ from security.backends.elasticsearch.models import CommandLog as ElasticsearchCo
 from security.backends.signals import (
     command_started, command_error, command_finished, command_output_updated, output_request_finished
 )
+from security.tests import capture_security_logs
 
-from .base import (
-    BaseTestCaseMixin, _all_, TRUNCATION_CHAR, assert_equal_dict_data, set_signal_receiver, test_call_command,
-    _not_none_
-)
+from .base import BaseTestCaseMixin, TRUNCATION_CHAR, test_call_command
 
 
 @override_settings(SECURITY_BACKENDS={})
@@ -37,68 +35,64 @@ class CommandLogTestCase(BaseTestCaseMixin, ClientTestCase):
             'name': 'test_command',
             'input': 'verbosity=0',
             'is_executed_from_command_line': False,
-            'start': _all_,
+            'start': all_eq_obj,
         }
         expected_command_finished_data = {
             **expected_command_started_data,
-            'stop': _all_,
+            'stop': all_eq_obj,
         }
-        with set_signal_receiver(command_started, expected_command_started_data) as started_receiver:
-            with set_signal_receiver(command_finished, expected_command_finished_data) as finish_receiver:
-                with set_signal_receiver(command_output_updated) as output_updated_receiver:
-                    with set_signal_receiver(command_error) as error_receiver:
-                        test_call_command('test_command', verbosity=0)
-                        assert_equal(started_receiver.calls, 1)
-                        assert_equal(finish_receiver.calls, 1)
-                        assert_equal(output_updated_receiver.calls, 1)
-                        assert_equal(error_receiver.calls, 0)
-                        assert_equal(len(output_updated_receiver.last_logger.data['output'].split('\n')), 21)
+        with capture_security_logs() as logged_data:
+            test_call_command('test_command', verbosity=0)
+            assert_length_equal(logged_data.command_started, 1)
+            assert_length_equal(logged_data.command_finished, 1)
+            assert_length_equal(logged_data.command_output_updated, 1)
+            assert_length_equal(logged_data.command_error, 0)
+            assert_equal(logged_data.command_started[0].data, expected_command_started_data)
+            assert_equal(logged_data.command_finished[0].data, expected_command_finished_data)
 
-    @override_settings(SECURITY_LOG_STING_IO_FLUSH_TIMEOUT=0)
+    @override_settings(SECURITY_LOG_STRING_IO_FLUSH_TIMEOUT=0)
     def test_command_log_string_io_flush_timeout_should_changed(self):
-        with set_signal_receiver(command_output_updated) as output_updated_receiver:
+        with capture_security_logs() as logged_data:
             test_call_command('test_command')
-            assert_equal(output_updated_receiver.calls, 21)
+            assert_length_equal(logged_data.command_output_updated, 21)
 
     def test_error_command_should_be_logged(self):
         expected_command_started_data = {
             'name': 'test_error_command',
             'input': '',
             'is_executed_from_command_line': False,
-            'start': _all_,
+            'start': all_eq_obj,
         }
         expected_command_error_data = {
             **expected_command_started_data,
-            'error_message': _not_none_,
-            'stop': _all_,
+            'error_message': not_none_eq_obj,
+            'stop': all_eq_obj,
         }
-        with set_signal_receiver(command_started, expected_command_started_data) as started_receiver:
-            with set_signal_receiver(command_finished) as finish_receiver:
-                with set_signal_receiver(command_error, expected_command_error_data) as error_receiver:
-                    with assert_raises(RuntimeError):
-                        test_call_command('test_error_command')
-                    assert_equal(started_receiver.calls, 1)
-                    assert_equal(finish_receiver.calls, 0)
-                    assert_equal(error_receiver.calls, 1)
+        with capture_security_logs() as logged_data:
+            with assert_raises(RuntimeError):
+                test_call_command('test_error_command')
+            assert_length_equal(logged_data.command_started, 1)
+            assert_length_equal(logged_data.command_finished, 0)
+            assert_length_equal(logged_data.command_error, 1)
+            assert_equal(logged_data.command_started[0].data, expected_command_started_data)
+            assert_equal(logged_data.command_error[0].data, expected_command_error_data)
 
     @responses.activate
     @data_consumer('create_user')
     def test_command_with_response_should_be_logged_with_parent_data(self, user):
-        responses.add(responses.POST, 'http://test.cz/test', body='test')
-        with log_with_data(related_objects=[user], slug='TEST', extra_data={'test', 'test'}):
-            with set_signal_receiver(command_started) as command_started_receiver:
-                with set_signal_receiver(output_request_finished) as output_request_finished_receiver:
-                    test_call_command('test_command_with_response')
-                    assert_equal(
-                        output_request_finished_receiver.last_logger.parent_with_id,
-                        command_started_receiver.last_logger
-                    )
-                    assert_equal(command_started_receiver.last_logger.slug, 'TEST')
-                    assert_equal(command_started_receiver.last_logger.related_objects, {user})
-                    assert_equal(command_started_receiver.last_logger.extra_data, {'test', 'test'})
-                    assert_equal(output_request_finished_receiver.last_logger.slug, 'TEST')
-                    assert_equal(output_request_finished_receiver.last_logger.related_objects, {user})
-                    assert_equal(output_request_finished_receiver.last_logger.extra_data, {'test', 'test'})
+        responses.add(responses.POST, 'http://localhost/test', body='test')
+        with log_with_data(related_objects=[user], slug='TEST', extra_data={'test': 'test'}):
+            with capture_security_logs() as logged_data:
+                test_call_command('test_command_with_response')
+                command_logger = logged_data.command[0]
+                output_request_logger = logged_data.output_request[0]
+                assert_equal(output_request_logger.parent_with_id, command_logger)
+                assert_equal(command_logger.slug, 'TEST')
+                assert_equal(command_logger.related_objects, {user})
+                assert_equal(command_logger.extra_data, {'test': 'test'})
+                assert_equal(output_request_logger.slug, 'TEST')
+                assert_equal(output_request_logger.related_objects, {user})
+                assert_equal(output_request_logger.extra_data, {'test': 'test'})
 
     @override_settings(SECURITY_BACKENDS={'sql'})
     @data_consumer('create_user')
@@ -122,11 +116,11 @@ class CommandLogTestCase(BaseTestCaseMixin, ClientTestCase):
     @override_settings(SECURITY_BACKENDS={'elasticsearch'})
     @data_consumer('create_user')
     def test_command_should_be_logged_in_elasticsearch_backend(self, user):
-        with set_signal_receiver(command_started) as started_receiver:
+        with capture_security_logs() as logged_data:
             with log_with_data(related_objects=[user]):
                 test_call_command('test_command', verbosity=0)
                 elasticsearch_command_log = ElasticsearchCommandLog.get(
-                    id=started_receiver.last_logger.id
+                    id=logged_data.command[0].id
                 )
                 assert_equal_model_fields(
                     elasticsearch_command_log,
@@ -147,18 +141,19 @@ class CommandLogTestCase(BaseTestCaseMixin, ClientTestCase):
     @override_settings(SECURITY_BACKENDS={'logging'})
     @data_consumer('create_user')
     def test_command_should_be_logged_in_logging_backend(self, user):
-        with set_signal_receiver(command_started) as finished_receiver:
+        with capture_security_logs() as logged_data:
             with self.assertLogs('security.command', level='INFO') as cm:
                 test_call_command('test_command', verbosity=0)
+                command_log = logged_data.command[0]
                 assert_equal(
                     cm.output,
                     [
                         f'INFO:security.command:'
-                        f'Command "{finished_receiver.last_logger.id}" '
-                        f'with name "test_command" is started',
+                        f'Command "{command_log.id}" '
+                        f'with name "test_command" was started',
                         f'INFO:security.command:'
-                        f'Command "{finished_receiver.last_logger.id}" '
-                        f'with name "test_command" is successfully finished',
+                        f'Command "{command_log.id}" '
+                        f'with name "test_command" was successful',
                     ]
                 )
 
@@ -185,12 +180,12 @@ class CommandLogTestCase(BaseTestCaseMixin, ClientTestCase):
     @override_settings(SECURITY_BACKENDS={'elasticsearch'})
     @data_consumer('create_user')
     def test_error_command_should_be_logged_in_elasticsearch_backend(self, user):
-        with set_signal_receiver(command_started) as started_receiver:
+        with capture_security_logs() as logged_data:
             with log_with_data(related_objects=[user]):
                 with assert_raises(RuntimeError):
                     test_call_command('test_error_command')
                 elasticsearch_command_log = ElasticsearchCommandLog.get(
-                    id=started_receiver.last_logger.id
+                    id=logged_data.command[0].id
                 )
                 assert_equal_model_fields(
                     elasticsearch_command_log,
@@ -211,38 +206,36 @@ class CommandLogTestCase(BaseTestCaseMixin, ClientTestCase):
     @override_settings(SECURITY_BACKENDS={'logging'})
     @data_consumer('create_user')
     def test_error_command_should_be_logged_in_logging_backend(self, user):
-        with set_signal_receiver(command_started) as finished_receiver:
+        with capture_security_logs() as logged_data:
             with self.assertLogs('security.command', level='INFO') as cm:
                 with assert_raises(RuntimeError):
                     test_call_command('test_error_command')
+                command_log = logged_data.command[0]
                 assert_equal(
                     cm.output,
                     [
                         f'INFO:security.command:'
-                        f'Command "{finished_receiver.last_logger.id}" '
-                        f'with name "test_error_command" is started',
+                        f'Command "{command_log.id}" '
+                        f'with name "test_error_command" was started',
                         f'ERROR:security.command:'
-                        f'Command "{finished_receiver.last_logger.id}" '
-                        f'with name "test_error_command" is finished with exception',
+                        f'Command "{command_log.id}" '
+                        f'with name "test_error_command" failed',
                     ]
                 )
 
     def test_data_change_should_be_connected_with_command_log(self):
-        with set_signal_receiver(command_finished) as finish_receiver:
+        with capture_security_logs() as logged_data:
             test_call_command('create_user')
             assert_equal(
-                list(finish_receiver.last_logger.related_objects)[0].version_set.get().content_type,
+                list(logged_data.command[0].related_objects)[0].version_set.get().content_type,
                 ContentType.objects.get_for_model(User)
             )
 
     @override_settings(SECURITY_COMMAND_LOG_EXCLUDED_COMMANDS=('test_command',))
     def test_excluded_command_should_not_be_logged(self):
-        with set_signal_receiver(command_started) as started_receiver:
-            with set_signal_receiver(command_finished) as finish_receiver:
-                with set_signal_receiver(command_output_updated) as output_updated_receiver:
-                    with set_signal_receiver(command_error) as error_receiver:
-                        test_call_command('test_command')
-                        assert_equal(started_receiver.calls, 0)
-                        assert_equal(finish_receiver.calls, 0)
-                        assert_equal(output_updated_receiver.calls, 0)
-                        assert_equal(error_receiver.calls, 0)
+        with capture_security_logs() as logged_data:
+            test_call_command('test_command')
+            assert_length_equal(logged_data.command_started, 0)
+            assert_length_equal(logged_data.command_finished, 0)
+            assert_length_equal(logged_data.command_output_updated, 0)
+            assert_length_equal(logged_data.command_error, 0)

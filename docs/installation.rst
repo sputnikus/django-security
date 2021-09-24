@@ -36,7 +36,7 @@ Next you muse select which logging backend you want to use and add it into ``INS
     INSTALLED_APPS = (
         ...
         'security.backends.sql',  # log is stored into SQL DB with Django ORM
-        'security.backends.elasticsearch',  # log is stored into ElasticSearch DB with Elasticsearch-DSL
+        'security.backends.elasticsearch',  # log is stored into Elasticsearch DB with Elasticsearch-DSL
         'security.backends.logging',  # standard python log
         ...
     )
@@ -119,10 +119,10 @@ The second solution is have second storage for logs in this case you will use ``
     SECURITY_DB_NAME = 'log'
 
 
-ElasticSearch backend
+Elasticsearch backend
 ---------------------
 
-ElasticSearch backend can be configured via ``SECURITY_ELASTICSEARCH_DATABASE`` varibale::
+Elasticsearch backend can be configured via ``SECURITY_ELASTICSEARCH_DATABASE`` varibale::
 
     SECURITY_ELASTICSEARCH_DATABASE = {
         'host': 'localhost',
@@ -202,16 +202,16 @@ Setup
 
 .. attribute:: SECURITY_BACKENDS
 
-  With this setting you can select which backends will be used to store logs. Default value is ``None`` which means all installed logs are used.
+  With this setting you can select which backends will be used to store logs. Default value is ``None`` which means all installed backends are used.
 
 .. attribute:: SECURITY_ELASTICSEARCH_DATABASE
 
-  Setting can be used to set ElasticSearch database configuration.
+  Setting can be used to set Elasticsearch database configuration.
 
 .. attribute:: SECURITY_ELASTICSEARCH_AUTO_REFRESH
 
-  Every write to the elasticsearch database will automatically call auto refresh.
+  Every write to the Elasticsearch database will automatically call auto refresh.
 
-.. attribute:: SECURITY_LOG_STING_IO_FLUSH_TIMEOUT
+.. attribute:: SECURITY_LOG_STRING_IO_FLUSH_TIMEOUT
 
   Timeout which set how often will be stored output stream to the log. Default value is ``5`` (s).

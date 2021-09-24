@@ -101,10 +101,6 @@ class CeleryTaskRunLogger(SecurityLogger):
 
     name = LoggerName.CELERY_TASK_RUN
 
-    def __init__(self, name, queue_name, task_args, task_kwargs, celery_task_id, retries, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.log_started(name, queue_name, task_args, task_kwargs, celery_task_id, retries)
-
     def log_started(self, name, queue_name, task_args, task_kwargs, celery_task_id, retries):
         task_input = []
         if task_args:

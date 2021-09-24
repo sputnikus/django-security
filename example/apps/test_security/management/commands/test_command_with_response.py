@@ -6,4 +6,4 @@ from security import requests
 class Command(BaseCommand):
 
     def handle(self, **options):
-        requests.post('http://test.cz/test')
+        requests.post('http://localhost/test')

@@ -38,8 +38,9 @@ class LogMiddleware:
                 and request.path not in settings.LOG_REQUEST_IGNORE_URL_PATHS
                 and not getattr(view, 'log_exempt', False)):
             request.input_request_logger = InputRequestLogger(
-                request, hide_request_body=getattr(view, 'hide_request_body', False)
+                hide_request_body=getattr(view, 'hide_request_body', False)
             )
+            request.input_request_logger.log_request(request)
 
         # Return a redirect if necessary
         if self.should_redirect_with_slash(request):

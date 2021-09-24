@@ -559,7 +559,7 @@ def celery_task_run_output_updated_receiver(sender, logger, **kwargs):
     )
 
 
-def get_related_with_object(logger_name, related_object):
+def get_logs_related_with_object(logger_name, related_object):
     related_object_key = get_key_from_object(related_object)
     return list(_get_log_model_from_logger_name(logger_name).search().filter(
         Q('term', related_objects=related_object_key)

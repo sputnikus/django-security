@@ -23,7 +23,7 @@ celery_logger = logging.getLogger('security.celery')
 @receiver(input_request_started)
 def input_request_started_receiver(sender, logger, **kwargs):
     input_request_logger.info(
-        'Input request "%(id)s" to "%(host)s" with path "%(path)s" is started',
+        'Input request "%(id)s" to "%(host)s" with path "%(path)s" was started',
         dict(
             id=logger.id,
             host=logger.data['host'],
@@ -45,7 +45,7 @@ def input_request_started_receiver(sender, logger, **kwargs):
 @receiver(input_request_finished)
 def input_request_finished_receiver(sender, logger, **kwargs):
     input_request_logger.info(
-        'Input request "%(id)s" to "%(host)s" with path "%(path)s" is finished',
+        'Input request "%(id)s" to "%(host)s" with path "%(path)s" was finished',
         dict(
             id=logger.id,
             host=logger.data['host'],
@@ -71,7 +71,7 @@ def input_request_finished_receiver(sender, logger, **kwargs):
 @receiver(input_request_error)
 def input_request_error_receiver(sender, logger, **kwargs):
     input_request_logger.error(
-        'Input request "%(id)s" to "%(host)s" with path "%(path)s" is raised exception',
+        'Input request "%(id)s" to "%(host)s" with path "%(path)s" failed',
         dict(
             id=logger.id,
             host=logger.data['host'],
@@ -94,7 +94,7 @@ def input_request_error_receiver(sender, logger, **kwargs):
 @receiver(output_request_started)
 def output_request_started_receiver(sender, logger, **kwargs):
     output_request_logger.info(
-        'Output request "%(id)s" to "%(host)s" with path "%(path)s" is started',
+        'Output request "%(id)s" to "%(host)s" with path "%(path)s" was started',
         dict(
             id=logger.id,
             host=logger.data['host'],
@@ -114,7 +114,7 @@ def output_request_started_receiver(sender, logger, **kwargs):
 @receiver(output_request_finished)
 def output_request_finished_receiver(sender, logger, **kwargs):
     output_request_logger.info(
-        'Output request "%(id)s" to "%(host)s" with path "%(path)s" is successfully finished',
+        'Output request "%(id)s" to "%(host)s" with path "%(path)s" was successful',
         dict(
             id=logger.id,
             host=logger.data['host'],
@@ -137,7 +137,7 @@ def output_request_finished_receiver(sender, logger, **kwargs):
 @receiver(output_request_error)
 def output_request_error_receiver(sender, logger, **kwargs):
     output_request_logger.error(
-        'Output request "%(id)s" to "%(host)s" with path "%(path)s" is raised exception',
+        'Output request "%(id)s" to "%(host)s" with path "%(path)s" failed',
         dict(
             id=logger.id,
             host=logger.data['host'],
@@ -160,7 +160,7 @@ def output_request_error_receiver(sender, logger, **kwargs):
 @receiver(command_started)
 def command_started_receiver(sender, logger, **kwargs):
     command_logger.info(
-        'Command "%(id)s" with name "%(name)s" is started',
+        'Command "%(id)s" with name "%(name)s" was started',
         dict(
             id=logger.id,
             name=logger.data['name'],
@@ -177,7 +177,7 @@ def command_started_receiver(sender, logger, **kwargs):
 @receiver(command_finished)
 def command_finished_receiver(sender, logger, **kwargs):
     command_logger.info(
-        'Command "%(id)s" with name "%(name)s" is successfully finished',
+        'Command "%(id)s" with name "%(name)s" was successful',
         dict(
             id=logger.id,
             name=logger.data['name'],
@@ -197,7 +197,7 @@ def command_finished_receiver(sender, logger, **kwargs):
 @receiver(command_error)
 def command_error_receiver(sender, logger, **kwargs):
     command_logger.error(
-        'Command "%(id)s" with name "%(name)s" is finished with exception',
+        'Command "%(id)s" with name "%(name)s" failed',
         dict(
             id=logger.id,
             name=logger.data['name'],
@@ -217,7 +217,7 @@ def command_error_receiver(sender, logger, **kwargs):
 @receiver(celery_task_invocation_triggered)
 def celery_task_invocation_triggered_receiver(sender, logger, **kwargs):
     celery_logger.info(
-        'Celery task invocation "%(id)s" with celery id "%(celery_task_id)s" and name "%(name)s" is triggered',
+        'Celery task invocation "%(id)s" with celery id "%(celery_task_id)s" and name "%(name)s" was invoked',
         dict(
             id=logger.id,
             celery_task_id=logger.data['celery_task_id'],
@@ -237,7 +237,7 @@ def celery_task_invocation_triggered_receiver(sender, logger, **kwargs):
 @receiver(celery_task_invocation_ignored)
 def celery_task_invocation_ignored_receiver(sender, logger, **kwargs):
     celery_logger.info(
-        'Celery task invocation "%(id)s" with name "%(name)s" is ignored',
+        'Celery task invocation "%(id)s" with name "%(name)s" was ignored',
         dict(
             id=logger.id,
             name=logger.data['name'],
@@ -257,7 +257,7 @@ def celery_task_invocation_ignored_receiver(sender, logger, **kwargs):
 @receiver(celery_task_invocation_timeout)
 def celery_task_invocation_timeout_receiver(sender, logger, **kwargs):
     celery_logger.warning(
-        'Celery task "%(id)s" with celery id "%(celery_task_id)s" and name "%(name)s" is raised response timeout',
+        'Celery task "%(id)s" with celery id "%(celery_task_id)s" and name "%(name)s" caused a response timeout',
         dict(
             id=logger.id,
             celery_task_id=logger.data['celery_task_id'],
@@ -279,7 +279,7 @@ def celery_task_invocation_timeout_receiver(sender, logger, **kwargs):
 @receiver(celery_task_invocation_expired)
 def celery_task_invocation_expired_receiver(sender, logger, **kwargs):
     celery_logger.error(
-        'Celery task invocation "%(id)s" with celery id "%(celery_task_id)s" and  name "%(name)s" is expired',
+        'Celery task invocation "%(id)s" with celery id "%(celery_task_id)s" and name "%(name)s" was expired',
         dict(
             id=logger.id,
             celery_task_id=logger.data['celery_task_id'] or '',
@@ -301,7 +301,7 @@ def celery_task_invocation_expired_receiver(sender, logger, **kwargs):
 @receiver(celery_task_run_started)
 def celery_task_run_started_receiver(sender, logger, **kwargs):
     celery_logger.info(
-        'Celery task "%(id)s" with celery id "%(celery_task_id)s" and name "%(name)s" is started',
+        'Celery task "%(id)s" with celery id "%(celery_task_id)s" and name "%(name)s" was started',
         dict(
             id=logger.id,
             celery_task_id=logger.data['celery_task_id'],
@@ -321,7 +321,7 @@ def celery_task_run_started_receiver(sender, logger, **kwargs):
 @receiver(celery_task_run_succeeded)
 def celery_task_run_succeeded_receiver(sender, logger, **kwargs):
     celery_logger.info(
-        'Celery task "%(id)s" with celery id "%(celery_task_id)s" and name "%(name)s" is completed',
+        'Celery task "%(id)s" with celery id "%(celery_task_id)s" and name "%(name)s" was successful',
         dict(
             id=logger.id,
             celery_task_id=logger.data['celery_task_id'],
@@ -343,7 +343,7 @@ def celery_task_run_succeeded_receiver(sender, logger, **kwargs):
 @receiver(celery_task_run_failed)
 def celery_task_run_failed_receiver(sender, logger, **kwargs):
     celery_logger.error(
-        'Celery task "%(id)s" with celery id "%(celery_task_id)s" and name "%(name)s" is failed',
+        'Celery task "%(id)s" with celery id "%(celery_task_id)s" and name "%(name)s" failed',
         dict(
             id=logger.id,
             celery_task_id=logger.data['celery_task_id'],
@@ -365,7 +365,7 @@ def celery_task_run_failed_receiver(sender, logger, **kwargs):
 @receiver(celery_task_run_retried)
 def celery_task_run_retried_receiver(sender, logger, **kwargs):
     celery_logger.warning(
-        'Celery task "%(id)s" with celery id "%(celery_task_id)s" and name "%(name)s" is retried',
+        'Celery task "%(id)s" with celery id "%(celery_task_id)s" and name "%(name)s" was repeated',
         dict(
             id=logger.id,
             celery_task_id=logger.data['celery_task_id'],

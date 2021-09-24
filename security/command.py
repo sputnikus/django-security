@@ -43,7 +43,8 @@ class CommandExecutor:
                 stdout=self.stdout, stderr=self.stderr, *self.command_args, **self.command_kwargs
             )
 
-        with CommandLogger(**self.kwargs) as command_logger:
+        with CommandLogger() as command_logger:
+            command_logger.log_started(**self.kwargs)
             self.output = LogStringIO(
                 flush_callback=lambda output_stream: command_logger.log_output_updated(output_stream.getvalue())
             )

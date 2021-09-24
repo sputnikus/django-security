@@ -24,10 +24,9 @@ class InputRequestLogger(SecurityLogger):
 
     name = LoggerName.INPUT_REQUEST
 
-    def __init__(self, request, hide_request_body=False, *args, **kwargs):
+    def __init__(self, hide_request_body=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.hide_request_body = hide_request_body
-        self.log_request(request)
 
     def log_request(self, request):
         user_pk = request.user.pk if hasattr(request, 'user') and request.user.is_authenticated else None
@@ -87,10 +86,6 @@ class InputRequestLogger(SecurityLogger):
 class OutputRequestLogger(SecurityLogger):
 
     name = LoggerName.OUTPUT_REQUEST
-
-    def __init__(self, request, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.log_request(request)
 
     def log_request(self, request):
         from .utils import get_logged_params

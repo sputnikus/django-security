@@ -31,3 +31,5 @@ SECURITY_LOG_DB_NAME = 'security'
 DATABASE_ROUTERS = ['security.backends.sql.db_router.MultipleDBSecurityLoggerRouter']
 
 ALLOWED_HOSTS = ['*']
+
+SECURITY_BACKENDS = ['sql']

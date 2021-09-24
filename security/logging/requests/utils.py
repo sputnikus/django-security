@@ -121,12 +121,16 @@ def clean_body(body, max_length):
     return cleaned_body
 
 
+def clean_json(data):
+    return {remove_nul_from_string(k): remove_nul_from_string(v) if isinstance(v, str) else v for k, v in data.items()}
+
+
 def clean_headers(headers):
-    return hide_sensitive_data_headers(headers) if headers else headers
+    return hide_sensitive_data_headers(clean_json(headers)) if headers else headers
 
 
 def clean_queries(queries):
-    return hide_sensitive_data_queries(queries) if queries else queries
+    return hide_sensitive_data_queries(clean_json(queries)) if queries else queries
 
 
 def log_input_request_with_data(request, related_objects=None, slug=None, extra_data=None):

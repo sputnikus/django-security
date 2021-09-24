@@ -87,7 +87,8 @@ class LoggedTask(DjangoTask):
 
     def on_task_start(self, task_id, args, kwargs):
         super().on_task_start(task_id, args, kwargs)
-        self.request.run_logger = CeleryTaskRunLogger(
+        self.request.run_logger = CeleryTaskRunLogger()
+        self.request.run_logger.log_started(
             name=self.name,
             queue_name=self.request.delivery_info.get('routing_key'),
             task_args=args,

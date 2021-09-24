@@ -205,6 +205,6 @@ DJANGO_CELERY_EXTENSIONS_AUTO_GENERATE_TASKS_DJANGO_COMMANDS = {
     'create_user': {},
 }
 
-SECURITY_ELASTICSEARCH_DATABASE = {
-    'host': 'localhost',
-}
+SECURITY_ELASTICSEARCH_DATABASE = dict(
+    hosts=[{'host': 'localhost', 'port': 9200}],
+)

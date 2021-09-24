@@ -36,7 +36,7 @@ class LogStringIO(StringIO):
         self._flush_callback = flush_callback
         self._write_time = True
         self._last_flush_time = time()
-        self._flush_timeout = settings.LOG_STING_IO_FLUSH_TIMEOUT if flush_timeout is None else flush_timeout
+        self._flush_timeout = settings.LOG_STRING_IO_FLUSH_TIMEOUT if flush_timeout is None else flush_timeout
 
     def _flush(self, force=False):
         if self._flush_callback and (force or time() - self._last_flush_time > self._flush_timeout):

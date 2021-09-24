@@ -11,10 +11,6 @@ class CommandLogger(SecurityLogger):
 
     name = LoggerName.COMMAND
 
-    def __init__(self, name, input, is_executed_from_command_line, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.log_started(name, input, is_executed_from_command_line)
-
     def log_started(self, name, input, is_executed_from_command_line, parent_log=None):
         self.data.update(dict(
             name=name,

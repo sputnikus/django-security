@@ -41,8 +41,9 @@ class SecuritySession(Session):
         }
         send_kwargs.update(request_settings)
 
-        with OutputRequestLogger(prep, related_objects=related_objects or self.related_objects,
+        with OutputRequestLogger(related_objects=related_objects or self.related_objects,
                                  slug=slug or self.slug) as output_request_logger:
+            output_request_logger.log_request(prep)
             try:
                 response = self.send(prep, **send_kwargs)
                 output_request_logger.log_response(response)

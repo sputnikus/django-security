@@ -19,7 +19,8 @@ from germanium.test_cases.client import ClientTestCase
 from germanium.tools import (
     assert_equal, assert_false, assert_http_not_found, assert_http_ok, assert_http_redirect,
     assert_http_too_many_requests, assert_in, assert_is_none, assert_is_not_none, assert_not_in,
-    assert_raises, assert_true, assert_equal_model_fields, capture_on_commit_callbacks
+    assert_raises, assert_true, assert_equal_model_fields, capture_on_commit_callbacks, assert_length_equal,
+    all_eq_obj, not_none_eq_obj
 )
 
 from chamber.utils.transaction import transaction_signals
@@ -40,13 +41,11 @@ from security.backends.signals import (
     celery_task_invocation_ignored, celery_task_invocation_timeout, celery_task_run_started, celery_task_run_failed,
     celery_task_run_retried, celery_task_run_succeeded, celery_task_run_output_updated
 )
+from security.tests import capture_security_logs
 
 from apps.test_security.tasks import error_task, retry_task, sum_task, unique_task, ignored_after_success_task
 
-from .base import (
-    BaseTestCaseMixin, _all_, TRUNCATION_CHAR, assert_equal_dict_data, set_signal_receiver, test_call_command,
-    _not_none_
-)
+from .base import BaseTestCaseMixin, TRUNCATION_CHAR, test_call_command
 
 
 @override_settings(SECURITY_BACKENDS={})
@@ -60,19 +59,19 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
             'input': '5, 8',
             'task_args': [5, 8],
             'task_kwargs': {},
-            'applied_at': _not_none_,
+            'applied_at': not_none_eq_obj,
             'is_async': False,
             'is_unique': False,
             'is_on_commit': False,
-            'start': _not_none_,
+            'start': not_none_eq_obj,
         }
         expected_invocation_triggered_data = {
             **expected_invocation_started_data,
-            'triggered_at': _not_none_,
+            'triggered_at': not_none_eq_obj,
             'stale_at': None,
-            'estimated_time_of_first_arrival': _not_none_,
+            'estimated_time_of_first_arrival': not_none_eq_obj,
             'expires_at': None,
-            'celery_task_id': _not_none_,
+            'celery_task_id': not_none_eq_obj,
             'is_duplicate': False,
         }
 
@@ -82,36 +81,30 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
             'input': '5, 8',
             'task_args': [5, 8],
             'task_kwargs': {},
-            'start': _not_none_,
+            'start': not_none_eq_obj,
             'retries': 0,
-            'celery_task_id': _not_none_,
+            'celery_task_id': not_none_eq_obj,
         }
         expected_run_succeeded_data = {
             **expected_run_started_data,
-            'stop': _not_none_,
+            'stop': not_none_eq_obj,
             'result': 13
         }
 
-        with set_signal_receiver(celery_task_invocation_started,
-                                 expected_invocation_started_data) as invocation_started_receiver, \
-                set_signal_receiver(celery_task_invocation_triggered,
-                                    expected_invocation_triggered_data) as invocation_triggered_receiver, \
-                set_signal_receiver(celery_task_run_started,
-                                    expected_run_started_data) as run_started_receiver, \
-                set_signal_receiver(celery_task_run_succeeded,
-                                    expected_run_succeeded_data) as run_succeeded_receiver, \
-                set_signal_receiver(celery_task_run_output_updated) as run_output_updated_receiver, \
-                set_signal_receiver(celery_task_run_failed) as run_failed_receiver, \
-                set_signal_receiver(celery_task_run_retried) as run_retried_receiver:
+        with capture_security_logs() as logged_data:
             sum_task.apply(args=(5, 8), related_objects=[user])
-            assert_equal(invocation_started_receiver.calls, 1)
-            assert_equal(invocation_triggered_receiver.calls, 1)
-            assert_equal(run_started_receiver.calls, 1)
-            assert_equal(run_succeeded_receiver.calls, 1)
-            assert_equal(run_output_updated_receiver.calls, 1)
-            assert_equal(run_failed_receiver.calls, 0)
-            assert_equal(run_retried_receiver.calls, 0)
-            assert_equal(invocation_started_receiver.last_logger.related_objects, {user})
+            assert_length_equal(logged_data.celery_task_invocation_started, 1)
+            assert_length_equal(logged_data.celery_task_invocation_triggered, 1)
+            assert_length_equal(logged_data.celery_task_run_started, 1)
+            assert_length_equal(logged_data.celery_task_run_succeeded, 1)
+            assert_length_equal(logged_data.celery_task_run_output_updated, 1)
+            assert_length_equal(logged_data.celery_task_run_failed, 0)
+            assert_length_equal(logged_data.celery_task_run_retried, 0)
+            assert_equal(logged_data.celery_task_invocation_started[0].data, expected_invocation_started_data)
+            assert_equal(logged_data.celery_task_invocation_triggered[0].data, expected_invocation_triggered_data)
+            assert_equal(logged_data.celery_task_run_started[0].data, expected_run_started_data)
+            assert_equal(logged_data.celery_task_run_succeeded[0].data, expected_run_succeeded_data)
+            assert_equal(logged_data.celery_task_invocation[0].related_objects, {user})
 
     def test_error_celery_task_should_be_logged(self):
         expected_invocation_started_data = {
@@ -120,19 +113,19 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
             'input': '',
             'task_args': [],
             'task_kwargs': {},
-            'applied_at': _not_none_,
+            'applied_at': not_none_eq_obj,
             'is_async': False,
             'is_unique': False,
             'is_on_commit': False,
-            'start': _not_none_,
+            'start': not_none_eq_obj,
         }
         expected_invocation_triggered_data = {
             **expected_invocation_started_data,
-            'triggered_at': _not_none_,
-            'stale_at': _not_none_,
-            'estimated_time_of_first_arrival': _not_none_,
+            'triggered_at': not_none_eq_obj,
+            'stale_at': not_none_eq_obj,
+            'estimated_time_of_first_arrival': not_none_eq_obj,
             'expires_at': None,
-            'celery_task_id': _not_none_,
+            'celery_task_id': not_none_eq_obj,
             'is_duplicate': False,
         }
 
@@ -142,34 +135,28 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
             'input': '',
             'task_args': [],
             'task_kwargs': {},
-            'start': _not_none_,
+            'start': not_none_eq_obj,
             'retries': 0,
-            'celery_task_id': _not_none_,
+            'celery_task_id': not_none_eq_obj,
         }
         expected_run_failed_data = {
             **expected_run_started_data,
-            'stop': _not_none_,
-            'error_message': _not_none_,
+            'stop': not_none_eq_obj,
+            'error_message': not_none_eq_obj,
         }
-
-        with set_signal_receiver(celery_task_invocation_started,
-                                 expected_invocation_started_data) as invocation_started_receiver, \
-                set_signal_receiver(celery_task_invocation_triggered,
-                                    expected_invocation_triggered_data) as invocation_triggered_receiver, \
-                set_signal_receiver(celery_task_run_started,
-                                    expected_run_started_data) as run_started_receiver, \
-                set_signal_receiver(celery_task_run_succeeded) as run_succeeded_receiver, \
-                set_signal_receiver(celery_task_run_output_updated) as run_output_updated_receiver, \
-                set_signal_receiver(celery_task_run_failed, expected_run_failed_data) as run_failed_receiver, \
-                set_signal_receiver(celery_task_run_retried) as run_retried_receiver:
+        with capture_security_logs() as logged_data:
             error_task.apply()
-            assert_equal(invocation_started_receiver.calls, 1)
-            assert_equal(invocation_triggered_receiver.calls, 1)
-            assert_equal(run_started_receiver.calls, 1)
-            assert_equal(run_succeeded_receiver.calls, 0)
-            assert_equal(run_output_updated_receiver.calls, 1)
-            assert_equal(run_failed_receiver.calls, 1)
-            assert_equal(run_retried_receiver.calls, 0)
+            assert_length_equal(logged_data.celery_task_invocation_started, 1)
+            assert_length_equal(logged_data.celery_task_invocation_triggered, 1)
+            assert_length_equal(logged_data.celery_task_run_started, 1)
+            assert_length_equal(logged_data.celery_task_run_succeeded, 0)
+            assert_length_equal(logged_data.celery_task_run_output_updated, 1)
+            assert_length_equal(logged_data.celery_task_run_failed, 1)
+            assert_length_equal(logged_data.celery_task_run_retried, 0)
+            assert_equal(logged_data.celery_task_invocation_started[0].data, expected_invocation_started_data)
+            assert_equal(logged_data.celery_task_invocation_triggered[0].data, expected_invocation_triggered_data)
+            assert_equal(logged_data.celery_task_run_started[0].data, expected_run_started_data)
+            assert_equal(logged_data.celery_task_run_failed[0].data, expected_run_failed_data)
 
     def test_retry_celery_task_should_be_logged(self):
         expected_invocation_started_data = {
@@ -178,19 +165,19 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
             'input': '',
             'task_args': [],
             'task_kwargs': {},
-            'applied_at': _not_none_,
+            'applied_at': not_none_eq_obj,
             'is_async': False,
             'is_unique': False,
             'is_on_commit': False,
-            'start': _not_none_,
+            'start': not_none_eq_obj,
         }
         expected_invocation_triggered_data = {
             **expected_invocation_started_data,
-            'triggered_at': _not_none_,
+            'triggered_at': not_none_eq_obj,
             'stale_at': None,
-            'estimated_time_of_first_arrival': _not_none_,
+            'estimated_time_of_first_arrival': not_none_eq_obj,
             'expires_at': None,
-            'celery_task_id': _not_none_,
+            'celery_task_id': not_none_eq_obj,
             'is_duplicate': False,
         }
 
@@ -200,90 +187,82 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
             'input': '',
             'task_args': [],
             'task_kwargs': {},
-            'start': _not_none_,
-            'retries': _not_none_,
-            'celery_task_id': _not_none_,
+            'start': not_none_eq_obj,
+            'retries': not_none_eq_obj,
+            'celery_task_id': not_none_eq_obj,
         }
         expected_run_retried_data = {
             **expected_run_started_data,
-            'stop': _not_none_,
-            'error_message': _not_none_,
-            'estimated_time_of_next_retry': _not_none_,
+            'stop': not_none_eq_obj,
+            'error_message': not_none_eq_obj,
+            'estimated_time_of_next_retry': not_none_eq_obj,
         }
 
-        with set_signal_receiver(celery_task_invocation_started,
-                                 expected_invocation_started_data) as invocation_started_receiver, \
-                set_signal_receiver(celery_task_invocation_triggered,
-                                    expected_invocation_triggered_data) as invocation_triggered_receiver, \
-                set_signal_receiver(celery_task_run_started,
-                                    expected_run_started_data) as run_started_receiver, \
-                set_signal_receiver(celery_task_run_succeeded) as run_succeeded_receiver, \
-                set_signal_receiver(celery_task_run_output_updated) as run_output_updated_receiver, \
-                set_signal_receiver(celery_task_run_failed) as run_failed_receiver, \
-                set_signal_receiver(celery_task_run_retried, expected_run_retried_data) as run_retried_receiver:
+        with capture_security_logs() as logged_data:
             retry_task.apply()
-            assert_equal(invocation_started_receiver.calls, 1)
-            assert_equal(invocation_triggered_receiver.calls, 1)
-            assert_equal(run_started_receiver.calls, 6)
-            assert_equal(run_succeeded_receiver.calls, 1)
-            assert_equal(run_output_updated_receiver.calls, 6)
-            assert_equal(run_failed_receiver.calls, 0)
-            assert_equal(run_retried_receiver.calls, 5)
+
+            assert_length_equal(logged_data.celery_task_invocation_started, 1)
+            assert_length_equal(logged_data.celery_task_invocation_triggered, 1)
+            assert_length_equal(logged_data.celery_task_run_started, 6)
+            assert_length_equal(logged_data.celery_task_run_succeeded, 1)
+            assert_length_equal(logged_data.celery_task_run_output_updated, 6)
+            assert_length_equal(logged_data.celery_task_run_failed, 0)
+            assert_length_equal(logged_data.celery_task_run_retried, 5)
+            assert_equal(logged_data.celery_task_invocation_started[0].data, expected_invocation_started_data)
+            assert_equal(logged_data.celery_task_invocation_triggered[0].data, expected_invocation_triggered_data)
+            assert_equal(logged_data.celery_task_run_started[0].data, expected_run_started_data)
+            assert_equal(logged_data.celery_task_run_retried[0].data, expected_run_retried_data)
 
     @override_settings(DJANGO_CELERY_EXTENSIONS_DEFAULT_TASK_STALE_TIME_LIMIT=30, SECURITY_TASK_USE_ON_SUCCESS=True)
     def test_ignored_after_success_celery_task_should_be_logged(self):
-        with set_signal_receiver(celery_task_invocation_started) as invocation_started_receiver, \
-                set_signal_receiver(celery_task_invocation_triggered) as invocation_triggered_receiver, \
-                set_signal_receiver(celery_task_invocation_ignored) as invocation_ignored_receiver, \
-                set_signal_receiver(celery_task_run_started) as run_started_receiver:
+        with capture_security_logs() as logged_data:
             with capture_on_commit_callbacks(execute=True):
                 ignored_after_success_task.apply_async_on_commit()
                 ignored_after_success_task.apply_async_on_commit()
 
-            assert_equal(invocation_started_receiver.calls, 2)
-            assert_equal(invocation_triggered_receiver.calls, 1)
-            assert_equal(invocation_ignored_receiver.calls, 1)
-            assert_equal(run_started_receiver.calls, 1)
+            assert_length_equal(logged_data.celery_task_invocation_started, 2)
+            assert_length_equal(logged_data.celery_task_invocation_triggered, 1)
+            assert_length_equal(logged_data.celery_task_invocation_ignored, 1)
+            assert_length_equal(logged_data.celery_task_run_started, 1)
 
     @override_settings(DJANGO_CELERY_EXTENSIONS_DEFAULT_TASK_STALE_TIME_LIMIT=5)
     def test_apply_async_and_get_result_should_return_time_error_for_zero_timeout(self):
-        with set_signal_receiver(celery_task_invocation_timeout) as invocation_timeout_receiver:
+        with capture_security_logs() as logged_data:
             with assert_raises(TimeoutError):
                 unique_task.apply_async_and_get_result(timeout=0)
-            assert_equal(invocation_timeout_receiver.calls, 1)
+            assert_length_equal(logged_data.celery_task_invocation_timeout, 1)
 
     @override_settings(SECURITY_TASK_USE_ON_SUCCESS=True)
     def test_task_should_be_logged_with_on_commit_signal(self):
-        with set_signal_receiver(celery_task_invocation_started) as invocation_started_receiver, \
-                set_signal_receiver(celery_task_invocation_triggered) as invocation_triggered_receiver:
+        with capture_security_logs() as logged_data:
             with capture_on_commit_callbacks(execute=True):
                 with transaction_signals():
                     sum_task.apply_async_on_commit(args=(5, 8))
-                    assert_equal(invocation_started_receiver.calls, 0)
-                    assert_equal(invocation_triggered_receiver.calls, 0)
-                assert_equal(invocation_started_receiver.calls, 1)
-                assert_equal(invocation_triggered_receiver.calls, 0)
-            assert_equal(invocation_started_receiver.calls, 1)
-            assert_equal(invocation_triggered_receiver.calls, 1)
+                    assert_length_equal(logged_data.celery_task_invocation_started, 0)
+                    assert_length_equal(logged_data.celery_task_invocation_triggered, 0)
+                assert_length_equal(logged_data.celery_task_invocation_started, 1)
+                assert_length_equal(logged_data.celery_task_invocation_triggered, 0)
+
+            assert_length_equal(logged_data.celery_task_invocation_started, 1)
+            assert_length_equal(logged_data.celery_task_invocation_triggered, 1)
 
     @override_settings(SECURITY_TASK_USE_ON_SUCCESS=True)
     def test_unique_task_should_be_logged_as_duplicate_and_run_is_not_started(self):
         with mock.patch.object(unique_task, '_get_unique_task_id') as apply_method:
             unique_task_id = uuid4()
             apply_method.return_value = unique_task_id
-            with set_signal_receiver(celery_task_invocation_triggered) as invocation_triggered_receiver, \
-                    set_signal_receiver(celery_task_run_started) as run_started_receiver:
+            with capture_security_logs() as logged_data:
                 unique_task.apply_async()
-                assert_equal(invocation_triggered_receiver.calls, 1)
-                assert_equal(run_started_receiver.calls, 0)
-                assert_true(invocation_triggered_receiver.last_logger.data['is_duplicate'])
-                assert_equal(invocation_triggered_receiver.last_logger.data['celery_task_id'], unique_task_id)
+                assert_length_equal(logged_data.celery_task_invocation_triggered, 1)
+                assert_length_equal(logged_data.celery_task_run_started, 0)
+                assert_true(logged_data.celery_task_invocation_triggered[0].data['is_duplicate'])
+                assert_equal(logged_data.celery_task_invocation_triggered[0].data['celery_task_id'], unique_task_id)
 
     def test_data_change_should_be_connected_with_celery_task_run_log(self):
-        with set_signal_receiver(celery_task_run_started) as run_started_receiver:
+        with capture_security_logs() as logged_data:
             get_django_command_task('create_user').apply_async()
             assert_equal(
-                list(run_started_receiver.last_logger.related_objects)[0].version_set.get().content_type,
+                list(logged_data.celery_task_run[0].related_objects)[0].version_set.get().content_type,
                 ContentType.objects.get_for_model(User)
             )
 
@@ -328,15 +307,14 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
     @data_consumer('create_user')
     def test_sum_celery_task_should_be_logged_in_elasticsearch_backend(self, user):
         with log_with_data(related_objects=[user]):
-            with set_signal_receiver(celery_task_invocation_started) as invocation_started_receiver, \
-                    set_signal_receiver(celery_task_run_started) as run_started_receiver:
+            with capture_security_logs() as logged_data:
                 sum_task.apply(args=(5, 8), related_objects=[user])
 
                 elasticsearch_celery_task_invocation_log = ElasticsearchCeleryTaskInvocationLog.get(
-                    id=invocation_started_receiver.last_logger.id
+                    id=logged_data.celery_task_invocation[0].id
                 )
                 elasticsearch_celery_task_run_log = ElasticsearchCeleryTaskRunLog.get(
-                    id=run_started_receiver.last_logger.id
+                    id=logged_data.celery_task_run[0].id
                 )
 
                 assert_equal_model_fields(
@@ -375,8 +353,7 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
 
     @override_settings(SECURITY_BACKENDS={'logging'})
     def test_sum_celery_task_should_be_logged_in_logging_backend(self):
-        with set_signal_receiver(celery_task_invocation_started) as invocation_started_receiver, \
-                set_signal_receiver(celery_task_run_started) as run_started_receiver:
+        with capture_security_logs() as logged_data:
             with self.assertLogs('security.celery', level='INFO') as cm:
                 sum_task.apply(args=(5, 8))
 
@@ -384,15 +361,15 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
                     cm.output,
                     [
                         f'INFO:security.celery:'
-                        f'Celery task invocation "{invocation_started_receiver.last_logger.id}" '
-                        f'with celery id "{invocation_started_receiver.last_logger.data["celery_task_id"]}" '
-                        f'and name "sum_task" is triggered',
-                        f'INFO:security.celery:Celery task "{run_started_receiver.last_logger.id}" with '
-                        f'celery id "{run_started_receiver.last_logger.data["celery_task_id"]}" and name "sum_task" is '
-                        f'started',
-                        f'INFO:security.celery:Celery task "{run_started_receiver.last_logger.id}" with '
-                        f'celery id "{run_started_receiver.last_logger.data["celery_task_id"]}" and name "sum_task" is '
-                        f'completed',
+                        f'Celery task invocation "{logged_data.celery_task_invocation[0].id}" '
+                        f'with celery id "{logged_data.celery_task_invocation[0].data["celery_task_id"]}" '
+                        f'and name "sum_task" was invoked',
+                        f'INFO:security.celery:Celery task "{logged_data.celery_task_run[0].id}" with '
+                        f'celery id "{logged_data.celery_task_run[0].data["celery_task_id"]}" and name "sum_task" '
+                        f'was started',
+                        f'INFO:security.celery:Celery task "{logged_data.celery_task_run[0].id}" with '
+                        f'celery id "{logged_data.celery_task_run[0].data["celery_task_id"]}" and name "sum_task" '
+                        f'was successful',
                     ]
                 )
 
@@ -432,14 +409,13 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
 
     @override_settings(SECURITY_BACKENDS={'elasticsearch'})
     def test_error_celery_task_should_be_logged_in_elasticsearch_backend(self):
-        with set_signal_receiver(celery_task_invocation_started) as invocation_started_receiver, \
-                set_signal_receiver(celery_task_run_started) as run_started_receiver:
+        with capture_security_logs() as logged_data:
             error_task.apply()
             elasticsearch_celery_task_invocation_log = ElasticsearchCeleryTaskInvocationLog.get(
-                id=invocation_started_receiver.last_logger.id
+                id=logged_data.celery_task_invocation[0].id
             )
             elasticsearch_celery_task_run_log = ElasticsearchCeleryTaskRunLog.get(
-                id=run_started_receiver.last_logger.id
+                id=logged_data.celery_task_run[0].id
             )
 
             assert_equal_model_fields(
@@ -472,8 +448,7 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
 
     @override_settings(SECURITY_BACKENDS={'logging'})
     def test_error_celery_task_should_be_logged_in_logging_backend(self):
-        with set_signal_receiver(celery_task_invocation_started) as invocation_started_receiver, \
-                set_signal_receiver(celery_task_run_started) as run_started_receiver:
+        with capture_security_logs() as logged_data:
             with self.assertLogs('security.celery', level='INFO') as cm:
                 error_task.apply()
 
@@ -481,21 +456,21 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
                     cm.output,
                     [
                         f'INFO:security.celery:'
-                        f'Celery task invocation "{invocation_started_receiver.last_logger.id}" '
-                        f'with celery id "{invocation_started_receiver.last_logger.data["celery_task_id"]}" '
-                        f'and name "error_task" is triggered',
-                        f'INFO:security.celery:Celery task "{run_started_receiver.last_logger.id}" with '
-                        f'celery id "{run_started_receiver.last_logger.data["celery_task_id"]}" and name "error_task" '
-                        f'is started',
-                        f'ERROR:security.celery:Celery task "{run_started_receiver.last_logger.id}" with '
-                        f'celery id "{run_started_receiver.last_logger.data["celery_task_id"]}" and name "error_task" '
-                        f'is failed',
+                        f'Celery task invocation "{logged_data.celery_task_invocation[0].id}" '
+                        f'with celery id "{logged_data.celery_task_invocation[0].data["celery_task_id"]}" '
+                        f'and name "error_task" was invoked',
+                        f'INFO:security.celery:Celery task "{logged_data.celery_task_run[0].id}" with '
+                        f'celery id "{logged_data.celery_task_run[0].data["celery_task_id"]}" and name "error_task" '
+                        f'was started',
+                        f'ERROR:security.celery:Celery task "{logged_data.celery_task_run[0].id}" with '
+                        f'celery id "{logged_data.celery_task_run[0].data["celery_task_id"]}" and name "error_task" '
+                        f'failed',
                     ]
                 )
 
     @override_settings(SECURITY_BACKENDS={'sql'})
     def test_retry_celery_task_should_be_logged_in_sql_backend(self):
-        with set_signal_receiver(celery_task_run_started) as run_started_receiver:
+        with capture_security_logs() as logged_data:
             retry_task.apply()
             assert_equal(SQLCeleryTaskInvocationLog.objects.count(), 1)
             assert_equal(SQLCeleryTaskRunLog.objects.count(), 6)
@@ -514,7 +489,7 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
                 queue_name='default'
             )
 
-            for i, logger in enumerate(run_started_receiver.loggers[0:5]):
+            for i, logger in enumerate(logged_data.celery_task_run[0:5]):
                 sql_celery_task_run_log = SQLCeleryTaskRunLog.objects.get(id=logger.id)
                 assert_equal_model_fields(
                     sql_celery_task_run_log,
@@ -528,7 +503,7 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
                     retries=i
                 )
                 assert_is_not_none(sql_celery_task_run_log.error_message)
-            sql_celery_task_run_log = SQLCeleryTaskRunLog.objects.get(id=run_started_receiver.last_logger.id)
+            sql_celery_task_run_log = SQLCeleryTaskRunLog.objects.get(id=logged_data.celery_task_run[-1].id)
             assert_equal_model_fields(
                 sql_celery_task_run_log,
                 state=CeleryTaskRunLogState.SUCCEEDED,
@@ -545,12 +520,11 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
 
     @override_settings(SECURITY_BACKENDS={'elasticsearch'})
     def test_retry_celery_task_should_be_logged_in_elasticsearch_backend(self):
-        with set_signal_receiver(celery_task_invocation_started) as invocation_started_receiver, \
-                set_signal_receiver(celery_task_run_started) as run_started_receiver:
+        with capture_security_logs() as logged_data:
             retry_task.apply()
 
             elasticsearch_celery_task_invocation_log = ElasticsearchCeleryTaskInvocationLog.get(
-                id=invocation_started_receiver.last_logger.id
+                id=logged_data.celery_task_invocation[0].id
             )
             assert_equal_model_fields(
                 elasticsearch_celery_task_invocation_log,
@@ -567,7 +541,7 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
                 queue_name='default'
             )
 
-            for i, logger in enumerate(run_started_receiver.loggers[0:5]):
+            for i, logger in enumerate(logged_data.celery_task_run[0:5]):
                 elasticsearch_celery_task_run_log = ElasticsearchCeleryTaskRunLog.get(
                     id=logger.id
                 )
@@ -586,7 +560,7 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
                 )
                 assert_is_not_none(elasticsearch_celery_task_run_log.error_message)
             elasticsearch_celery_task_run_log = ElasticsearchCeleryTaskRunLog.get(
-                id=run_started_receiver.last_logger.id
+                id=logged_data.celery_task_run[-1].id
             )
             assert_equal_model_fields(
                 elasticsearch_celery_task_run_log,
@@ -605,32 +579,31 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
 
     @override_settings(SECURITY_BACKENDS={'logging'})
     def test_retry_celery_task_should_be_logged_in_logging_backend(self):
-        with set_signal_receiver(celery_task_invocation_started) as invocation_started_receiver, \
-                set_signal_receiver(celery_task_run_started) as run_started_receiver:
+        with capture_security_logs() as logged_data:
             with self.assertLogs('security.celery', level='INFO') as cm:
                 retry_task.apply()
                 expected_output = [
                     f'INFO:security.celery:'
-                    f'Celery task invocation "{invocation_started_receiver.last_logger.id}" '
-                    f'with celery id "{invocation_started_receiver.last_logger.data["celery_task_id"]}" '
-                    f'and name "retry_task" is triggered',
+                    f'Celery task invocation "{logged_data.celery_task_invocation[0].id}" '
+                    f'with celery id "{logged_data.celery_task_invocation[0].data["celery_task_id"]}" '
+                    f'and name "retry_task" was invoked',
                 ]
-                for logger in run_started_receiver.loggers[0:5]:
+                for logger in logged_data.celery_task_run[0:5]:
                     expected_output += [
                         f'INFO:security.celery:Celery task "{logger.id}" with '
                         f'celery id "{logger.data["celery_task_id"]}" and name "retry_task" '
-                        f'is started',
+                        f'was started',
                         f'WARNING:security.celery:Celery task "{logger.id}" with '
                         f'celery id "{logger.data["celery_task_id"]}" and name "retry_task" '
-                        f'is retried',
+                        f'was repeated',
                     ]
                 expected_output += [
-                    f'INFO:security.celery:Celery task "{run_started_receiver.last_logger.id}" with '
-                    f'celery id "{run_started_receiver.last_logger.data["celery_task_id"]}" and name "retry_task" '
-                    f'is started',
-                    f'INFO:security.celery:Celery task "{run_started_receiver.last_logger.id}" with '
-                    f'celery id "{run_started_receiver.last_logger.data["celery_task_id"]}" and name "retry_task" is '
-                    f'completed',
+                    f'INFO:security.celery:Celery task "{logged_data.celery_task_run[-1].id}" with '
+                    f'celery id "{logged_data.celery_task_run[-1].data["celery_task_id"]}" and name "retry_task" '
+                    f'was started',
+                    f'INFO:security.celery:Celery task "{logged_data.celery_task_run[-1].id}" with '
+                    f'celery id "{logged_data.celery_task_run[-1].data["celery_task_id"]}" and name "retry_task" was '
+                    f'successful',
                 ]
                 assert_equal(cm.output, expected_output)
 
@@ -655,7 +628,7 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
 
     @override_settings(SECURITY_BACKENDS={'elasticsearch'}, DJANGO_CELERY_EXTENSIONS_DEFAULT_TASK_STALE_TIME_LIMIT=30)
     def test_set_celery_task_log_state_should_set_task_to_failed_with_elasticsearch_backend(self):
-        with set_signal_receiver(celery_task_invocation_started) as invocation_started_receiver:
+        with capture_security_logs() as logged_data:
             with mock.patch.object(unique_task, '_get_unique_task_id') as apply_method:
                 unique_task_id = uuid4()
                 apply_method.return_value = unique_task_id
@@ -665,7 +638,7 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
                 test_call_command('elasticsearch_set_celery_task_log_state')
                 assert_equal(
                     ElasticsearchCeleryTaskInvocationLog.get(
-                        id=invocation_started_receiver.last_logger.id
+                        id=logged_data.celery_task_invocation[0].id
                     ).state, CeleryTaskInvocationLogState.TRIGGERED
                 )
 
@@ -673,7 +646,7 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
                     test_call_command('elasticsearch_set_celery_task_log_state')
                     assert_equal(
                         ElasticsearchCeleryTaskInvocationLog.get(
-                            id=invocation_started_receiver.last_logger.id
+                            id=logged_data.celery_task_invocation[0].id
                         ).state,
                         CeleryTaskInvocationLogState.EXPIRED
                     )
@@ -698,10 +671,10 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
 
     @override_settings(SECURITY_BACKENDS={'elasticsearch'}, DJANGO_CELERY_EXTENSIONS_DEFAULT_TASK_STALE_TIME_LIMIT=30)
     def test_set_celery_task_log_state_should_set_task_to_succeeded_with_elasticsearch_backend(self):
-        with set_signal_receiver(celery_task_invocation_started) as invocation_started_receiver:
+        with capture_security_logs() as logged_data:
             unique_task.apply_async()
             ElasticsearchCeleryTaskInvocationLog.get(
-                id=invocation_started_receiver.last_logger.id
+                id=logged_data.celery_task_invocation[0].id
             ).update(state=CeleryTaskInvocationLogState.TRIGGERED)
             ElasticsearchCeleryTaskInvocationLog._index.refresh()
             ElasticsearchCeleryTaskRunLog._index.refresh()
@@ -709,7 +682,7 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
             test_call_command('elasticsearch_set_celery_task_log_state')
             assert_equal(
                 ElasticsearchCeleryTaskInvocationLog.get(
-                    id=invocation_started_receiver.last_logger.id
+                    id=logged_data.celery_task_invocation[0].id
                 ).state, CeleryTaskInvocationLogState.TRIGGERED
             )
 
@@ -717,7 +690,7 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
                 test_call_command('elasticsearch_set_celery_task_log_state')
                 assert_equal(
                     ElasticsearchCeleryTaskInvocationLog.get(
-                        id=invocation_started_receiver.last_logger.id
+                        id=logged_data.celery_task_invocation[0].id
                     ).state,
                     CeleryTaskInvocationLogState.SUCCEEDED
                 )

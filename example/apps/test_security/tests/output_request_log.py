@@ -8,7 +8,8 @@ from django.test import override_settings
 from germanium.decorators import data_consumer
 from germanium.test_cases.client import ClientTestCase
 from germanium.tools import (
-    assert_equal, assert_raises, assert_not_in, assert_in, assert_equal_model_fields, assert_is_not_none
+    assert_equal, assert_raises, assert_not_in, assert_in, assert_equal_model_fields, assert_is_not_none,
+    assert_length_equal, all_eq_obj
 )
 
 from security import requests
@@ -19,8 +20,9 @@ from security.decorators import log_with_data
 from security.enums import RequestLogState
 from security.backends.sql.models import OutputRequestLog as SQLOutputRequestLog
 from security.backends.elasticsearch.models import OutputRequestLog as ElasticsearchOutputRequestLog
+from security.tests import capture_security_logs
 
-from .base import BaseTestCaseMixin, _all_, TRUNCATION_CHAR, assert_equal_dict_data, set_signal_receiver
+from .base import BaseTestCaseMixin, TRUNCATION_CHAR
 
 
 @override_settings(SECURITY_BACKENDS={})
@@ -29,7 +31,7 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
     @responses.activate
     @data_consumer('create_user')
     def test_output_request_should_be_logged(self, user):
-        responses.add(responses.POST, 'https://test.cz/test', body='test')
+        responses.add(responses.POST, 'https://localhost/test', body='test')
         expected_output_request_started_data = {
             'request_headers': {
                 'User-Agent': 'python-requests/2.26.0',
@@ -40,33 +42,33 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             },
             'request_body': '{"test": "test"}',
             'method': 'POST',
-            'host': 'test.cz',
+            'host': 'localhost',
             'path': '/test',
             'queries': {},
             'is_secure': True,
-            'start': _all_,
+            'start': all_eq_obj,
         }
         expected_output_request_finished_data = {
             **expected_output_request_started_data,
-            'stop': _all_,
+            'stop': all_eq_obj,
             'response_code': 200,
             'response_headers': {'Content-Type': 'text/plain'},
             'response_body': 'test',
         }
-        with set_signal_receiver(output_request_started, expected_output_request_started_data) as started_receiver:
-            with set_signal_receiver(output_request_finished, expected_output_request_finished_data) as finish_receiver:
-                with set_signal_receiver(output_request_error) as error_receiver:
-                    requests.post(
-                        'https://test.cz/test',
-                        data=json.dumps({'test': 'test'}),
-                        slug='test',
-                        related_objects=[user]
-                    )
-                    assert_equal(started_receiver.calls, 1)
-                    assert_equal(finish_receiver.calls, 1)
-                    assert_equal(error_receiver.calls, 0)
-                    assert_equal(started_receiver.last_logger.slug, 'test')
-                    assert_equal(started_receiver.last_logger.related_objects, {user})
+        with capture_security_logs() as logged_data:
+            requests.post(
+                'https://localhost/test',
+                data=json.dumps({'test': 'test'}),
+                slug='test',
+                related_objects=[user]
+            )
+            assert_length_equal(logged_data.output_request_started, 1)
+            assert_length_equal(logged_data.output_request_finished, 1)
+            assert_length_equal(logged_data.output_request_error, 0)
+            assert_equal(logged_data.output_request_started[0].data, expected_output_request_started_data)
+            assert_equal(logged_data.output_request_finished[0].data, expected_output_request_finished_data)
+            assert_equal(logged_data.output_request_started[0].slug, 'test')
+            assert_equal(logged_data.output_request_finished[0].related_objects, [user])
 
     @responses.activate
     def test_output_request_error_should_be_logged(self):
@@ -80,77 +82,78 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             },
             'request_body': '{"test": "test"}',
             'method': 'POST',
-            'host': 'test.cz',
+            'host': 'localhost',
             'path': '/test',
             'queries': {},
             'is_secure': True,
-            'start': _all_,
+            'start': all_eq_obj,
         }
         expected_output_request_error_data = {
             **expected_output_request_started_data,
-            'stop': _all_,
-            'error_message': _all_
+            'stop': all_eq_obj,
+            'error_message': all_eq_obj
         }
-        with set_signal_receiver(output_request_started, expected_output_request_started_data) as started_receiver:
-            with set_signal_receiver(output_request_finished) as finish_receiver:
-                with set_signal_receiver(output_request_error, expected_output_request_error_data) as error_receiver:
-                    with assert_raises(ConnectionError):
-                        requests.post(
-                            'https://test.cz/test',
-                            data=json.dumps({'test': 'test'}),
-                        )
-                    assert_equal(started_receiver.calls, 1)
-                    assert_equal(finish_receiver.calls, 0)
-                    assert_equal(error_receiver.calls, 1)
+        with capture_security_logs() as logged_data:
+            with assert_raises(ConnectionError):
+                requests.post(
+                    'https://localhost/test',
+                    data=json.dumps({'test': 'test'}),
+                )
+            assert_length_equal(logged_data.output_request_started, 1)
+            assert_length_equal(logged_data.output_request_finished, 0)
+            assert_length_equal(logged_data.output_request_error, 1)
+            assert_equal(logged_data.output_request_started[0].data, expected_output_request_started_data)
+            assert_equal(logged_data.output_request_error[0].data, expected_output_request_error_data)
 
     @responses.activate
     def test_response_sensitive_data_body_in_json_should_be_hidden(self):
-        responses.add(responses.POST, 'http://test.cz', body='test')
-        with set_signal_receiver(output_request_started) as started_receiver:
-            requests.post('http://test.cz', data=json.dumps({'password': 'secret-password'}))
-            assert_in('"password": "[Filtered]"', started_receiver.last_logger.data['request_body'])
-            assert_not_in('"password": "secret-password"', started_receiver.last_logger.data['request_body'])
+        responses.add(responses.POST, 'http://localhost', body='test')
+
+        with capture_security_logs() as logged_data:
+            requests.post('http://localhost', data=json.dumps({'password': 'secret-password'}))
+            assert_in('"password": "[Filtered]"', logged_data.output_request[0].data['request_body'])
+            assert_not_in('"password": "secret-password"', logged_data.output_request[0].data['request_body'])
             assert_in('"password": "secret-password"', responses.calls[0].request.body)
             assert_not_in('"password": "[Filtered]"', responses.calls[0].request.body)
 
     @responses.activate
     def test_response_sensitive_headers_should_be_hidden(self):
-        responses.add(responses.POST, 'http://test.cz', body='test')
-        with set_signal_receiver(output_request_started) as started_receiver:
-            requests.post('http://test.cz', headers={'token': 'secret'})
-            assert_equal(started_receiver.last_logger.data['request_headers']['token'], '[Filtered]')
+        responses.add(responses.POST, 'http://localhost', body='test')
+        with capture_security_logs() as logged_data:
+            requests.post('http://localhost', headers={'token': 'secret'})
+            assert_equal(logged_data.output_request[0].data['request_headers']['token'], '[Filtered]')
             assert_equal(responses.calls[0].request.headers['token'], 'secret')
 
     @responses.activate
     def test_response_sensitive_params_data_should_be_hidden(self):
-        responses.add(responses.POST, 'http://test.cz', body='test')
-        with set_signal_receiver(output_request_finished) as started_receiver:
-            requests.post('http://test.cz', params={'token': 'secret'})
-            assert_equal(started_receiver.last_logger.data['queries']['token'], '[Filtered]')
-            assert_equal(responses.calls[0].request.url, 'http://test.cz/?token=secret')
+        responses.add(responses.POST, 'http://localhost', body='test')
+        with capture_security_logs() as logged_data:
+            requests.post('http://localhost', params={'token': 'secret'})
+            assert_equal(logged_data.output_request[0].data['queries']['token'], '[Filtered]')
+            assert_equal(responses.calls[0].request.url, 'http://localhost/?token=secret')
 
     @responses.activate
     def test_response_more_sensitive_params_data_should_be_hidden(self):
-        responses.add(responses.POST, 'http://test.cz', body='test')
-        with set_signal_receiver(output_request_started) as started_receiver:
-            requests.post('http://test.cz', params={'token': ['secret', 'secret2']})
-            assert_equal(started_receiver.last_logger.data['queries']['token'], ['[Filtered]', '[Filtered]'])
-            assert_equal(responses.calls[0].request.url, 'http://test.cz/?token=secret&token=secret2')
+        responses.add(responses.POST, 'http://localhost', body='test')
+        with capture_security_logs() as logged_data:
+            requests.post('http://localhost', params={'token': ['secret', 'secret2']})
+            assert_equal(logged_data.output_request[0].data['queries']['token'], ['[Filtered]', '[Filtered]'])
+            assert_equal(responses.calls[0].request.url, 'http://localhost/?token=secret&token=secret2')
 
     @responses.activate
     def test_response_sensitive_params_and_url_query_together_data_should_be_logged(self):
-        responses.add(responses.POST, 'http://test.cz', body='test')
-        with set_signal_receiver(output_request_started) as started_receiver:
-            requests.post('http://test.cz?a=1&a=2', params={'b': '6', 'a': '3', 'c': ['5']})
-            assert_equal(started_receiver.last_logger.data['queries'], {'b': '6', 'a': ['1', '2', '3'], 'c': '5'})
+        responses.add(responses.POST, 'http://localhost', body='test')
+        with capture_security_logs() as logged_data:
+            requests.post('http://localhost?a=1&a=2', params={'b': '6', 'a': '3', 'c': ['5']})
+            assert_equal(logged_data.output_request[0].data['queries'], {'b': '6', 'a': ['1', '2', '3'], 'c': '5'})
 
     @responses.activate
     @override_settings(SECURITY_BACKENDS={'sql'})
     @data_consumer('create_user')
     def test_output_request_should_be_logged_in_sql_backend(self, user):
-        responses.add(responses.POST, 'https://test.cz/test', body='test')
+        responses.add(responses.POST, 'https://localhost/test', body='test')
         requests.post(
-            'https://test.cz/test',
+            'https://localhost/test',
             data=json.dumps({'test': 'test'}),
             slug='test',
             related_objects=[user]
@@ -168,7 +171,7 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             },
             request_body='{"test": "test"}',
             method='POST',
-            host='test.cz',
+            host='localhost',
             path='/test',
             queries={},
             is_secure=True,
@@ -187,16 +190,16 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
     @override_settings(SECURITY_BACKENDS={'elasticsearch'})
     @data_consumer('create_user')
     def test_output_request_should_be_logged_in_elasticsearch_backend(self, user):
-        responses.add(responses.POST, 'https://test.cz/test', body='test')
-        with set_signal_receiver(output_request_finished) as output_request_finished_receiver:
+        responses.add(responses.POST, 'https://localhost/test', body='test')
+        with capture_security_logs() as logged_data:
             requests.post(
-                'https://test.cz/test',
+                'https://localhost/test',
                 data=json.dumps({'test': 'test'}),
                 slug='test',
                 related_objects=[user]
             )
             elasticsearch_output_request_log = ElasticsearchOutputRequestLog.get(
-                id=output_request_finished_receiver.last_logger.id
+                id=logged_data.output_request[0].id
             )
             assert_equal_model_fields(
                 elasticsearch_output_request_log,
@@ -204,7 +207,7 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
                                 '"Accept": "*/*", "Connection": "keep-alive", "Content-Length": "16"}',
                 request_body='{"test": "test"}',
                 method='POST',
-                host='test.cz',
+                host='localhost',
                 path='/test',
                 queries='{}',
                 is_secure=True,
@@ -226,11 +229,11 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
     @override_settings(SECURITY_BACKENDS={'logging'})
     @data_consumer('create_user')
     def test_output_request_should_be_logged_in_logging_backend(self, user):
-        responses.add(responses.POST, 'https://test.cz/test', body='test')
-        with set_signal_receiver(output_request_finished) as finished_receiver:
+        responses.add(responses.POST, 'https://localhost/test', body='test')
+        with capture_security_logs() as logged_data:
             with self.assertLogs('security.output_request', level='INFO') as cm:
                 requests.post(
-                    'https://test.cz/test',
+                    'https://localhost/test',
                     data=json.dumps({'test': 'test'}),
                     slug='test',
                     related_objects=[user]
@@ -239,11 +242,11 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
                     cm.output,
                     [
                         f'INFO:security.output_request:'
-                        f'Output request "{finished_receiver.last_logger.id}" '
-                        f'to "test.cz" with path "/test" is started',
+                        f'Output request "{logged_data.output_request[0].id}" '
+                        f'to "localhost" with path "/test" was started',
                         f'INFO:security.output_request:'
-                        f'Output request "{finished_receiver.last_logger.id}" '
-                        f'to "test.cz" with path "/test" is successfully finished'
+                        f'Output request "{logged_data.output_request[0].id}" '
+                        f'to "localhost" with path "/test" was successful'
                     ]
                 )
 
@@ -252,7 +255,7 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
     def test_error_output_request_should_be_logged_in_sql_backend(self,):
         with assert_raises(ConnectionError):
             requests.post(
-                'https://test.cz/test',
+                'https://localhost/test',
                 data=json.dumps({'test': 'test'}),
                 slug='test',
             )
@@ -269,7 +272,7 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             },
             request_body='{"test": "test"}',
             method='POST',
-            host='test.cz',
+            host='localhost',
             path='/test',
             queries={},
             is_secure=True,
@@ -286,15 +289,15 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
     @responses.activate
     @override_settings(SECURITY_BACKENDS={'elasticsearch'})
     def test_error_output_request_should_be_logged_in_elasticsearch_backend(self):
-        with set_signal_receiver(output_request_started) as started_receiver:
+        with capture_security_logs() as logged_data:
             with assert_raises(ConnectionError):
                 requests.post(
-                    'https://test.cz/test',
+                    'https://localhost/test',
                     data=json.dumps({'test': 'test'}),
                     slug='test',
                 )
             elasticsearch_input_request_log = ElasticsearchOutputRequestLog.get(
-                id=started_receiver.last_logger.id
+                id=logged_data.output_request[0].id
             )
             assert_equal_model_fields(
                 elasticsearch_input_request_log,
@@ -302,7 +305,7 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
                                 '"Accept": "*/*", "Connection": "keep-alive", "Content-Length": "16"}',
                 request_body='{"test": "test"}',
                 method='POST',
-                host='test.cz',
+                host='localhost',
                 path='/test',
                 queries='{}',
                 is_secure=True,
@@ -319,11 +322,11 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
     @responses.activate
     @override_settings(SECURITY_BACKENDS={'logging'})
     def test_error_output_request_should_be_logged_in_logging_backend(self):
-        with set_signal_receiver(output_request_started) as output_request_started_receiver:
+        with capture_security_logs() as logged_data:
             with self.assertLogs('security.output_request', level='INFO') as cm:
                 with assert_raises(ConnectionError):
                     requests.post(
-                        'https://test.cz/test',
+                        'https://localhost/test',
                         data=json.dumps({'test': 'test'}),
                         slug='test',
                     )
@@ -331,23 +334,23 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
                     cm.output,
                     [
                         f'INFO:security.output_request:'
-                        f'Output request "{output_request_started_receiver.last_logger.id}" '
-                        f'to "test.cz" with path "/test" is started',
+                        f'Output request "{logged_data.output_request[0].id}" '
+                        f'to "localhost" with path "/test" was started',
                         f'ERROR:security.output_request:'
-                        f'Output request "{output_request_started_receiver.last_logger.id}" '
-                        f'to "test.cz" with path "/test" is raised exception'
+                        f'Output request "{logged_data.output_request[0].id}" '
+                        f'to "localhost" with path "/test" failed'
                     ]
                 )
 
     @responses.activate
     @data_consumer('create_user')
     def test_slug_and_related_data_should_be_send_to_output_request_logger(self, user):
-        responses.add(responses.POST, 'https://test.cz/test', body='test')
+        responses.add(responses.POST, 'https://localhost/test', body='test')
         with log_with_data(related_objects=[user], slug='TEST'):
-            with set_signal_receiver(output_request_started) as started_receiver:
+            with capture_security_logs() as logged_data:
                 requests.post(
-                    'https://test.cz/test',
+                    'https://localhost/test',
                     data=json.dumps({'test': 'test'}),
                 )
-                assert_equal(started_receiver.last_logger.related_objects, {user})
-                assert_equal(started_receiver.last_logger.slug, 'TEST')
+                assert_equal(logged_data.output_request[0].related_objects, {user})
+                assert_equal(logged_data.output_request[0].slug, 'TEST')
