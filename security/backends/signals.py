@@ -7,7 +7,7 @@ def get_backend_receiver(backend_name):
     def backend_receiver(signal):
         def _decorator(func):
             def _wrapper(*args, **kwargs):
-                if settings.BACKENDS is None or backend_name in settings.BACKENDS:
+                if settings.BACKEND_WRITERS is None or backend_name in settings.BACKEND_WRITERS:
                     func(*args, **kwargs)
             signal.connect(_wrapper, weak=False)
             return func

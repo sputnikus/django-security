@@ -19,14 +19,16 @@ Default throttling configuration is set with ``SECURITY_DEFAULT_THROTTLING_VALID
         PerRequestThrottlingValidator(60, 20),  # 20 per an minute
     )
 
+Only backends which support reading (``sql``, ``elasticsearch`` and ``testing``) can be used with throttling validators.
+
 Validators
 ----------
 
 There are only three predefined throttling validators:
 
-* ``security.backends.{backend}.throttling.PerRequestThrottlingValidator`` - init parameters are ``timeframe`` throttling timedelta in seconds, ``throttle_at`` number of request per one IP address per timeframe and error message.
-* ``security.backends.{backend}.throttling.UnsuccessfulLoginThrottlingValidator`` - validator with same input parameters as previous validator but counts only unsuccessful login request.
-* ``security.backends.{backend}.throttling.SuccessfulLoginThrottlingValidator`` - validator with same input parameters as previous validator but counts only requests from anonymous (not logged in) user.
+* ``security.throttling.validators.PerRequestThrottlingValidator`` - init parameters are ``timeframe`` throttling timedelta in seconds, ``throttle_at`` number of request per one IP address per timeframe and error message.
+* ``security.throttling.validators.UnsuccessfulLoginThrottlingValidator`` - validator with same input parameters as previous validator but counts only unsuccessful login request.
+* ``security.throttling.validators.SuccessfulLoginThrottlingValidator`` - validator with same input parameters as previous validator but counts only requests from anonymous (not logged in) user.
 
 Custom validator
 ^^^^^^^^^^^^^^^^

@@ -15,19 +15,19 @@ from germanium.tools import (
 
 from security.config import settings
 from security.decorators import log_with_data
-from security.enums import CommandState
+from security.enums import CommandState, LoggerName
 from security.backends.sql.models import CommandLog as SQLCommandLog
 from security.backends.elasticsearch.models import CommandLog as ElasticsearchCommandLog
-
 from security.backends.signals import (
     command_started, command_error, command_finished, command_output_updated, output_request_finished
 )
-from security.tests import capture_security_logs
+from security.backends.reader import get_logs_related_with_object
+from security.backends.testing import capture_security_logs
 
 from .base import BaseTestCaseMixin, TRUNCATION_CHAR, test_call_command
 
 
-@override_settings(SECURITY_BACKENDS={})
+@override_settings(SECURITY_BACKEND_WRITERS={})
 class CommandLogTestCase(BaseTestCaseMixin, ClientTestCase):
 
     def test_command_should_be_logged(self):
@@ -94,7 +94,7 @@ class CommandLogTestCase(BaseTestCaseMixin, ClientTestCase):
                 assert_equal(output_request_logger.related_objects, {user})
                 assert_equal(output_request_logger.extra_data, {'test': 'test'})
 
-    @override_settings(SECURITY_BACKENDS={'sql'})
+    @override_settings(SECURITY_BACKEND_WRITERS={'sql'}, SECURITY_BACKEND_READER='sql')
     @data_consumer('create_user')
     def test_command_should_be_logged_in_sql_backend(self, user):
         with log_with_data(related_objects=[user]):
@@ -112,8 +112,10 @@ class CommandLogTestCase(BaseTestCaseMixin, ClientTestCase):
             )
             assert_is_not_none(sql_command_log.output)
             assert_equal([rel_obj.object for rel_obj in sql_command_log.related_objects.all()], [user])
+            assert_equal(get_logs_related_with_object(LoggerName.COMMAND, user), [sql_command_log])
 
-    @override_settings(SECURITY_BACKENDS={'elasticsearch'})
+    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'}, SECURITY_BACKEND_READER='elasticsearch',
+                       SECURITY_ELASTICSEARCH_AUTO_REFRESH=True)
     @data_consumer('create_user')
     def test_command_should_be_logged_in_elasticsearch_backend(self, user):
         with capture_security_logs() as logged_data:
@@ -136,9 +138,10 @@ class CommandLogTestCase(BaseTestCaseMixin, ClientTestCase):
                     [rel_obj for rel_obj in elasticsearch_command_log.related_objects],
                     ['default|3|{}'.format(user.id)]
                 )
+                assert_equal(get_logs_related_with_object(LoggerName.COMMAND, user), [elasticsearch_command_log])
 
     @responses.activate
-    @override_settings(SECURITY_BACKENDS={'logging'})
+    @override_settings(SECURITY_BACKEND_WRITERS={'logging'})
     @data_consumer('create_user')
     def test_command_should_be_logged_in_logging_backend(self, user):
         with capture_security_logs() as logged_data:
@@ -157,7 +160,7 @@ class CommandLogTestCase(BaseTestCaseMixin, ClientTestCase):
                     ]
                 )
 
-    @override_settings(SECURITY_BACKENDS={'sql'})
+    @override_settings(SECURITY_BACKEND_WRITERS={'sql'})
     @data_consumer('create_user')
     def test_error_command_should_be_logged_in_sql_backend(self, user):
         with log_with_data(related_objects=[user]):
@@ -177,7 +180,7 @@ class CommandLogTestCase(BaseTestCaseMixin, ClientTestCase):
             assert_is_not_none(sql_command_log.error_message)
             assert_equal([rel_obj.object for rel_obj in sql_command_log.related_objects.all()], [user])
 
-    @override_settings(SECURITY_BACKENDS={'elasticsearch'})
+    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'})
     @data_consumer('create_user')
     def test_error_command_should_be_logged_in_elasticsearch_backend(self, user):
         with capture_security_logs() as logged_data:
@@ -203,7 +206,7 @@ class CommandLogTestCase(BaseTestCaseMixin, ClientTestCase):
                 )
 
     @responses.activate
-    @override_settings(SECURITY_BACKENDS={'logging'})
+    @override_settings(SECURITY_BACKEND_WRITERS={'logging'})
     @data_consumer('create_user')
     def test_error_command_should_be_logged_in_logging_backend(self, user):
         with capture_security_logs() as logged_data:

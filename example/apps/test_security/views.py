@@ -1,6 +1,6 @@
 from django.http import HttpResponse
 
-from security.backends.sql.throttling import PerRequestThrottlingValidator
+from security.throttling.validators import PerRequestThrottlingValidator
 from security.logging.requests.utils import log_input_request_with_data
 from security.decorators import hide_request_body, log_exempt, throttling_exempt, throttling
 from security import requests

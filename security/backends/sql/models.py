@@ -2,20 +2,15 @@ import re
 import json
 from json import JSONDecodeError
 
-from django.conf import settings as django_settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
-from django.template.defaultfilters import truncatechars
-from django.urls import resolve
-from django.urls.exceptions import Resolver404
 from django.utils import timezone
 from django.utils.encoding import force_text
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
-from django.utils.timezone import localtime, now
-from django.urls import get_resolver
+from django.utils.timezone import localtime
 
 from generic_m2m_field.models import MultipleDBGenericManyToManyField
 
@@ -24,24 +19,9 @@ from chamber.shortcuts import change_and_save
 
 from enumfields import NumEnumField
 
-from security.backends.signals import (
-    input_request_started, input_request_finished, input_request_error,
-    output_request_started, output_request_finished, output_request_error,
-    command_started, command_output_updated, command_finished, command_error,
-    celery_task_invocation_started, celery_task_invocation_triggered, celery_task_invocation_ignored,
-    celery_task_invocation_timeout, celery_task_invocation_expired,
-    celery_task_run_started, celery_task_run_succeeded, celery_task_run_failed, celery_task_run_retried,
-    celery_task_run_output_updated, get_backend_receiver
-)
-from security.config import settings
 from security.enums import (
     LoggerName, RequestLogState, CeleryTaskInvocationLogState, CeleryTaskRunLogState, CommandState
 )
-
-from .app import SecuritySQLBackend
-
-
-receiver = get_backend_receiver(SecuritySQLBackend.backend_name)
 
 
 def display_json(value, indent=4):
@@ -451,7 +431,7 @@ class CeleryTaskRunLog(Log):
         return CeleryTaskInvocationLog.objects.filter(celery_task_id=self.celery_task_id)
 
 
-def _get_response_state(status_code):
+def get_response_state(status_code):
     if status_code >= 500:
         return RequestLogState.ERROR
     elif status_code >= 400:
@@ -469,320 +449,5 @@ logger_name_to_log_model = {
 }
 
 
-def _get_log_model_from_logger_name(logger_name):
+def get_log_model_from_logger_name(logger_name):
     return logger_name_to_log_model[logger_name]
-
-
-@receiver(input_request_started)
-def input_request_started_receiver(sender, logger, **kwargs):
-    input_request_log = InputRequestLog(
-        id=logger.id,
-        slug=logger.slug,
-        state=RequestLogState.INCOMPLETE,
-        extra_data=logger.extra_data,
-        **logger.data
-    )
-    logger.backend_logs.sql = input_request_log
-    input_request_log.save()
-    input_request_log.related_objects.add(*logger.related_objects)
-    if logger.parent_with_id:
-        input_request_log.related_objects.create(
-            object_ct_id=ContentType.objects.get_for_model(
-                _get_log_model_from_logger_name(logger.parent_with_id.name)
-            ).pk,
-            object_id=logger.parent_with_id.id
-        )
-
-
-@receiver(input_request_finished)
-def input_request_finished_receiver(sender, logger, **kwargs):
-    input_request_log = change_and_save(
-        logger.backend_logs.sql,
-        slug=logger.slug,
-        state=_get_response_state(logger.data['response_code']),
-        extra_data=logger.extra_data,
-        update_only_changed_fields=True,
-        **logger.data
-    )
-    input_request_log.related_objects.add(*logger.related_objects)
-
-
-@receiver(input_request_error)
-def input_request_error_receiver(sender, logger, **kwargs):
-    input_request_log = change_and_save(
-        logger.backend_logs.sql,
-        slug=logger.slug,
-        extra_data=logger.extra_data,
-        update_only_changed_fields=True,
-        **logger.data
-    )
-    input_request_log.related_objects.add(*logger.related_objects)
-
-
-@receiver(output_request_started)
-def output_request_started_receiver(sender, logger, **kwargs):
-    output_request_log = OutputRequestLog(
-        id=logger.id,
-        state=RequestLogState.INCOMPLETE,
-        extra_data=logger.extra_data,
-        **logger.data
-    )
-    logger.backend_logs.sql = output_request_log
-    output_request_log.save()
-    output_request_log.related_objects.add(*logger.related_objects)
-    if logger.parent_with_id:
-        output_request_log.related_objects.create(
-            object_ct_id=ContentType.objects.get_for_model(
-                _get_log_model_from_logger_name(logger.parent_with_id.name)
-            ).pk,
-            object_id=logger.parent_with_id.id
-        )
-
-
-@receiver(output_request_finished)
-def output_request_finished_receiver(sender, logger, **kwargs):
-    output_request_log = change_and_save(
-        logger.backend_logs.sql,
-        slug=logger.slug,
-        state=_get_response_state(logger.data['response_code']),
-        extra_data=logger.extra_data,
-        update_only_changed_fields=True,
-        **logger.data
-    )
-    output_request_log.related_objects.add(*logger.related_objects)
-
-
-@receiver(output_request_error)
-def output_request_error_receiver(sender, logger, **kwargs):
-    output_request_log = change_and_save(
-        logger.backend_logs.sql,
-        slug=logger.slug,
-        state=RequestLogState.ERROR,
-        extra_data=logger.extra_data,
-        update_only_changed_fields=True,
-        **logger.data
-    )
-    output_request_log.related_objects.add(*logger.related_objects)
-
-
-@receiver(command_started)
-def command_started_receiver(sender, logger, **kwargs):
-    command_log = CommandLog(
-        id=logger.id,
-        slug=logger.slug,
-        state=CommandState.ACTIVE,
-        extra_data=logger.extra_data,
-        **logger.data
-    )
-    logger.backend_logs.sql = command_log
-    command_log.save()
-    command_log.related_objects.add(*logger.related_objects)
-    if logger.parent_with_id:
-        command_log.related_objects.create(
-            object_ct_id=ContentType.objects.get_for_model(
-                _get_log_model_from_logger_name(logger.parent_with_id.name)
-            ).pk,
-            object_id=logger.parent_with_id.id
-        )
-
-
-@receiver(command_output_updated)
-def command_output_updated_receiver(sender, logger, **kwargs):
-    change_and_save(
-        logger.backend_logs.sql,
-        slug=logger.slug,
-        update_only_changed_fields=True,
-        **logger.data
-    )
-
-
-@receiver(command_finished)
-def command_finished_receiver(sender, logger, **kwargs):
-    command_log = change_and_save(
-        logger.backend_logs.sql,
-        slug=logger.slug,
-        state=CommandState.SUCCEEDED,
-        extra_data=logger.extra_data,
-        update_only_changed_fields=True,
-        **logger.data
-    )
-    command_log.related_objects.add(*logger.related_objects)
-
-
-@receiver(command_error)
-def command_error_receiver(sender, logger, **kwargs):
-    command_log = change_and_save(
-        logger.backend_logs.sql,
-        slug=logger.slug,
-        state=CommandState.FAILED,
-        extra_data=logger.extra_data,
-        update_only_changed_fields=True,
-        **logger.data
-    )
-    command_log.related_objects.add(*logger.related_objects)
-
-
-@receiver(celery_task_invocation_started)
-def celery_task_invocation_started_receiver(sender, logger, **kwargs):
-    celery_task_invocation_log = CeleryTaskInvocationLog(
-        id=logger.id,
-        slug=logger.slug,
-        state=CeleryTaskInvocationLogState.WAITING,
-        extra_data=logger.extra_data,
-        **logger.data
-    )
-    logger.backend_logs.sql = celery_task_invocation_log
-    celery_task_invocation_log.save()
-    celery_task_invocation_log.related_objects.add(*logger.related_objects)
-    if logger.parent_with_id:
-        celery_task_invocation_log.related_objects.create(
-            object_ct_id=ContentType.objects.get_for_model(
-                _get_log_model_from_logger_name(logger.parent_with_id.name)
-            ).pk,
-            object_id=logger.parent_with_id.id
-        )
-
-
-@receiver(celery_task_invocation_triggered)
-def celery_task_invocation_triggered_receiver(sender, logger, **kwargs):
-    celery_task_invocation_log = change_and_save(
-        logger.backend_logs.sql,
-        slug=logger.slug,
-        state=CeleryTaskInvocationLogState.TRIGGERED,
-        extra_data=logger.extra_data,
-        update_only_changed_fields=True,
-        **logger.data
-    )
-    celery_task_invocation_log.related_objects.add(*logger.related_objects)
-
-
-@receiver(celery_task_invocation_ignored)
-def celery_task_invocation_ignored_receiver(sender, logger, **kwargs):
-    celery_task_invocation_log = change_and_save(
-        logger.backend_logs.sql,
-        slug=logger.slug,
-        state=CeleryTaskInvocationLogState.IGNORED,
-        extra_data=logger.extra_data,
-        update_only_changed_fields=True,
-        **logger.data
-    )
-    celery_task_invocation_log.related_objects.add(*logger.related_objects)
-
-
-@receiver(celery_task_invocation_timeout)
-def celery_task_invocation_timeout_receiver(sender, logger, **kwargs):
-    celery_task_invocation_log = change_and_save(
-        logger.backend_logs.sql,
-        slug=logger.slug,
-        state=CeleryTaskInvocationLogState.TIMEOUT,
-        extra_data=logger.extra_data,
-        update_only_changed_fields=True,
-        **logger.data
-    )
-    celery_task_invocation_log.related_objects.add(*logger.related_objects)
-
-
-@receiver(celery_task_invocation_expired)
-def celery_task_invocation_expired_receiver(sender, logger, **kwargs):
-    celery_task_invocation_log = CeleryTaskInvocationLog.objects.update_or_create(
-        id=logger.id,
-        defaults=dict(
-            slug=logger.slug,
-            state=CeleryTaskInvocationLogState.EXPIRED,
-            extra_data=logger.extra_data,
-            **logger.data
-        )
-    )[0]
-    celery_task_invocation_log.runs.filter(
-        state=CeleryTaskRunLogState.ACTIVE
-    ).change_and_save(
-        state=CeleryTaskRunLogState.EXPIRED,
-        stop=logger.data['stop']
-    )
-    celery_task_invocation_log.related_objects.add(*logger.related_objects)
-
-
-@receiver(celery_task_run_started)
-def celery_task_run_started_receiver(sender, logger, **kwargs):
-    celery_task_run_log = CeleryTaskRunLog(
-        id=logger.id,
-        slug=logger.slug,
-        state=CeleryTaskRunLogState.ACTIVE,
-        extra_data=logger.extra_data,
-        **logger.data
-    )
-    logger.backend_logs.sql = celery_task_run_log
-    celery_task_run_log.save()
-    celery_task_run_log.related_objects.add(*logger.related_objects)
-    if logger.parent_with_id:
-        celery_task_run_log.related_objects.create(
-            object_ct_id=ContentType.objects.get_for_model(
-                _get_log_model_from_logger_name(logger.parent_with_id.name)
-            ).pk,
-            object_id=logger.parent_with_id.id
-        )
-
-
-@receiver(celery_task_run_succeeded)
-def celery_task_run_succeeded_receiver(sender, logger, **kwargs):
-    celery_task_run_log = change_and_save(
-        logger.backend_logs.sql,
-        slug=logger.slug,
-        state=CeleryTaskRunLogState.SUCCEEDED,
-        extra_data=logger.extra_data,
-        update_only_changed_fields=True,
-        **logger.data
-    )
-    celery_task_run_log.get_task_invocation_logs().filter(state__in={
-        CeleryTaskInvocationLogState.WAITING,
-        CeleryTaskInvocationLogState.TRIGGERED,
-        CeleryTaskInvocationLogState.ACTIVE
-    }).change_and_save(
-        state=CeleryTaskInvocationLogState.SUCCEEDED,
-        stop=logger.data['stop']
-    )
-    celery_task_run_log.related_objects.add(*logger.related_objects)
-
-
-@receiver(celery_task_run_failed)
-def celery_task_run_failed_receiver(sender, logger, **kwargs):
-    celery_task_run_log = change_and_save(
-        logger.backend_logs.sql,
-        slug=logger.slug,
-        state=CeleryTaskRunLogState.FAILED,
-        extra_data=logger.extra_data,
-        update_only_changed_fields=True,
-        **logger.data
-    )
-    celery_task_run_log.get_task_invocation_logs().filter(state__in={
-        CeleryTaskInvocationLogState.WAITING,
-        CeleryTaskInvocationLogState.TRIGGERED,
-        CeleryTaskInvocationLogState.ACTIVE
-    }).change_and_save(
-        state=CeleryTaskInvocationLogState.FAILED,
-        stop=logger.data['stop']
-    )
-    celery_task_run_log.related_objects.add(*logger.related_objects)
-
-
-@receiver(celery_task_run_retried)
-def celery_task_run_retried_receiver(sender, logger, **kwargs):
-    celery_task_run_log = change_and_save(
-        logger.backend_logs.sql,
-        slug=logger.slug,
-        state=CeleryTaskRunLogState.RETRIED,
-        extra_data=logger.extra_data,
-        update_only_changed_fields=True,
-        **logger.data
-    )
-    celery_task_run_log.related_objects.add(*logger.related_objects)
-
-
-@receiver(celery_task_run_output_updated)
-def celery_task_run_output_updated_receiver(sender, logger, **kwargs):
-    change_and_save(
-        logger.backend_logs.sql,
-        slug=logger.slug,
-        update_only_changed_fields=True,
-        **logger.data
-    )

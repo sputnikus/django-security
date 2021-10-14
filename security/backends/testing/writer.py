@@ -1,25 +1,21 @@
 from attrdict import AttrDict
 
-from collections import namedtuple
-
-from contextlib import contextmanager
+from django.test.utils import override_settings
 
 from security.backends.signals import (
     input_request_started, input_request_finished, input_request_error,
-
     output_request_started, output_request_finished, output_request_error,
-
     command_started, command_output_updated, command_finished, command_error,
-
     celery_task_invocation_started, celery_task_invocation_triggered, celery_task_invocation_ignored,
     celery_task_invocation_timeout, celery_task_invocation_expired,
-
-    celery_task_run_started, celery_task_run_succeeded, celery_task_run_failed,
-    celery_task_run_retried, celery_task_run_output_updated,
+    celery_task_run_started, celery_task_run_succeeded, celery_task_run_failed, celery_task_run_retried,
+    celery_task_run_output_updated, get_backend_receiver
 )
 
+from .app import SecurityTestingBackend
 
-all_signals = {
+
+CAPTURED_SIGNALS = {
     'input_request_started': input_request_started,
     'input_request_finished': input_request_finished,
     'input_request_error': input_request_error,
@@ -58,38 +54,42 @@ class CapturedLog:
         self.logger = logger
 
 
-@contextmanager
-def capture_security_logs():
-    logged_data = AttrDict(
-        input_request=[],
-        output_request=[],
-        celery_task_invocation=[],
-        celery_task_run=[],
-        command=[],
-    )
+class capture_security_logs(override_settings):
 
-    def log_started_receiver(sender, logger, **kwargs):
-        logged_data[logger.name.replace('-', '_')].append(logger)
+    logged_data = None
+    _receivers = None
 
-    def log_receiver(sender, logger, signal, **kwargs):
-        logged_data[signal.name].append(CapturedLog(logger))
+    def __init__(self, set_testing_writer=False):
+        kwargs = {}
+        if set_testing_writer:
+            kwargs['SECURITY_BACKEND_READER'] = SecurityTestingBackend.backend_name
+        super().__init__(**kwargs)
 
-    try:
-        for signal in [celery_task_invocation_started, celery_task_run_started, command_started, input_request_started,
-                       output_request_started]:
-            signal.connect(log_started_receiver, weak=True)
+    def _get_receiver(self, signal_name, use_wrapper=False):
+        def _log_receiver(sender, logger, signal, **kwargs):
+            if use_wrapper:
+                logger = CapturedLog(logger)
+            capture_security_logs.logged_data[signal_name].append(logger)
+        return _log_receiver
 
-        for signal_name, signal in all_signals.items():
-            signal.name = signal_name
-            logged_data[signal_name] = []
-            signal.connect(log_receiver, weak=True)
+    def _set_signal_receiver(self, signal_name, signal, use_wrapper=False):
+        receiver = self._get_receiver(signal_name, use_wrapper)
+        capture_security_logs._receivers[signal_name] = (receiver, signal)
+        capture_security_logs.logged_data[signal_name] = []
+        signal.connect(receiver, weak=True)
 
-        yield logged_data
-    finally:
-        for signal in [celery_task_invocation_started, celery_task_run_started, command_started, input_request_started,
-                       output_request_started]:
-            signal.disconnect(log_started_receiver)
+    def enable(self):
+        super().enable()
+        capture_security_logs.logged_data = AttrDict()
+        capture_security_logs._receivers = {}
 
-        for signal in all_signals.values():
-            del signal.name
-            signal.disconnect(log_receiver)
+        for signal_name, signal in CAPTURED_SIGNALS.items():
+            if signal_name.endswith('_started'):
+                self._set_signal_receiver(signal_name[0:-8], signal)
+            self._set_signal_receiver(signal_name, signal, use_wrapper=True)
+        return capture_security_logs.logged_data
+
+    def disable(self):
+        for receiver, signal in capture_security_logs._receivers.values():
+            signal.disconnect(receiver)
+        super().disable()

@@ -20,12 +20,12 @@ from security.decorators import log_with_data
 from security.enums import RequestLogState
 from security.backends.sql.models import OutputRequestLog as SQLOutputRequestLog
 from security.backends.elasticsearch.models import OutputRequestLog as ElasticsearchOutputRequestLog
-from security.tests import capture_security_logs
+from security.backends.testing import capture_security_logs
 
 from .base import BaseTestCaseMixin, TRUNCATION_CHAR
 
 
-@override_settings(SECURITY_BACKENDS={})
+@override_settings(SECURITY_BACKEND_WRITERS={})
 class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
 
     @responses.activate
@@ -148,7 +148,7 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             assert_equal(logged_data.output_request[0].data['queries'], {'b': '6', 'a': ['1', '2', '3'], 'c': '5'})
 
     @responses.activate
-    @override_settings(SECURITY_BACKENDS={'sql'})
+    @override_settings(SECURITY_BACKEND_WRITERS={'sql'})
     @data_consumer('create_user')
     def test_output_request_should_be_logged_in_sql_backend(self, user):
         responses.add(responses.POST, 'https://localhost/test', body='test')
@@ -187,7 +187,7 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
         assert_equal([rel_obj.object for rel_obj in sql_output_request_log.related_objects.all()], [user])
 
     @responses.activate
-    @override_settings(SECURITY_BACKENDS={'elasticsearch'})
+    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'})
     @data_consumer('create_user')
     def test_output_request_should_be_logged_in_elasticsearch_backend(self, user):
         responses.add(responses.POST, 'https://localhost/test', body='test')
@@ -226,7 +226,7 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             )
 
     @responses.activate
-    @override_settings(SECURITY_BACKENDS={'logging'})
+    @override_settings(SECURITY_BACKEND_WRITERS={'logging'})
     @data_consumer('create_user')
     def test_output_request_should_be_logged_in_logging_backend(self, user):
         responses.add(responses.POST, 'https://localhost/test', body='test')
@@ -251,7 +251,7 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
                 )
 
     @responses.activate
-    @override_settings(SECURITY_BACKENDS={'sql'})
+    @override_settings(SECURITY_BACKEND_WRITERS={'sql'})
     def test_error_output_request_should_be_logged_in_sql_backend(self,):
         with assert_raises(ConnectionError):
             requests.post(
@@ -287,7 +287,7 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
         assert_is_not_none(sql_output_request_log.error_message)
 
     @responses.activate
-    @override_settings(SECURITY_BACKENDS={'elasticsearch'})
+    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'})
     def test_error_output_request_should_be_logged_in_elasticsearch_backend(self):
         with capture_security_logs() as logged_data:
             with assert_raises(ConnectionError):
@@ -320,7 +320,7 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             assert_is_not_none(elasticsearch_input_request_log.error_message)
 
     @responses.activate
-    @override_settings(SECURITY_BACKENDS={'logging'})
+    @override_settings(SECURITY_BACKEND_WRITERS={'logging'})
     def test_error_output_request_should_be_logged_in_logging_backend(self):
         with capture_security_logs() as logged_data:
             with self.assertLogs('security.output_request', level='INFO') as cm:

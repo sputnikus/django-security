@@ -30,14 +30,14 @@ from security.backends.signals import (
     command_started, input_request_started, output_request_started, celery_task_invocation_started,
     celery_task_run_started
 )
-from security.tests import capture_security_logs
+from security.backends.testing import capture_security_logs
 
 from apps.test_security.tasks import sum_task
 
 from .base import BaseTestCaseMixin, test_call_command
 
 
-@override_settings(SECURITY_BACKENDS={})
+@override_settings(SECURITY_BACKEND_WRITERS={})
 class CommandTestCase(BaseTestCaseMixin, ClientTestCase):
 
     SQL_LOG_MODELS = {
@@ -49,7 +49,7 @@ class CommandTestCase(BaseTestCaseMixin, ClientTestCase):
     }
 
     @responses.activate
-    @override_settings(SECURITY_BACKENDS={'sql'}, SECURITY_COMMAND_LOG_EXCLUDED_COMMANDS={'sql_purge_logs'})
+    @override_settings(SECURITY_BACKEND_WRITERS={'sql'}, SECURITY_COMMAND_LOG_EXCLUDED_COMMANDS={'sql_purge_logs'})
     def test_sql_purge_logs_should_remove_logged_data(self):
         responses.add(responses.GET, 'https://localhost/test', body='test')
 
@@ -75,7 +75,7 @@ class CommandTestCase(BaseTestCaseMixin, ClientTestCase):
                 assert_equal(log_model.objects.count(), 0)
 
     @responses.activate
-    @override_settings(SECURITY_BACKENDS={'elasticsearch'},
+    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'},
                        SECURITY_COMMAND_LOG_EXCLUDED_COMMANDS={'elasticsearch_purge_logs'})
     def test_elasticsearch_purge_logs_should_remove_logged_data(self):
         responses.add(responses.GET, 'https://localhost/test', body='test')

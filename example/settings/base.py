@@ -117,6 +117,7 @@ INSTALLED_APPS = (
     'security.backends.sql',
     'security.backends.logging',
     'security.backends.elasticsearch',
+    'security.backends.testing',
     'reversion',
     'apps.test_security',
 )

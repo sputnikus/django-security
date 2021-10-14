@@ -1,8 +1,10 @@
-from django.apps import AppConfig
+from security.backends.app import SecurityBackend
 
 
-class SecurityElasticsearchBackend(AppConfig):
+class SecurityElasticsearchBackend(SecurityBackend):
 
     name = 'security.backends.elasticsearch'
     label = 'security_backends_elasticsearch'
     backend_name = 'elasticsearch'
+    writer = True
+    reader = True
