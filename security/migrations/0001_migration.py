@@ -3,7 +3,7 @@
 from django.db import migrations, models
 import django.db.models.deletion
 import enumfields.fields
-import security.enums
+import security.old.enums
 
 
 class Migration(migrations.Migration):
@@ -33,7 +33,7 @@ class Migration(migrations.Migration):
                 ('stale', models.DateTimeField(blank=True, null=True, verbose_name='stale task time')),
                 ('state',
                  enumfields.fields.NumEnumField(db_index=True, default=1,
-                                                enum=security.enums.CeleryTaskInvocationLogState,
+                                                enum=security.old.enums.CeleryTaskInvocationLogState,
                                                 verbose_name='state')),
             ],
             options={
@@ -53,7 +53,7 @@ class Migration(migrations.Migration):
                 ('stop', models.DateTimeField(blank=True, null=True, verbose_name='stop')),
                 ('time', models.FloatField(blank=True, null=True, verbose_name='time')),
                 ('state',
-                 enumfields.fields.NumEnumField(db_index=True, default=1, enum=security.enums.CeleryTaskRunLogState,
+                 enumfields.fields.NumEnumField(db_index=True, default=1, enum=security.old.enums.CeleryTaskRunLogState,
                                                 verbose_name='state')),
                 ('name', models.CharField(db_index=True, max_length=250, verbose_name='task name')),
                 ('task_args',
@@ -120,7 +120,7 @@ class Migration(migrations.Migration):
                 ('response_headers', models.TextField(blank=True, null=True, verbose_name='response headers')),
                 ('response_body', models.TextField(blank=True, null=True, verbose_name='response body')),
                 ('response_time', models.FloatField(blank=True, null=True, verbose_name='response time')),
-                ('status', enumfields.fields.NumEnumField(default=0, enum=security.enums.LoggedRequestStatus,
+                ('status', enumfields.fields.NumEnumField(default=0, enum=security.old.enums.LoggedRequestStatus,
                                                           verbose_name='status')),
                 ('error_description', models.TextField(blank=True, null=True, verbose_name='error description')),
                 ('exception_name',
@@ -128,7 +128,8 @@ class Migration(migrations.Migration):
                 ('user_id', models.TextField(blank=True, db_index=True, null=True, verbose_name='user ID')),
                 ('ip', models.GenericIPAddressField(db_index=True, verbose_name='IP address')),
                 ('type',
-                 enumfields.fields.NumEnumField(db_index=True, default=1, enum=security.enums.InputLoggedRequestType,
+                 enumfields.fields.NumEnumField(db_index=True, default=1,
+                                                enum=security.old.enums.InputLoggedRequestType,
                                                 verbose_name='type')),
             ],
             options={
@@ -159,7 +160,7 @@ class Migration(migrations.Migration):
                 ('response_headers', models.TextField(blank=True, null=True, verbose_name='response headers')),
                 ('response_body', models.TextField(blank=True, null=True, verbose_name='response body')),
                 ('response_time', models.FloatField(blank=True, null=True, verbose_name='response time')),
-                ('status', enumfields.fields.NumEnumField(default=0, enum=security.enums.LoggedRequestStatus,
+                ('status', enumfields.fields.NumEnumField(default=0, enum=security.old.enums.LoggedRequestStatus,
                                                           verbose_name='status')),
                 ('error_description', models.TextField(blank=True, null=True, verbose_name='error description')),
                 ('exception_name',

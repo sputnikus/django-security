@@ -31,6 +31,17 @@ For using the library you just add ``security`` to ``INSTALLED_APPS`` variable::
         ...
     )
 
+Next you muse select which logging backend you want to use and add it into ``INSTALLED_APPS`` variable::
+
+    INSTALLED_APPS = (
+        ...
+        'security.backends.sql',  # log is stored into SQL DB with Django ORM
+        'security.backends.elasticsearch',  # log is stored into Elasticsearch DB with Elasticsearch-DSL
+        'security.backends.logging',  # standard python log
+        ...
+    )
+
+
 Next you must add  ``security.middleware.LogMiddleware`` to list of middlewares, the middleware should be added after authentication middleware::
 
     MIDDLEWARE = (
@@ -40,10 +51,10 @@ Next you must add  ``security.middleware.LogMiddleware`` to list of middlewares,
         ...
     )
 
-Recommended settings
---------------------
+SQL backend
+-----------
 
-If your database configuration uses atomic requests, it's highly recommended to use second non atomic connection to your database for security logs. Possible rollback will not remove logs.
+For SQL backend if your database configuration uses atomic requests, it's highly recommended to use second non atomic connection to your database for security logs. Possible rollback will not remove logs.
 
 Example::
 
@@ -70,7 +81,7 @@ Example::
             },
         },
     }
-    DATABASE_ROUTERS = ['security.db_router.MirrorSecurityLoggerRouter']  # DB router which defines connection for logs
+    DATABASE_ROUTERS = ['security.backends.sql.db_router.MirrorSecurityLoggerRouter']  # DB router which defines connection for logs
     SECURITY_DB_NAME = 'log'
 
 
@@ -104,8 +115,18 @@ The second solution is have second storage for logs in this case you will use ``
             'ATOMIC_REQUESTS': False,
         },
     }
-    DATABASE_ROUTERS = ['security.db_router.MultipleDBSecurityLoggerRouter']  # DB router which defines connection for logs
+    DATABASE_ROUTERS = ['security.backends.sql.dbr_router.MultipleDBSecurityLoggerRouter']  # DB router which defines connection for logs
     SECURITY_DB_NAME = 'log'
+
+
+Elasticsearch backend
+---------------------
+
+Elasticsearch backend can be configured via ``SECURITY_ELASTICSEARCH_DATABASE`` varibale::
+
+    SECURITY_ELASTICSEARCH_DATABASE = {
+        'host': 'localhost',
+    }
 
 
 Setup
@@ -178,3 +199,19 @@ Setup
 .. attribute:: SECURITY_LOG_DB_NAME
 
   Name of the database which security uses to log events.
+
+.. attribute:: SECURITY_BACKENDS
+
+  With this setting you can select which backends will be used to store logs. Default value is ``None`` which means all installed backends are used.
+
+.. attribute:: SECURITY_ELASTICSEARCH_DATABASE
+
+  Setting can be used to set Elasticsearch database configuration.
+
+.. attribute:: SECURITY_ELASTICSEARCH_AUTO_REFRESH
+
+  Every write to the Elasticsearch database will automatically call auto refresh.
+
+.. attribute:: SECURITY_LOG_STRING_IO_FLUSH_TIMEOUT
+
+  Timeout which set how often will be stored output stream to the log. Default value is ``5`` (s).

@@ -114,6 +114,9 @@ INSTALLED_APPS = (
     # apps
     'django_celery_extensions',
     'security',
+    'security.backends.sql',
+    'security.backends.logging',
+    'security.backends.elasticsearch',
     'reversion',
     'apps.test_security',
 )
@@ -154,6 +157,26 @@ LOGGING = {
             'level': 'ERROR',
             'propagate': True,
         },
+        'security.input_request_logger': {
+            'handlers': ['console'],
+            'level': 'CRITICAL',
+            'propagate': False,
+        },
+        'security.output_request': {
+            'handlers': ['console'],
+            'level': 'CRITICAL',
+            'propagate': False,
+        },
+        'security.command': {
+            'handlers': ['console'],
+            'level': 'CRITICAL',
+            'propagate': False,
+        },
+        'security.celery': {
+            'handlers': ['console'],
+            'level': 'CRITICAL',
+            'propagate': False,
+        },
     }
 }
 
@@ -181,3 +204,7 @@ DJANGO_CELERY_EXTENSIONS_AUTO_GENERATE_TASKS_DJANGO_COMMANDS = {
     'check': {},
     'create_user': {},
 }
+
+SECURITY_ELASTICSEARCH_DATABASE = dict(
+    hosts=[{'host': 'localhost', 'port': 9200}],
+)

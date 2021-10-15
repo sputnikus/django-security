@@ -4,8 +4,8 @@ from attrdict import AttrDict
 
 
 DEFAULTS = {
-    'DEFAULT_THROTTLING_VALIDATORS_PATH': 'security.default_validators',
-    'THROTTLING_FAILURE_VIEW': 'security.views.throttling_failure_view',
+    'DEFAULT_THROTTLING_VALIDATORS_PATH': 'security.throttling.default_validators',
+    'THROTTLING_FAILURE_VIEW': 'security.throttling.views.throttling_failure_view',
     'LOG_REQUEST_IGNORE_IP': (),
     'LOG_REQUEST_IGNORE_URL_PATHS': (),
     'LOG_REQUEST_BODY_LENGTH': 1000,
@@ -52,6 +52,10 @@ DEFAULTS = {
     'PURGE_LOG_DELETE_BATCH': 1000,
     'TASK_LOGGER_NAME': 'security.task',
     'TASK_USE_ON_SUCCESS': False,
+    'ELASTICSEARCH_DATABASE': None,
+    'ELASTICSEARCH_AUTO_REFRESH': False,
+    'BACKENDS': None,
+    'LOG_STRING_IO_FLUSH_TIMEOUT': 5,
 }
 
 

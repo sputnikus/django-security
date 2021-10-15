@@ -1,26 +1,24 @@
 from django.utils.translation import ugettext_lazy as _
 
+from enum import Enum
+
 from enumfields import Choice, ChoiceEnum
 
 
-class LoggedRequestStatus(ChoiceEnum):
+class RequestLogState(ChoiceEnum):
 
     INCOMPLETE = Choice(0, _('Incomplete'))
     DEBUG = Choice(10, _('Debug'))
     INFO = Choice(20, _('Info'))
     WARNING = Choice(30, _('Warning'))
     ERROR = Choice(40, _('Error'))
-    CRITICAL = Choice(50, _('Critical'))
 
 
-class InputLoggedRequestType(ChoiceEnum):
+class CommandState(ChoiceEnum):
 
-    COMMON_REQUEST = Choice(1, _('Common request'))
-    THROTTLED_REQUEST = Choice(2, _('Throttled request'))
-    SUCCESSFUL_LOGIN_REQUEST = Choice(3, _('Successful login request'))
-    UNSUCCESSFUL_LOGIN_REQUEST = Choice(4, _('Unsuccessful login request'))
-    SUCCESSFUL_2FA_CODE_VERIFICATION_REQUEST = Choice(5, _('Successful two factor code verification request'))
-    UNSUCCESSFUL_2FA_CODE_VERIFICATION_REQUEST = Choice(6, _('Unsuccessful two factor code verification request'))
+    ACTIVE = Choice(1, _('Active'))
+    SUCCEEDED = Choice(2, _('Succeeded'))
+    FAILED = Choice(3, _('Failed'))
 
 
 class CeleryTaskInvocationLogState(ChoiceEnum):
@@ -42,3 +40,20 @@ class CeleryTaskRunLogState(ChoiceEnum):
     FAILED = Choice(3, _('Failed'))
     RETRIED = Choice(4, _('Retried'))
     EXPIRED = Choice(5, _('Expired'))
+
+
+class InputRequestSlug(str, Enum):
+
+    UNSUCCESSFUL_LOGIN_REQUEST = 'UNSUCCESSFUL_LOGIN_REQUEST'
+    SUCCESSFUL_LOGIN_REQUEST = 'SUCCESSFUL_LOGIN_REQUEST'
+    UNSUCCESSFUL_2FA_CODE_VERIFICATION_REQUEST = 'UNSUCCESSFUL_2FA_CODE_VERIFICATION_REQUEST'
+    SUCCESSFUL_2FA_CODE_VERIFICATION_REQUEST = 'SUCCESSFUL_2FA_CODE_VERIFICATION_REQUEST'
+
+
+class LoggerName(str, Enum):
+
+    INPUT_REQUEST = 'input-request',
+    OUTPUT_REQUEST = 'output-request',
+    COMMAND = 'command',
+    CELERY_TASK_INVOCATION = 'celery-task-invocation'
+    CELERY_TASK_RUN = 'celery-task-run'

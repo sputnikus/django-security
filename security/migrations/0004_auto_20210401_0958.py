@@ -4,7 +4,7 @@ import django.core.serializers.json
 from django.db import migrations, models
 import django.db.models.deletion
 import enumfields.fields
-import security.enums
+import security.old.enums
 
 
 class Migration(migrations.Migration):
@@ -43,7 +43,7 @@ class Migration(migrations.Migration):
                 ('expires_at', models.DateTimeField(blank=True, null=True, verbose_name='time of expiration')),
                 ('stale_at', models.DateTimeField(blank=True, null=True, verbose_name='stale task time')),
                 ('state', enumfields.fields.NumEnumField(db_index=True, default=1,
-                                                         enum=security.enums.CeleryTaskInvocationLogState,
+                                                         enum=security.old.enums.CeleryTaskInvocationLogState,
                                                          verbose_name='state')),
             ],
             options={

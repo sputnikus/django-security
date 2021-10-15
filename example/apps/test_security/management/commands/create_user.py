@@ -8,4 +8,4 @@ class Command(BaseCommand):
 
     @create_revision()
     def handle(self, **options):
-        User.objects._create_user('test', 'test@test.cz', 'test', is_staff=True, is_superuser=True)
+        User.objects._create_user('test', 'test@localhost', 'test', is_staff=True, is_superuser=True)
