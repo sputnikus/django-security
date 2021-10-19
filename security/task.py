@@ -18,7 +18,7 @@ class LoggedResultWrapper(ResultWrapper):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.invocation_log = CeleryInvocationLogger(
-            self._invocation_id, related_objects=self._options.get('related_objects', [])
+            self._invocation_id, related_objects=self._options.pop('related_objects', [])
         )
 
     def on_apply(self):
