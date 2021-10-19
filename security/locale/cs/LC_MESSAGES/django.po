@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-08-18 09:21+0200\n"
+"POT-Creation-Date: 2021-10-18 09:29+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,478 +18,428 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
 
-#: contrib/debug_toolbar_log/models.py:11
-msgid "logged request"
-msgstr "logovaný dotaz"
+#: backends/elasticsearch/throttling.py:21 backends/sql/throttling.py:19
+msgid "Slow down"
+msgstr "Zpomal"
 
-#: contrib/debug_toolbar_log/models.py:18
-msgid "toolbar"
-msgstr "toolbar"
+#: backends/elasticsearch/throttling.py:52
+#: backends/elasticsearch/throttling.py:68 backends/sql/throttling.py:57
+#: backends/sql/throttling.py:73
+msgid "Too many login attempts"
+msgstr "Příliš mnoho pokusů o přihlášení"
 
-#: contrib/debug_toolbar_log/models.py:27
-msgid "Logged request toolbar"
-msgstr "Toolbar logovaného requestu"
+#: backends/elasticsearch/throttling.py:60
+#: backends/elasticsearch/throttling.py:76 backends/sql/throttling.py:65
+#: backends/sql/throttling.py:81
+msgid "You have logged in too many times"
+msgstr "Příliš mnoho přihlášení najednou"
 
-#: contrib/debug_toolbar_log/models.py:28
-msgid "Logged requests toolbars"
-msgstr "Toolbary logovaných dotazů"
-
-#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/sql.html:7
-#, python-format
-msgid "%(num)s query"
-msgid_plural "%(num)s queries"
-msgstr[0] "%(num)s dotaz"
-msgstr[1] "%(num)s dotazy"
-msgstr[2] "%(num)s dotazů"
-
-#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/sql.html:28
-msgid "Query"
-msgstr "Dotaz"
-
-#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/sql.html:29
-msgid "Timeline"
-msgstr "Časová osa"
-
-#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/sql.html:30
-msgid "Time (ms)"
-msgstr "Čas (ms)"
-
-#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/sql.html:31
-msgid "Action"
-msgstr "Akce"
-
-#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/sql.html:69
-msgid "Connection:"
-msgstr "Spojení:"
-
-#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/sql.html:71
-msgid "Isolation level:"
-msgstr "Úroveň izolace:"
-
-#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/sql.html:74
-msgid "Transaction status:"
-msgstr "Stav transakce:"
-
-#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/sql.html:88
-msgid "(unknown)"
-msgstr "(neznámé)"
-
-#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/sql.html:97
-msgid "No SQL queries were recorded during this request."
-msgstr "Pro tento požadavek nebyl zaznamenán žádný dotaz SQL."
-
-#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/templates.html:2
-msgid "Template path"
-msgid_plural "Template paths"
-msgstr[0] "Cesta k šabloně"
-msgstr[1] "Cesty k šablonám"
-msgstr[2] "Cesty k šablonám"
-
-#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/templates.html:10
-#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/templates.html:30
-#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/templates.html:47
-msgid "None"
-msgstr "Žádné"
-
-#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/templates.html:13
-msgid "Template"
-msgid_plural "Templates"
-msgstr[0] "Šablona"
-msgstr[1] "Šablony"
-msgstr[2] "Šablony"
-
-#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/templates.html:22
-#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/templates.html:40
-msgid "Toggle context"
-msgstr "Zap./vyp. kontext"
-
-#: contrib/debug_toolbar_log/templates/debug_toolbar/panels/templates.html:33
-msgid "Context processor"
-msgid_plural "Context processors"
-msgstr[0] "Procesor kontextu"
-msgstr[1] "Procesory kontextu"
-msgstr[2] "Procesory kontextu"
-
-#: cores.py:65
+#: backends/sql/cores.py:70 old/cores.py:65
 msgid "related objects"
 msgstr "vztažené objekty"
 
-#: cores.py:71
+#: backends/sql/cores.py:76 old/cores.py:71
 msgid "source"
 msgstr "zdroj"
 
-#: cores.py:77
+#: backends/sql/cores.py:82 old/cores.py:77
 msgid "raised output logged requests"
 msgstr "vyvolané výstupní logované dotazy"
 
-#: cores.py:87
+#: backends/sql/cores.py:92 old/cores.py:87
 msgid "raised command logs"
 msgstr "vyvolané spustitelné úlohy"
 
-#: cores.py:97
+#: backends/sql/cores.py:102 old/cores.py:97
 msgid "raised celery task logs"
 msgstr "vyvolané celery úlohy"
 
-#: cores.py:114 models.py:177 models.py:223
+#: backends/sql/cores.py:119 backends/sql/cores.py:157
+#: backends/sql/models.py:118 old/cores.py:114 old/models.py:38
+#: old/models.py:75
 msgid "request body"
 msgstr "tělo dotazu"
 
-#: cores.py:118 models.py:183 models.py:218
+#: backends/sql/cores.py:123 backends/sql/cores.py:151
+#: backends/sql/models.py:123 old/cores.py:118 old/models.py:44
+#: old/models.py:70
 msgid "response body"
 msgstr "tělo odpovědi"
 
-#: cores.py:122 models.py:188
-msgid "error description"
-msgstr "popis chyby"
-
-#: cores.py:139 cores.py:181
-msgid "Request"
-msgstr "Dotaz"
-
-#: cores.py:141 cores.py:183
-msgid "Response"
-msgstr "Odpověď"
-
-#: cores.py:143
-msgid "User information"
-msgstr "Uživatelské informace"
-
-#: cores.py:144 cores.py:185
-msgid "Extra information"
-msgstr "Další informace"
-
-#: cores.py:159
-msgid "user"
-msgstr "uživatel"
-
-#: cores.py:219 cores.py:286 models.py:316 models.py:559
-msgid "output"
-msgstr "výstup"
-
-#: cores.py:229 models.py:460
-msgid "celery task"
-msgstr "celery úloha"
-
-#: cores.py:230 models.py:586
-msgid "celery task run"
-msgstr "zpracování celery úlohy"
-
-#: cores.py:279
-msgid "celery task invocations"
-msgstr "vyvolání celery úlohy"
-
-#: cores.py:332
-msgid "celery task runs"
-msgstr "zpracování celery úlohy"
-
-#: cores.py:339 models.py:313 models.py:412
-msgid "input"
-msgstr "vstup"
-
-#: enums.py:8
-msgid "Incomplete"
-msgstr "Nedokončený"
-
-#: enums.py:9
-msgid "Debug"
-msgstr "Debug"
-
-#: enums.py:10
-msgid "Info"
-msgstr "Info"
-
-#: enums.py:11
-msgid "Warning"
-msgstr "Varování"
-
-#: enums.py:12
-msgid "Error"
-msgstr "Chyba"
-
-#: enums.py:13
-msgid "Critical"
-msgstr "Kritické"
-
-#: enums.py:18
-msgid "Common request"
-msgstr "Běžný HTTP dotaz"
-
-#: enums.py:19
-msgid "Throttled request"
-msgstr "Throttled HTTP dotaz"
-
-#: enums.py:20
-msgid "Successful login request"
-msgstr "Úspěšné přihlášení"
-
-#: enums.py:21
-msgid "Unsuccessful login request"
-msgstr "Neúspěšné přihlášení"
-
-#: enums.py:22
-msgid "Successful two factor code verification request"
-msgstr "Úspěšné přihlášení při dvoufaktorovém ověření kódu"
-
-#: enums.py:23
-msgid "Unsuccessful two factor code verification request"
-msgstr "Neúspěšné přihlášení při dvoufaktorovém ověření kódu"
-
-#: enums.py:28
-msgid "Waiting"
-msgstr "Čeká"
-
-#: enums.py:29
-msgid "Triggered"
-msgstr "Vyvoláno"
-
-#: enums.py:30 enums.py:40
-msgid "Active"
-msgstr "Aktivní"
-
-#: enums.py:31 enums.py:41
-msgid "Succeeded"
-msgstr "Dokončený"
-
-#: enums.py:32 enums.py:42
-msgid "Failed"
-msgstr "Chyba"
-
-#: enums.py:33 enums.py:44
-msgid "Expired"
-msgstr "Expirovaný"
-
-#: enums.py:34
-msgid "Timeout"
-msgstr "Čas vypršel"
-
-#: enums.py:35
-msgid "Ignored"
-msgstr "Ignorováno"
-
-#: enums.py:43
-msgid "Retried"
-msgstr "Opakovaný"
-
-#: models.py:165
-msgid "host"
-msgstr "host"
-
-#: models.py:167
-msgid "method"
-msgstr "metoda"
-
-#: models.py:168
-msgid "URL path"
-msgstr "URL cesta"
-
-#: models.py:170 models.py:202
-msgid "queries"
-msgstr "query string"
-
-#: models.py:171
-msgid "HTTPS connection"
-msgstr "HTTPS spojení"
-
-#: models.py:172
-msgid "slug"
-msgstr "slug"
-
-#: models.py:175
-msgid "request timestamp"
-msgstr "čas a datum dotazu"
-
-#: models.py:176 models.py:207
-msgid "request headers"
-msgstr "hlavičky dotazu"
-
-#: models.py:180
-msgid "response timestamp"
-msgstr "datum a čas odpovědi"
-
-#: models.py:181
-msgid "response code"
-msgstr "kód odpovědi"
-
-#: models.py:182
-msgid "response headers"
-msgstr "hlavičky odpovědi"
-
-#: models.py:184
-msgid "response time"
-msgstr "Čas odpovědi"
-
-#: models.py:186
-msgid "status"
-msgstr "stav"
-
-#: models.py:189
-msgid "exception name"
-msgstr "název výjimky"
-
-#: models.py:212
-msgid "Path"
-msgstr "Cesta"
-
-#: models.py:242
-msgid "user ID"
-msgstr "ID uživatele"
-
-#: models.py:243
-msgid "IP address"
-msgstr "IP adresa"
-
-#: models.py:244
-msgid "type"
-msgstr "typ"
-
-#: models.py:252
-msgid "input logged request"
-msgstr "vstupní logovaný dotaz"
-
-#: models.py:253
-msgid "input logged requests"
-msgstr "vstupní logované dotazy"
-
-#: models.py:286
-msgid "output logged request"
-msgstr "výstupní logovaný dotaz"
-
-#: models.py:287
-msgid "output logged requests"
-msgstr "výstupní logované dotazy"
-
-#: models.py:308 models.py:485 models.py:503
-msgid "start"
-msgstr "start"
-
-#: models.py:309 models.py:490 models.py:508
-msgid "stop"
-msgstr "stop"
-
-#: models.py:310 models.py:513
-msgid "time"
-msgstr "čas"
-
-#: models.py:312
-msgid "name"
-msgstr "název"
-
-#: models.py:314
-msgid "executed from command line"
-msgstr "spuštěno z příkazové řádky"
-
-#: models.py:317
-msgid "finished successfully"
-msgstr "úspěšně dokončeno"
-
-#: models.py:319 models.py:554
+#: backends/sql/cores.py:127 backends/sql/cores.py:272
+#: backends/sql/cores.py:351 backends/sql/models.py:203
+#: backends/sql/models.py:414 old/models.py:152 old/models.py:383
 msgid "error message"
 msgstr "zpráva chyby"
 
-#: models.py:325
-msgid "command log"
-msgstr "log spustitelné úlohy"
+#: backends/sql/cores.py:133 backends/sql/models.py:113 old/models.py:31
+#: old/models.py:54
+msgid "queries"
+msgstr "query string"
 
-#: models.py:326
-msgid "command logs"
-msgstr "logy spustitelných úloh"
+#: backends/sql/cores.py:139 backends/sql/models.py:117 old/models.py:37
+#: old/models.py:59
+msgid "request headers"
+msgstr "hlavičky dotazu"
 
-#: models.py:364
-msgid "invocation ID"
-msgstr "ID vyvolání"
+#: backends/sql/cores.py:145
+msgid "path"
+msgstr "cesta"
 
-#: models.py:370 models.py:496
-msgid "celery ID"
-msgstr "celery ID"
+#: backends/sql/cores.py:174 old/cores.py:140 old/cores.py:183
+msgid "Request"
+msgstr "Dotaz"
 
-#: models.py:377 models.py:526
-msgid "task name"
-msgstr "název úlohy"
+#: backends/sql/cores.py:176 old/cores.py:142 old/cores.py:185
+msgid "Response"
+msgstr "Odpověď"
 
-#: models.py:384 models.py:576
-msgid "queue name"
-msgstr "název fronty"
+#: backends/sql/cores.py:178 old/cores.py:144
+msgid "User information"
+msgstr "Uživatelské informace"
 
-#: models.py:390
-msgid "applied at"
-msgstr "aplikováno"
+#: backends/sql/cores.py:179 old/cores.py:145 old/cores.py:187
+msgid "Extra information"
+msgstr "Další informace"
 
-#: models.py:395
-msgid "triggered at"
-msgstr "vyvoláno"
+#: backends/sql/cores.py:194 old/cores.py:160
+msgid "user"
+msgstr "uživatel"
 
-#: models.py:400
-msgid "is unique"
-msgstr "unikátní"
+#: backends/sql/cores.py:266 backends/sql/cores.py:343
+#: backends/sql/models.py:194 backends/sql/models.py:419 old/cores.py:226
+#: old/cores.py:295 old/models.py:149 old/models.py:388
+msgid "output"
+msgstr "výstup"
 
-#: models.py:403
-msgid "is async"
-msgstr "asynchronní"
+#: backends/sql/cores.py:280 backends/sql/models.py:336 old/cores.py:236
+#: old/models.py:289
+msgid "celery task"
+msgstr "celery úloha"
 
-#: models.py:406
-msgid "is duplicate"
-msgstr "duplicitní"
+#: backends/sql/cores.py:281 backends/sql/models.py:440 old/cores.py:237
+#: old/models.py:413
+msgid "celery task run"
+msgstr "zpracování celery úlohy"
 
-#: models.py:409
-msgid "is on commit"
-msgstr "vyvoláno v módu on commit"
+#: backends/sql/cores.py:393 old/cores.py:342
+msgid "celery task runs"
+msgstr "zpracování celery úlohy"
 
-#: models.py:418 models.py:533
-msgid "task args"
-msgstr "úloha - args"
+#: backends/sql/cores.py:400 backends/sql/models.py:191
+#: backends/sql/models.py:288 backends/sql/models.py:379 old/cores.py:349
+#: old/models.py:146 old/models.py:243
+msgid "input"
+msgstr "vstup"
 
-#: models.py:425 models.py:540
-msgid "task kwargs"
-msgstr "úloha - kwargs"
+#: backends/sql/models.py:62
+msgid "log ID"
+msgstr "ID logu"
 
-#: models.py:432
-msgid "estimated time of first arrival"
-msgstr "předpokládaný čas spuštění prvního zpracování úlohy"
+#: backends/sql/models.py:69 backends/sql/models.py:122 old/models.py:43
+msgid "response headers"
+msgstr "hlavičky odpovědi"
 
-#: models.py:437
-msgid "time of expiration"
-msgstr "čas expirace"
+#: backends/sql/models.py:75 old/models.py:33
+msgid "slug"
+msgstr "slug"
 
-#: models.py:442
-msgid "stale task time"
-msgstr "čas zneplatnění úlohy"
+#: backends/sql/models.py:82 old/models.py:141 old/models.py:314
+#: old/models.py:332
+msgid "start"
+msgstr "start"
 
-#: models.py:447 models.py:518
+#: backends/sql/models.py:88 old/models.py:142 old/models.py:319
+#: old/models.py:337
+msgid "stop"
+msgstr "stop"
+
+#: backends/sql/models.py:94 old/models.py:45
+msgid "response time"
+msgstr "Čas odpovědi"
+
+#: backends/sql/models.py:110 old/models.py:28
+msgid "host"
+msgstr "host"
+
+#: backends/sql/models.py:111 old/models.py:29
+msgid "method"
+msgstr "metoda"
+
+#: backends/sql/models.py:112 old/models.py:30
+msgid "URL path"
+msgstr "URL cesta"
+
+#: backends/sql/models.py:114 old/models.py:32
+msgid "HTTPS connection"
+msgstr "HTTPS spojení"
+
+#: backends/sql/models.py:121 old/models.py:42
+msgid "response code"
+msgstr "kód odpovědi"
+
+#: backends/sql/models.py:125 backends/sql/models.py:196
+#: backends/sql/models.py:323 backends/sql/models.py:399 old/models.py:278
+#: old/models.py:347
 msgid "state"
 msgstr "stav"
 
-#: models.py:461
+#: backends/sql/models.py:127 old/cores.py:122 old/models.py:49
+msgid "error description"
+msgstr "popis chyby"
+
+#: backends/sql/models.py:142 old/models.py:94
+msgid "user ID"
+msgstr "ID uživatele"
+
+#: backends/sql/models.py:143 old/models.py:95
+msgid "IP address"
+msgstr "IP adresa"
+
+#: backends/sql/models.py:144
+msgid "view slug"
+msgstr "view slug"
+
+#: backends/sql/models.py:151 old/models.py:102
+msgid "input logged request"
+msgstr "vstupní logovaný dotaz"
+
+#: backends/sql/models.py:152 old/models.py:103
+msgid "input logged requests"
+msgstr "vstupní logované dotazy"
+
+#: backends/sql/models.py:167 old/models.py:119
+msgid "output logged request"
+msgstr "výstupní logovaný dotaz"
+
+#: backends/sql/models.py:168 old/models.py:120
+msgid "output logged requests"
+msgstr "výstupní logované dotazy"
+
+#: backends/sql/models.py:190 old/models.py:145
+msgid "name"
+msgstr "název"
+
+#: backends/sql/models.py:192
+msgid "is executed from command line"
+msgstr "spuštěno z příkazové řádky?"
+
+#: backends/sql/models.py:209 old/models.py:156
+msgid "command log"
+msgstr "log spustitelné úlohy"
+
+#: backends/sql/models.py:210 old/models.py:157
+msgid "command logs"
+msgstr "logy spustitelných úloh"
+
+#: backends/sql/models.py:245 backends/sql/models.py:359 old/models.py:195
+msgid "invocation ID"
+msgstr "ID vyvolání"
+
+#: backends/sql/models.py:252 backends/sql/models.py:366 old/models.py:208
+#: old/models.py:355
+msgid "task name"
+msgstr "název úlohy"
+
+#: backends/sql/models.py:259 backends/sql/models.py:373 old/models.py:215
+#: old/models.py:405
+msgid "queue name"
+msgstr "název fronty"
+
+#: backends/sql/models.py:265 old/models.py:221
+msgid "applied at"
+msgstr "aplikováno"
+
+#: backends/sql/models.py:270 old/models.py:226
+msgid "triggered at"
+msgstr "vyvoláno"
+
+#: backends/sql/models.py:275 old/models.py:231
+msgid "is unique"
+msgstr "unikátní"
+
+#: backends/sql/models.py:278 old/models.py:234
+msgid "is async"
+msgstr "asynchronní"
+
+#: backends/sql/models.py:281 old/models.py:237
+msgid "is duplicate"
+msgstr "duplicitní"
+
+#: backends/sql/models.py:285 old/models.py:240
+msgid "is on commit"
+msgstr "vyvoláno v módu on commit"
+
+#: backends/sql/models.py:294 backends/sql/models.py:385 old/models.py:249
+#: old/models.py:362
+msgid "task args"
+msgstr "úloha - args"
+
+#: backends/sql/models.py:301 backends/sql/models.py:392 old/models.py:256
+#: old/models.py:369
+msgid "task kwargs"
+msgstr "úloha - kwargs"
+
+#: backends/sql/models.py:308 old/models.py:263
+msgid "estimated time of first arrival"
+msgstr "předpokládaný čas spuštění prvního zpracování úlohy"
+
+#: backends/sql/models.py:313 old/models.py:268
+msgid "time of expiration"
+msgstr "čas expirace"
+
+#: backends/sql/models.py:318 old/models.py:273
+msgid "stale task time"
+msgstr "čas zneplatnění úlohy"
+
+#: backends/sql/models.py:337 old/models.py:290
 msgid "celery tasks"
 msgstr "celery úlohy"
 
-#: models.py:547
+#: backends/sql/models.py:407 old/models.py:376
 msgid "result"
 msgstr "výsledek"
 
-#: models.py:565
+#: backends/sql/models.py:425 old/models.py:394
 msgid "retries"
 msgstr "opakování"
 
-#: models.py:571
+#: backends/sql/models.py:431 old/models.py:400
 msgid "estimated time of arrival"
 msgstr "předpokládaný čas spuštění"
 
-#: models.py:587
+#: backends/sql/models.py:441 old/models.py:414
 msgid "celery tasks run"
 msgstr "zpracování celery úlohy"
+
+#: enums.py:10 old/enums.py:8
+msgid "Incomplete"
+msgstr "Nedokončený"
+
+#: enums.py:11 old/enums.py:9
+msgid "Debug"
+msgstr "Debug"
+
+#: enums.py:12 old/enums.py:10
+msgid "Info"
+msgstr "Info"
+
+#: enums.py:13 old/enums.py:11
+msgid "Warning"
+msgstr "Varování"
+
+#: enums.py:14 old/enums.py:12
+msgid "Error"
+msgstr "Chyba"
+
+#: enums.py:19 enums.py:28 enums.py:38 old/enums.py:30 old/enums.py:40
+msgid "Active"
+msgstr "Aktivní"
+
+#: enums.py:20 enums.py:29 enums.py:39 old/enums.py:31 old/enums.py:41
+msgid "Succeeded"
+msgstr "Dokončený"
+
+#: enums.py:21 enums.py:30 enums.py:40 old/enums.py:32 old/enums.py:42
+msgid "Failed"
+msgstr "Chyba"
+
+#: enums.py:26 old/enums.py:28
+msgid "Waiting"
+msgstr "Čeká"
+
+#: enums.py:27 old/enums.py:29
+msgid "Triggered"
+msgstr "Vyvoláno"
+
+#: enums.py:31 enums.py:42 old/enums.py:33 old/enums.py:44
+msgid "Expired"
+msgstr "Expirovaný"
+
+#: enums.py:32 old/enums.py:34
+msgid "Timeout"
+msgstr "Časový limig"
+
+#: enums.py:33 old/enums.py:35
+msgid "Ignored"
+msgstr "Ignorováno"
+
+#: enums.py:41 old/enums.py:43
+msgid "Retried"
+msgstr "Opakovaný"
+
+#: old/cores.py:288
+msgid "celery task invocations"
+msgstr "vyvolání celery úloh"
+
+#: old/enums.py:13
+msgid "Critical"
+msgstr "Kritické"
+
+#: old/enums.py:18
+msgid "Common request"
+msgstr "Běžný HTTP dotaz"
+
+#: old/enums.py:19
+msgid "Throttled request"
+msgstr "Throttled HTTP dotaz"
+
+#: old/enums.py:20
+msgid "Successful login request"
+msgstr "Úspěšné přihlášení"
+
+#: old/enums.py:21
+msgid "Unsuccessful login request"
+msgstr "Neúspěšné přihlášení"
+
+#: old/enums.py:22
+msgid "Successful two factor code verification request"
+msgstr "Úspěšné přihlášení při dvoufaktorovém ověření kódu"
+
+#: old/enums.py:23
+msgid "Unsuccessful two factor code verification request"
+msgstr "Neúspěšné přihlášení při dvoufaktorovém ověření kódu"
+
+#: old/models.py:36
+msgid "request timestamp"
+msgstr "datum a čas dotazu"
+
+#: old/models.py:41
+msgid "response timestamp"
+msgstr "datum a čas odpovědi"
+
+#: old/models.py:47
+msgid "status"
+msgstr "stav"
+
+#: old/models.py:50
+msgid "exception name"
+msgstr "název výjimky"
+
+#: old/models.py:64
+msgid "Path"
+msgstr "Cesta"
+
+#: old/models.py:96
+msgid "type"
+msgstr "typ"
+
+#: old/models.py:143 old/models.py:342
+msgid "time"
+msgstr "čas"
+
+#: old/models.py:147
+msgid "executed from command line"
+msgstr "spuštěno z příkazové řádky?"
+
+#: old/models.py:150
+msgid "finished successfully"
+msgstr "úspěšně dokončeno"
+
+#: old/models.py:201 old/models.py:325
+msgid "celery ID"
+msgstr "celery ID"
 
 #: templates/429.html:9
 msgid "Too Many Requests (429)"
 msgstr "Příliš mnoho HTTP dotazů (429)"
-
-#: throttling.py:35
-msgid "Slow down"
-msgstr "Zpomal"
-
-#: throttling.py:68 throttling.py:84
-msgid "Too many login attempts"
-msgstr "Příliš mnoho pokusů o přihlášení"
-
-#: throttling.py:76 throttling.py:92
-msgid "You have logged in too many times"
-msgstr "Příliš mnoho přihlášení najednou"

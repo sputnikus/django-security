@@ -43,6 +43,7 @@ DEFAULTS = {
     'BACKUP_STORAGE_CLASS': 'security.storages.BackupFileSystemStorage',
     'BACKUP_STORAGE_PATH': None,
     'DEBUG_TOOLBAR': False,
+    'DEBUG_TOOLBAR_IGNORE_URL_REGEX_PATHS': (),
     'SHOW_DEBUG_TOOLBAR': False,
     'LOG_OUTPUT_REQUESTS': True,
     'AUTO_GENERATE_TASKS_FOR_DJANGO_COMMANDS': {},

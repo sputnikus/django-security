@@ -12,14 +12,15 @@ class store_elasticsearch_log(override_settings):
 
     def enable(self):
         super().enable()
+        uuid = uuid4()
         for document_class in (CommandLog, CeleryTaskRunLog, CeleryTaskInvocationLog,
                                InputRequestLog, OutputRequestLog):
-            document_class._index._name = f'{uuid4()}.{document_class._index._name}'
+            document_class._index._name = f'{uuid}.{document_class._index._name}'
             document_class.init()
 
     def disable(self):
-        super().disable()
         for document_class in (CommandLog, CeleryTaskRunLog, CeleryTaskInvocationLog,
                                InputRequestLog, OutputRequestLog):
             document_class._index.delete()
             document_class._index._name = document_class._index._name.split('.', 1)[1]
+        super().disable()

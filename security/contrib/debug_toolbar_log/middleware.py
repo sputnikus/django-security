@@ -1,3 +1,5 @@
+import re
+
 from django.conf import settings as django_settings
 
 from debug_toolbar.toolbar import DebugToolbar
@@ -33,6 +35,9 @@ class DebugToolbarLogMiddleware:
 
             input_request_logger = getattr(request, 'input_request_logger', None)
             if input_request_logger:
+                for ignored_path in settings.DEBUG_TOOLBAR_IGNORE_URL_REGEX_PATHS:
+                    if re.match(r'^{}$'.format(ignored_path), request.path):
+                        return response
                 input_request_logger.update_extra_data({'debug_toolbar': toolbar.render_toolbar()})
             return response
         else:
