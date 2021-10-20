@@ -270,12 +270,14 @@ def input_request_started_receiver(sender, logger, **kwargs):
     input_request_log.meta.id = logger.id
     if logger.parent_with_id:
         input_request_log.parent_log = '{}|{}'.format(logger.parent_with_id.name, logger.parent_with_id.id)
+
+    logger.backend_logs.elasticsearch = input_request_log
     input_request_log.save()
 
 
 @receiver(input_request_finished)
 def input_request_finished_receiver(sender, logger, **kwargs):
-    input_request_log = InputRequestLog.get(id=logger.id)
+    input_request_log = logger.backend_logs.elasticsearch
     input_request_log.update(
         slug=logger.slug,
         extra_data=logger.extra_data,
@@ -287,7 +289,7 @@ def input_request_finished_receiver(sender, logger, **kwargs):
 
 @receiver(input_request_error)
 def input_request_error_receiver(sender, logger, **kwargs):
-    input_request_log = InputRequestLog.get(id=logger.id)
+    input_request_log = logger.backend_logs.elasticsearch
     input_request_log.update(
         slug=logger.slug,
         extra_data=logger.extra_data,
@@ -311,12 +313,13 @@ def output_request_started_receiver(sender, logger, **kwargs):
     output_request_log.meta.id = logger.id
     if logger.parent_with_id:
         output_request_log.parent_log = '{}|{}'.format(logger.parent_with_id.name, logger.parent_with_id.id)
+    logger.backend_logs.elasticsearch = output_request_log
     output_request_log.save()
 
 
 @receiver(output_request_finished)
 def output_request_finished_receiver(sender, logger, **kwargs):
-    output_request_log = OutputRequestLog.get(id=logger.id)
+    output_request_log = logger.backend_logs.elasticsearch
     output_request_log.update(
         slug=logger.slug,
         extra_data=logger.extra_data,
@@ -328,7 +331,7 @@ def output_request_finished_receiver(sender, logger, **kwargs):
 
 @receiver(output_request_error)
 def output_request_error_receiver(sender, logger, **kwargs):
-    output_request_log = OutputRequestLog.get(id=logger.id)
+    output_request_log = logger.backend_logs.elasticsearch
     output_request_log.update(
         slug=logger.slug,
         extra_data=logger.extra_data,
@@ -353,12 +356,13 @@ def command_started_receiver(sender, logger, **kwargs):
     command_log.meta.id = logger.id
     if logger.parent_with_id:
         command_log.parent_log = '{}|{}'.format(logger.parent_with_id.name, logger.parent_with_id.id)
+    logger.backend_logs.elasticsearch = command_log
     command_log.save()
 
 
 @receiver(command_output_updated)
 def command_output_updated_receiver(sender, logger, **kwargs):
-    command_log = CommandLog.get(id=logger.id)
+    command_log = logger.backend_logs.elasticsearch
     command_log.update(
         slug=logger.slug,
         refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
@@ -368,7 +372,7 @@ def command_output_updated_receiver(sender, logger, **kwargs):
 
 @receiver(command_finished)
 def command_finished_receiver(sender, logger, **kwargs):
-    command_log = CommandLog.get(id=logger.id)
+    command_log = logger.backend_logs.elasticsearch
     command_log.update(
         slug=logger.slug,
         extra_data=logger.extra_data,
@@ -380,7 +384,7 @@ def command_finished_receiver(sender, logger, **kwargs):
 
 @receiver(command_error)
 def command_error_receiver(sender, logger, **kwargs):
-    command_log = CommandLog.get(id=logger.id)
+    command_log = logger.backend_logs.elasticsearch
     command_log.update(
         slug=logger.slug,
         extra_data=logger.extra_data,
@@ -405,12 +409,13 @@ def celery_task_invocation_started_receiver(sender, logger, **kwargs):
     celery_task_invocation_log.meta.id = logger.id
     if logger.parent_with_id:
         celery_task_invocation_log.parent_log = '{}|{}'.format(logger.parent_with_id.name, logger.parent_with_id.id)
+    logger.backend_logs.elasticsearch = celery_task_invocation_log
     celery_task_invocation_log.save()
 
 
 @receiver(celery_task_invocation_triggered)
 def celery_task_invocation_triggered_receiver(sender, logger, **kwargs):
-    celery_task_invocation_log = CeleryTaskInvocationLog.get(id=logger.id)
+    celery_task_invocation_log = logger.backend_logs.elasticsearch
     celery_task_invocation_log.update(
         slug=logger.slug,
         extra_data=logger.extra_data,
@@ -422,7 +427,7 @@ def celery_task_invocation_triggered_receiver(sender, logger, **kwargs):
 
 @receiver(celery_task_invocation_ignored)
 def celery_task_invocation_ignored_receiver(sender, logger, **kwargs):
-    celery_task_invocation_log = CeleryTaskInvocationLog.get(id=logger.id)
+    celery_task_invocation_log = logger.backend_logs.elasticsearch
     celery_task_invocation_log.update(
         slug=logger.slug,
         extra_data=logger.extra_data,
@@ -434,7 +439,7 @@ def celery_task_invocation_ignored_receiver(sender, logger, **kwargs):
 
 @receiver(celery_task_invocation_timeout)
 def celery_task_invocation_timeout_receiver(sender, logger, **kwargs):
-    celery_task_invocation_log = CeleryTaskInvocationLog.get(id=logger.id)
+    celery_task_invocation_log = logger.backend_logs.elasticsearch
     celery_task_invocation_log.update(
         slug=logger.slug,
         extra_data=logger.extra_data,
@@ -481,12 +486,13 @@ def celery_task_run_started_receiver(sender, logger, **kwargs):
     celery_task_run_log.meta.id = logger.id
     if logger.parent_with_id:
         celery_task_run_log.parent_log = '{}|{}'.format(logger.parent_with_id.name, logger.parent_with_id.id)
+    logger.backend_logs.elasticsearch = celery_task_run_log
     celery_task_run_log.save()
 
 
 @receiver(celery_task_run_succeeded)
 def celery_task_run_succeeded_receiver(sender, logger, **kwargs):
-    celery_task_run_log = CeleryTaskRunLog.get(id=logger.id)
+    celery_task_run_log = logger.backend_logs.elasticsearch
     celery_task_run_log.update(
         slug=logger.slug,
         extra_data=logger.extra_data,
@@ -513,7 +519,7 @@ def celery_task_run_succeeded_receiver(sender, logger, **kwargs):
 
 @receiver(celery_task_run_failed)
 def celery_task_run_failed_receiver(sender, logger, **kwargs):
-    celery_task_run_log = CeleryTaskRunLog.get(id=logger.id)
+    celery_task_run_log = logger.backend_logs.elasticsearch
     celery_task_run_log.update(
         slug=logger.slug,
         extra_data=logger.extra_data,
@@ -540,7 +546,7 @@ def celery_task_run_failed_receiver(sender, logger, **kwargs):
 
 @receiver(celery_task_run_retried)
 def celery_task_run_retried_receiver(sender, logger, **kwargs):
-    celery_task_run_log = CeleryTaskRunLog.get(id=logger.id)
+    celery_task_run_log = logger.backend_logs.elasticsearch
     celery_task_run_log.update(
         slug=logger.slug,
         extra_data=logger.extra_data,
@@ -552,7 +558,7 @@ def celery_task_run_retried_receiver(sender, logger, **kwargs):
 
 @receiver(celery_task_run_output_updated)
 def celery_task_run_output_updated_receiver(sender, logger, **kwargs):
-    celery_task_run_log = CeleryTaskRunLog.get(id=logger.id)
+    celery_task_run_log = logger.backend_logs.elasticsearch
     celery_task_run_log.update(
         slug=logger.slug,
         **logger.data,

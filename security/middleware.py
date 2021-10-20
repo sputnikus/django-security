@@ -23,24 +23,29 @@ class LogMiddleware:
     response_redirect_class = http.HttpResponsePermanentRedirect
 
     def __init__(self, get_response=None):
-        self.get_response = get_response
+        self.base_get_response = get_response
         super().__init__()
 
     def __call__(self, request):
-        response = self.process_request(request)
-        response = response or self.get_response(request)
-        response = self.process_response(request, response)
-        return response
-
-    def process_request(self, request):
         view = get_view_from_request_or_none(request)
         if (get_client_ip(request)[0] not in settings.LOG_REQUEST_IGNORE_IP
                 and request.path not in settings.LOG_REQUEST_IGNORE_URL_PATHS
                 and not getattr(view, 'log_exempt', False)):
-            request.input_request_logger = InputRequestLogger(
-                hide_request_body=getattr(view, 'hide_request_body', False)
-            )
-            request.input_request_logger.log_request(request)
+
+            with InputRequestLogger(hide_request_body=getattr(view, 'hide_request_body', False)) as logger:
+                request.input_request_logger = logger
+                return self.get_response(request, logger)
+        else:
+            return self.get_response(request)
+
+    def get_response(self, request, input_request_logger=None):
+        response = self.process_request(request, input_request_logger)
+        response = response or self.base_get_response(request)
+        return self.process_response(request, response, input_request_logger)
+
+    def process_request(self, request, input_request_logger=None):
+        if input_request_logger:
+            input_request_logger.log_request(request)
 
         # Return a redirect if necessary
         if self.should_redirect_with_slash(request):
@@ -94,11 +99,9 @@ class LogMiddleware:
         except ThrottlingException as exception:
             return self.process_exception(request, exception)
 
-    def process_response(self, request, response):
-        input_request_logger = getattr(request, 'input_request_logger', None)
+    def process_response(self, request, response, input_request_logger=None):
         if input_request_logger:
             input_request_logger.log_response(request, response)
-            input_request_logger.close()
         return response
 
     def process_exception(self, request, exception):

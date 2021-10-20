@@ -102,27 +102,30 @@ class LoggedTask(DjangoTask):
 
     def on_task_retry(self, task_id, args, kwargs, exc, eta):
         super().on_task_retry(task_id, args, kwargs, exc, eta)
-        self.request.run_logger.log_retried(
-            ex_tb=str(exc),
-            estimated_time_of_next_retry=eta
-        )
-        self.request.run_logger.close()
-        self.request.output_stream.close()
+        try:
+            self.request.run_logger.log_retried(
+                ex_tb=str(exc),
+                estimated_time_of_next_retry=eta
+            )
+            self.request.output_stream.close()
+        finally:
+            self.request.run_logger.close()
 
     def on_task_success(self, task_id, args, kwargs, retval):
         super().on_task_success(task_id, args, kwargs, retval)
-        self.request.run_logger.log_succeeded(
-            result=retval
-        )
-        self.request.run_logger.close()
-        self.request.output_stream.close()
-
+        try:
+            self.request.run_logger.log_succeeded(
+                result=retval
+            )
+            self.request.output_stream.close()
+        finally:
+            self.request.run_logger.close()
     def on_task_failure(self, task_id, args, kwargs, exc, einfo):
         super().on_task_failure(task_id, args, kwargs, exc, einfo)
+        self.request.run_logger.close()
         self.request.run_logger.log_failed(
             ex_tb=str(exc)
         )
-        self.request.run_logger.close()
         self.request.output_stream.close()
 
     def expire_invocation(self, invocation_log_id, args, kwargs, logger_data):
