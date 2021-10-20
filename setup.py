@@ -1,33 +1,35 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+import os
+
+from setuptools import setup, find_packages
+
 from security.version import get_version
 
-try:
-    from setuptools import setup, find_packages
-except ImportError:
-    import ez_setup
-    ez_setup.use_setuptools()
-    from setuptools import setup, find_packages
+
+def read(fname):
+    return open(os.path.join(os.path.dirname(__file__), fname)).read()
+
 
 setup(
-    name='django-security',
+    name='django-security-logger',
+    long_description=read('README.rst'),
+    long_description_content_type='text/x-rst',
     version=get_version(),
     description="Django security library.",
     keywords='django, throttling',
     author='Lubos Matl',
     author_email='matllubos@gmail.com',
-    url='https://github.com/matllubos/django-security',
-    license='LGPL',
+    url='https://github.com/druids/django-security',
+    license='MIT',
     package_dir={'security': 'security'},
     include_package_data=True,
     packages=find_packages(),
     classifiers=[
-        'Development Status :: 0 - Beta',
+        'Development Status :: 3 - Alpha',
         'Environment :: Web Environment',
         'Framework :: Django',
         'Intended Audience :: Developers',
         'Intended Audience :: End Users/Desktop',
-        'License :: OSI Approved :: GNU LESSER GENERAL PUBLIC LICENSE (LGPL)',
+        'License :: OSI Approved :: MIT License',
         'Natural Language :: Czech',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
@@ -35,9 +37,14 @@ setup(
         'Topic :: Internet :: WWW/HTTP :: Site Management',
     ],
     install_requires=[
-        'django>=1.6',
-        'django-json-field>=0.5.5',
-        'django-ipware>=0.1.0',
+        'django>=3.1',
+        'django-ipware>=3.0.2',
+        'ansi2html>=1.6.0',
+        'django-chamber>=0.6.0',
+        'attrdict>=2.0.1',
+        'django-choice-enumfields>=1.0.5',
+        'django-generic-m2m-field>=0.0.4',
+        'django-celery-extensions>=0.0.13',
     ],
     zip_safe=False
 )
