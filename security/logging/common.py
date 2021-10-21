@@ -1,4 +1,5 @@
 from threading import local
+from attrdict import AttrDict
 
 from uuid import uuid4
 
@@ -39,6 +40,7 @@ class SecurityLogger(ContextDecorator, local):
                 from reversion.signals import post_revision_commit
 
                 post_revision_commit.connect(self._post_revision_commit)
+        self.backend_logs = AttrDict()
 
     def _get_parent_with_id(self):
         parent = self.parent
