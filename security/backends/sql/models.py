@@ -97,10 +97,12 @@ class Log(models.Model):
         blank=True
     )
 
-    def save(self, *args, **kwargs):
+    def save(self, update_fields=None, *args, **kwargs):
         if not self.time and self.start and self.stop:
             self.time = (self.stop - self.start).total_seconds()
-        super().save(*args, **kwargs)
+            if update_fields:
+                update_fields = list(update_fields) + ['time']
+        super().save(update_fields=update_fields, *args, **kwargs)
 
     class Meta:
         abstract = True
@@ -499,6 +501,7 @@ def input_request_finished_receiver(sender, logger, **kwargs):
         slug=logger.slug,
         state=_get_response_state(logger.data['response_code']),
         extra_data=logger.extra_data,
+        update_only_changed_fields=True,
         **logger.data
     )
     input_request_log.related_objects.add(*logger.related_objects)
@@ -510,6 +513,7 @@ def input_request_error_receiver(sender, logger, **kwargs):
         logger.backend_logs.sql,
         slug=logger.slug,
         extra_data=logger.extra_data,
+        update_only_changed_fields=True,
         **logger.data
     )
     input_request_log.related_objects.add(*logger.related_objects)
@@ -542,6 +546,7 @@ def output_request_finished_receiver(sender, logger, **kwargs):
         slug=logger.slug,
         state=_get_response_state(logger.data['response_code']),
         extra_data=logger.extra_data,
+        update_only_changed_fields=True,
         **logger.data
     )
     output_request_log.related_objects.add(*logger.related_objects)
@@ -554,6 +559,7 @@ def output_request_error_receiver(sender, logger, **kwargs):
         slug=logger.slug,
         state=RequestLogState.ERROR,
         extra_data=logger.extra_data,
+        update_only_changed_fields=True,
         **logger.data
     )
     output_request_log.related_objects.add(*logger.related_objects)
@@ -585,6 +591,7 @@ def command_output_updated_receiver(sender, logger, **kwargs):
     change_and_save(
         logger.backend_logs.sql,
         slug=logger.slug,
+        update_only_changed_fields=True,
         **logger.data
     )
 
@@ -596,6 +603,7 @@ def command_finished_receiver(sender, logger, **kwargs):
         slug=logger.slug,
         state=CommandState.SUCCEEDED,
         extra_data=logger.extra_data,
+        update_only_changed_fields=True,
         **logger.data
     )
     command_log.related_objects.add(*logger.related_objects)
@@ -608,6 +616,7 @@ def command_error_receiver(sender, logger, **kwargs):
         slug=logger.slug,
         state=CommandState.FAILED,
         extra_data=logger.extra_data,
+        update_only_changed_fields=True,
         **logger.data
     )
     command_log.related_objects.add(*logger.related_objects)
@@ -641,6 +650,7 @@ def celery_task_invocation_triggered_receiver(sender, logger, **kwargs):
         slug=logger.slug,
         state=CeleryTaskInvocationLogState.TRIGGERED,
         extra_data=logger.extra_data,
+        update_only_changed_fields=True,
         **logger.data
     )
     celery_task_invocation_log.related_objects.add(*logger.related_objects)
@@ -653,6 +663,7 @@ def celery_task_invocation_ignored_receiver(sender, logger, **kwargs):
         slug=logger.slug,
         state=CeleryTaskInvocationLogState.IGNORED,
         extra_data=logger.extra_data,
+        update_only_changed_fields=True,
         **logger.data
     )
     celery_task_invocation_log.related_objects.add(*logger.related_objects)
@@ -665,6 +676,7 @@ def celery_task_invocation_timeout_receiver(sender, logger, **kwargs):
         slug=logger.slug,
         state=CeleryTaskInvocationLogState.TIMEOUT,
         extra_data=logger.extra_data,
+        update_only_changed_fields=True,
         **logger.data
     )
     celery_task_invocation_log.related_objects.add(*logger.related_objects)
@@ -718,6 +730,7 @@ def celery_task_run_succeeded_receiver(sender, logger, **kwargs):
         slug=logger.slug,
         state=CeleryTaskRunLogState.SUCCEEDED,
         extra_data=logger.extra_data,
+        update_only_changed_fields=True,
         **logger.data
     )
     celery_task_run_log.get_task_invocation_logs().filter(state__in={
@@ -738,6 +751,7 @@ def celery_task_run_failed_receiver(sender, logger, **kwargs):
         slug=logger.slug,
         state=CeleryTaskRunLogState.FAILED,
         extra_data=logger.extra_data,
+        update_only_changed_fields=True,
         **logger.data
     )
     celery_task_run_log.get_task_invocation_logs().filter(state__in={
@@ -758,6 +772,7 @@ def celery_task_run_retried_receiver(sender, logger, **kwargs):
         slug=logger.slug,
         state=CeleryTaskRunLogState.RETRIED,
         extra_data=logger.extra_data,
+        update_only_changed_fields=True,
         **logger.data
     )
     celery_task_run_log.related_objects.add(*logger.related_objects)
@@ -768,5 +783,6 @@ def celery_task_run_output_updated_receiver(sender, logger, **kwargs):
     change_and_save(
         logger.backend_logs.sql,
         slug=logger.slug,
+        update_only_changed_fields=True,
         **logger.data
     )

@@ -97,6 +97,31 @@ class Log(Document):
     def pk(self):
         return self.id
 
+    def update(
+        self,
+        using=None,
+        index=None,
+        detect_noop=True,
+        doc_as_upsert=False,
+        refresh=False,
+        retry_on_conflict=None,
+        script=None,
+        script_id=None,
+        scripted_upsert=False,
+        upsert=None,
+        return_doc_meta=False,
+        update_only_changed_fields=False,
+        **fields
+    ):
+        self._set_time(fields)
+        if update_only_changed_fields:
+            fields = {k: v for k, v in fields.items() if getattr(self, k) != v}
+        super().update(
+            using, index, detect_noop, doc_as_upsert, refresh, retry_on_conflict, script, script_id,
+            scripted_upsert, upsert, return_doc_meta, **fields
+        )
+
+
 
 class RequestLog(Log):
 
@@ -283,6 +308,7 @@ def input_request_finished_receiver(sender, logger, **kwargs):
         extra_data=logger.extra_data,
         state=_get_response_state(logger.data['response_code']),
         refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+        update_only_changed_fields=True,
         **logger.data
     )
 
@@ -294,6 +320,7 @@ def input_request_error_receiver(sender, logger, **kwargs):
         slug=logger.slug,
         extra_data=logger.extra_data,
         refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+        update_only_changed_fields=True,
         **logger.data
     )
 
@@ -308,6 +335,7 @@ def output_request_started_receiver(sender, logger, **kwargs):
         extra_data=logger.extra_data,
         state=RequestLogState.INCOMPLETE,
         related_objects=related_objects,
+        update_only_changed_fields=True,
         **logger.data
     )
     output_request_log.meta.id = logger.id
@@ -325,6 +353,7 @@ def output_request_finished_receiver(sender, logger, **kwargs):
         extra_data=logger.extra_data,
         state=_get_response_state(logger.data['response_code']),
         refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+        update_only_changed_fields=True,
         **logger.data
     )
 
@@ -337,6 +366,7 @@ def output_request_error_receiver(sender, logger, **kwargs):
         extra_data=logger.extra_data,
         state=RequestLogState.ERROR,
         refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+        update_only_changed_fields=True,
         **logger.data
     )
 
@@ -366,6 +396,7 @@ def command_output_updated_receiver(sender, logger, **kwargs):
     command_log.update(
         slug=logger.slug,
         refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+        update_only_changed_fields=True,
         **logger.data
     )
 
@@ -378,6 +409,7 @@ def command_finished_receiver(sender, logger, **kwargs):
         extra_data=logger.extra_data,
         state=CommandState.SUCCEEDED,
         refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+        update_only_changed_fields=True,
         **logger.data
     )
 
@@ -390,6 +422,7 @@ def command_error_receiver(sender, logger, **kwargs):
         extra_data=logger.extra_data,
         state=CommandState.FAILED,
         refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+        update_only_changed_fields=True,
         **logger.data
     )
 
@@ -421,6 +454,7 @@ def celery_task_invocation_triggered_receiver(sender, logger, **kwargs):
         extra_data=logger.extra_data,
         state=CeleryTaskInvocationLogState.TRIGGERED,
         refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+        update_only_changed_fields=True,
         **logger.data
     )
 
@@ -433,6 +467,7 @@ def celery_task_invocation_ignored_receiver(sender, logger, **kwargs):
         extra_data=logger.extra_data,
         state=CeleryTaskInvocationLogState.IGNORED,
         refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+        update_only_changed_fields=True,
         **logger.data
     )
 
@@ -445,6 +480,7 @@ def celery_task_invocation_timeout_receiver(sender, logger, **kwargs):
         extra_data=logger.extra_data,
         state=CeleryTaskInvocationLogState.TIMEOUT,
         refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+        update_only_changed_fields=True,
         **logger.data
     )
 
@@ -456,6 +492,7 @@ def celery_task_invocation_expired_receiver(sender, logger, **kwargs):
         slug=logger.slug,
         state=CeleryTaskInvocationLogState.EXPIRED,
         refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+        update_only_changed_fields=True,
         **logger.data
     )
     if celery_task_invocation_log.celery_task_id:
@@ -498,6 +535,7 @@ def celery_task_run_succeeded_receiver(sender, logger, **kwargs):
         extra_data=logger.extra_data,
         state=CeleryTaskRunLogState.SUCCEEDED,
         refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+        update_only_changed_fields=True,
         **logger.data
     )
 
@@ -514,6 +552,7 @@ def celery_task_run_succeeded_receiver(sender, logger, **kwargs):
             state=CeleryTaskInvocationLogState.SUCCEEDED,
             stop=logger.data['stop'],
             refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+            update_only_changed_fields=True,
         )
 
 
@@ -525,6 +564,7 @@ def celery_task_run_failed_receiver(sender, logger, **kwargs):
         extra_data=logger.extra_data,
         state=CeleryTaskRunLogState.FAILED,
         refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+        update_only_changed_fields=True,
         **logger.data
     )
 
@@ -540,7 +580,8 @@ def celery_task_run_failed_receiver(sender, logger, **kwargs):
         celery_task_invocation.update(
             state=CeleryTaskInvocationLogState.FAILED,
             refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
-            stop=logger.data['stop']
+            stop=logger.data['stop'],
+            update_only_changed_fields=True,
         )
 
 
@@ -552,6 +593,7 @@ def celery_task_run_retried_receiver(sender, logger, **kwargs):
         extra_data=logger.extra_data,
         state=CeleryTaskRunLogState.RETRIED,
         refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+        update_only_changed_fields=True,
         **logger.data
     )
 
@@ -561,6 +603,8 @@ def celery_task_run_output_updated_receiver(sender, logger, **kwargs):
     celery_task_run_log = logger.backend_logs.elasticsearch
     celery_task_run_log.update(
         slug=logger.slug,
+        refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+        update_only_changed_fields=True,
         **logger.data,
     )
 

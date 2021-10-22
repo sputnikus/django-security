@@ -334,7 +334,7 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
                     view_slug='home',
                     slug=None,
                     time=(elasticsearch_input_request_log.stop - elasticsearch_input_request_log.start).total_seconds(),
-                    extra_data=None,
+                    extra_data={},
                     error_message=None,
                     response_code=200,
                     response_headers='{"Content-Type": "text/html; charset=utf-8", "X-Frame-Options": "DENY"}',
