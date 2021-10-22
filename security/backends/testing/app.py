@@ -6,5 +6,4 @@ class SecurityTestingBackend(SecurityBackend):
     name = 'security.backends.testing'
     label = 'security_backends_testing'
     backend_name = 'testing'
-    writer = False
-    reader = True
+    reader = 'security.backends.testing.reader.TestingBackendReader'

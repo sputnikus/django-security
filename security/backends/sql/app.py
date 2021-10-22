@@ -18,8 +18,8 @@ class SecuritySQLBackend(SecurityBackend):
     name = 'security.backends.sql'
     label = 'security_backends_sql'
     backend_name = 'sql'
-    writer = True
-    reader = True
+    writer = 'security.backends.sql.writer.SQLBackendWriter'
+    reader = 'security.backends.sql.reader.SQLBackendReader'
 
     def ready(self):
         super().ready()

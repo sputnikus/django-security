@@ -14,6 +14,8 @@ from security.enums import (
     RequestLogState, CeleryTaskInvocationLogState, CeleryTaskRunLogState, CommandState, LoggerName
 )
 
+from .connection import set_connection
+
 
 class JSONTextField(CustomField):
 
@@ -59,6 +61,11 @@ class Log(Document):
 
     def __str__(self):
         return self.id
+
+    @classmethod
+    def _get_using(cls, using=None):
+        set_connection()
+        return super()._get_using(using)
 
     def _set_time(self, kwargs):
         start = kwargs.get('start', self.start)
@@ -106,7 +113,6 @@ class Log(Document):
             using, index, detect_noop, doc_as_upsert, refresh, retry_on_conflict, script, script_id,
             scripted_upsert, upsert, return_doc_meta, **fields
         )
-
 
 
 class RequestLog(Log):

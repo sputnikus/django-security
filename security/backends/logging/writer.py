@@ -1,14 +1,6 @@
 import logging
 
-from security.backends.signals import (
-    input_request_started, input_request_finished, input_request_error,
-    output_request_started, output_request_finished, output_request_error,
-    command_started, command_output_updated, command_finished, command_error,
-    celery_task_invocation_started, celery_task_invocation_triggered, celery_task_invocation_ignored,
-    celery_task_invocation_timeout, celery_task_invocation_expired,
-    celery_task_run_started, celery_task_run_succeeded, celery_task_run_failed, celery_task_run_retried,
-    celery_task_run_output_updated, get_backend_receiver
-)
+from security.backends.writer import BaseBackendWriter
 
 
 input_request_logger = logging.getLogger('security.input_request')
@@ -17,10 +9,9 @@ command_logger = logging.getLogger('security.command')
 celery_logger = logging.getLogger('security.celery')
 
 
-def set_writer(receiver):
+class LoggingBackendWriter(BaseBackendWriter):
 
-    @receiver(input_request_started)
-    def input_request_started_receiver(sender, logger, **kwargs):
+    def input_request_started(self, logger):
         input_request_logger.info(
             'Input request "%(id)s" to "%(host)s" with path "%(path)s" was started',
             dict(
@@ -40,9 +31,7 @@ def set_writer(receiver):
             )
         )
 
-
-    @receiver(input_request_finished)
-    def input_request_finished_receiver(sender, logger, **kwargs):
+    def input_request_finished(self, logger):
         input_request_logger.info(
             'Input request "%(id)s" to "%(host)s" with path "%(path)s" was finished',
             dict(
@@ -66,9 +55,7 @@ def set_writer(receiver):
             )
         )
 
-
-    @receiver(input_request_error)
-    def input_request_error_receiver(sender, logger, **kwargs):
+    def input_request_error(self, logger):
         input_request_logger.error(
             'Input request "%(id)s" to "%(host)s" with path "%(path)s" failed',
             dict(
@@ -89,9 +76,7 @@ def set_writer(receiver):
             )
         )
 
-
-    @receiver(output_request_started)
-    def output_request_started_receiver(sender, logger, **kwargs):
+    def output_request_started(self, logger):
         output_request_logger.info(
             'Output request "%(id)s" to "%(host)s" with path "%(path)s" was started',
             dict(
@@ -109,9 +94,7 @@ def set_writer(receiver):
             )
         )
 
-
-    @receiver(output_request_finished)
-    def output_request_finished_receiver(sender, logger, **kwargs):
+    def output_request_finished(self, logger):
         output_request_logger.info(
             'Output request "%(id)s" to "%(host)s" with path "%(path)s" was successful',
             dict(
@@ -132,9 +115,7 @@ def set_writer(receiver):
             )
         )
 
-
-    @receiver(output_request_error)
-    def output_request_error_receiver(sender, logger, **kwargs):
+    def output_request_error(self, logger):
         output_request_logger.error(
             'Output request "%(id)s" to "%(host)s" with path "%(path)s" failed',
             dict(
@@ -155,9 +136,7 @@ def set_writer(receiver):
             )
         )
 
-
-    @receiver(command_started)
-    def command_started_receiver(sender, logger, **kwargs):
+    def command_started(self, logger):
         command_logger.info(
             'Command "%(id)s" with name "%(name)s" was started',
             dict(
@@ -172,9 +151,10 @@ def set_writer(receiver):
             )
         )
 
+    def command_output_updated(self, logger):
+        """Output is not stored into log"""
 
-    @receiver(command_finished)
-    def command_finished_receiver(sender, logger, **kwargs):
+    def command_finished(self, logger):
         command_logger.info(
             'Command "%(id)s" with name "%(name)s" was successful',
             dict(
@@ -192,9 +172,7 @@ def set_writer(receiver):
             )
         )
 
-
-    @receiver(command_error)
-    def command_error_receiver(sender, logger, **kwargs):
+    def command_error(self, logger):
         command_logger.error(
             'Command "%(id)s" with name "%(name)s" failed',
             dict(
@@ -212,9 +190,10 @@ def set_writer(receiver):
             )
         )
 
+    def celery_task_invocation_started(self, logger):
+        """Invocation started means nothing for logging backend"""
 
-    @receiver(celery_task_invocation_triggered)
-    def celery_task_invocation_triggered_receiver(sender, logger, **kwargs):
+    def celery_task_invocation_triggered(self, logger):
         celery_logger.info(
             'Celery task invocation "%(id)s" with celery id "%(celery_task_id)s" and name "%(name)s" was invoked',
             dict(
@@ -232,9 +211,7 @@ def set_writer(receiver):
             ),
         )
 
-
-    @receiver(celery_task_invocation_ignored)
-    def celery_task_invocation_ignored_receiver(sender, logger, **kwargs):
+    def celery_task_invocation_ignored(self, logger):
         celery_logger.info(
             'Celery task invocation "%(id)s" with name "%(name)s" was ignored',
             dict(
@@ -252,9 +229,7 @@ def set_writer(receiver):
             ),
         )
 
-
-    @receiver(celery_task_invocation_timeout)
-    def celery_task_invocation_timeout_receiver(sender, logger, **kwargs):
+    def celery_task_invocation_timeout(self, logger):
         celery_logger.warning(
             'Celery task "%(id)s" with celery id "%(celery_task_id)s" and name "%(name)s" caused a response timeout',
             dict(
@@ -274,9 +249,7 @@ def set_writer(receiver):
             ),
         )
 
-
-    @receiver(celery_task_invocation_expired)
-    def celery_task_invocation_expired_receiver(sender, logger, **kwargs):
+    def celery_task_invocation_expired(self, logger):
         celery_logger.error(
             'Celery task invocation "%(id)s" with celery id "%(celery_task_id)s" and name "%(name)s" was expired',
             dict(
@@ -296,9 +269,7 @@ def set_writer(receiver):
             ),
         )
 
-
-    @receiver(celery_task_run_started)
-    def celery_task_run_started_receiver(sender, logger, **kwargs):
+    def celery_task_run_started(self, logger):
         celery_logger.info(
             'Celery task "%(id)s" with celery id "%(celery_task_id)s" and name "%(name)s" was started',
             dict(
@@ -316,9 +287,7 @@ def set_writer(receiver):
             ),
         )
 
-
-    @receiver(celery_task_run_succeeded)
-    def celery_task_run_succeeded_receiver(sender, logger, **kwargs):
+    def celery_task_run_succeeded(self, logger):
         celery_logger.info(
             'Celery task "%(id)s" with celery id "%(celery_task_id)s" and name "%(name)s" was successful',
             dict(
@@ -338,9 +307,7 @@ def set_writer(receiver):
             )
         )
 
-
-    @receiver(celery_task_run_failed)
-    def celery_task_run_failed_receiver(sender, logger, **kwargs):
+    def celery_task_run_failed(self, logger):
         celery_logger.error(
             'Celery task "%(id)s" with celery id "%(celery_task_id)s" and name "%(name)s" failed',
             dict(
@@ -360,9 +327,7 @@ def set_writer(receiver):
             )
         )
 
-
-    @receiver(celery_task_run_retried)
-    def celery_task_run_retried_receiver(sender, logger, **kwargs):
+    def celery_task_run_retried(self, logger):
         celery_logger.warning(
             'Celery task "%(id)s" with celery id "%(celery_task_id)s" and name "%(name)s" was repeated',
             dict(
@@ -381,3 +346,6 @@ def set_writer(receiver):
                 celery_task_time=logger.data['stop'] - logger.data['start']
             )
         )
+
+    def celery_task_run_output_updated(self, logger):
+        """Output is not stored into log"""

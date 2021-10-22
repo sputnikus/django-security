@@ -3,18 +3,6 @@ from django.dispatch import Signal, receiver
 from security.config import settings
 
 
-def get_backend_receiver(backend_name):
-    def backend_receiver(signal):
-        def _decorator(func):
-            def _wrapper(*args, **kwargs):
-                if settings.BACKEND_WRITERS is None or backend_name in settings.BACKEND_WRITERS:
-                    func(*args, **kwargs)
-            signal.connect(_wrapper, weak=False)
-            return func
-        return _decorator
-    return backend_receiver
-
-
 input_request_started = Signal()
 input_request_finished = Signal()
 input_request_error = Signal()

@@ -27,8 +27,8 @@ Validators
 There are only three predefined throttling validators:
 
 * ``security.throttling.validators.PerRequestThrottlingValidator`` - init parameters are ``timeframe`` throttling timedelta in seconds, ``throttle_at`` number of request per one IP address per timeframe and error message.
-* ``security.throttling.validators.UnsuccessfulLoginThrottlingValidator`` - validator with same input parameters as previous validator but counts only unsuccessful login request.
-* ``security.throttling.validators.SuccessfulLoginThrottlingValidator`` - validator with same input parameters as previous validator but counts only requests from anonymous (not logged in) user.
+* ``security.throttling.validators.UnsuccessfulLoginThrottlingValidator`` - validator with same input parameters as ``PerRequestThrottlingValidator`` but counts only unsuccessful login request.
+* ``security.throttling.validators.SuccessfulLoginThrottlingValidator`` - validator with same input parameters as ``PerRequestThrottlingValidator`` but counts only successful login requests.
 
 Custom validator
 ^^^^^^^^^^^^^^^^

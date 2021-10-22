@@ -2,45 +2,9 @@ from attrdict import AttrDict
 
 from django.test.utils import override_settings
 
-from security.backends.signals import (
-    input_request_started, input_request_finished, input_request_error,
-    output_request_started, output_request_finished, output_request_error,
-    command_started, command_output_updated, command_finished, command_error,
-    celery_task_invocation_started, celery_task_invocation_triggered, celery_task_invocation_ignored,
-    celery_task_invocation_timeout, celery_task_invocation_expired,
-    celery_task_run_started, celery_task_run_succeeded, celery_task_run_failed, celery_task_run_retried,
-    celery_task_run_output_updated, get_backend_receiver
-)
+from security.backends.writer import BaseBackendWriter
 
 from .app import SecurityTestingBackend
-
-
-CAPTURED_SIGNALS = {
-    'input_request_started': input_request_started,
-    'input_request_finished': input_request_finished,
-    'input_request_error': input_request_error,
-
-    'output_request_started': output_request_started,
-    'output_request_finished': output_request_finished,
-    'output_request_error': output_request_error,
-
-    'command_started': command_started,
-    'command_output_updated': command_output_updated,
-    'command_finished': command_finished,
-    'command_error': command_error,
-
-    'celery_task_invocation_started': celery_task_invocation_started,
-    'celery_task_invocation_triggered': celery_task_invocation_triggered,
-    'celery_task_invocation_ignored': celery_task_invocation_ignored,
-    'celery_task_invocation_timeout': celery_task_invocation_timeout,
-    'celery_task_invocation_expired': celery_task_invocation_expired,
-
-    'celery_task_run_started': celery_task_run_started,
-    'celery_task_run_succeeded': celery_task_run_succeeded,
-    'celery_task_run_failed': celery_task_run_failed,
-    'celery_task_run_retried': celery_task_run_retried,
-    'celery_task_run_output_updated': celery_task_run_output_updated,
-}
 
 
 class CapturedLog:
@@ -83,7 +47,7 @@ class capture_security_logs(override_settings):
         capture_security_logs.logged_data = AttrDict()
         capture_security_logs._receivers = {}
 
-        for signal_name, signal in CAPTURED_SIGNALS.items():
+        for signal_name, signal in BaseBackendWriter.CAPTURED_SIGNALS.items():
             if signal_name.endswith('_started'):
                 self._set_signal_receiver(signal_name[0:-8], signal)
             self._set_signal_receiver(signal_name, signal, use_wrapper=True)
