@@ -13,10 +13,8 @@ class SecurityBackend(AppConfig):
 
     def ready(self):
         if self.reader:
-            SecurityBackend.registered_readers[self.backend_name] = self
+            self.reader_inst = import_module(f'{self.name}.reader').BackendReader()
+            SecurityBackend.registered_readers[self.backend_name] = self.reader_inst
         if self.writer:
-            from security.backends.signals import get_backend_receiver
-
-            SecurityBackend.registered_writers[self.backend_name] = self
-            import_module(f'{self.name}.writer').set_writer(get_backend_receiver(self.backend_name))
-
+            self.writer_inst = import_module(f'{self.name}.writer').BackendWriter(self.backend_name)
+            SecurityBackend.registered_writers[self.backend_name] = self.writer_inst

@@ -108,7 +108,6 @@ class Log(Document):
         )
 
 
-
 class RequestLog(Log):
 
     host = Keyword()

@@ -621,14 +621,14 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
             unique_task.apply_async()
 
             sql_celery_task_invocation_log = SQLCeleryTaskInvocationLog.objects.get()
-            test_call_command('sql_set_celery_task_log_state')
+            test_call_command('set_celery_task_log_state')
             sql_celery_task_invocation_log.refresh_from_db()
             assert_equal(
                 sql_celery_task_invocation_log.state, CeleryTaskInvocationLogState.TRIGGERED
             )
 
             with freeze_time(now() + timedelta(seconds=30)):
-                test_call_command('sql_set_celery_task_log_state')
+                test_call_command('set_celery_task_log_state')
                 sql_celery_task_invocation_log.refresh_from_db()
                 assert_equal(sql_celery_task_invocation_log.state, CeleryTaskInvocationLogState.EXPIRED)
 
@@ -641,7 +641,7 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
                 unique_task.apply_async()
                 ElasticsearchCeleryTaskInvocationLog._index.refresh()
 
-                test_call_command('elasticsearch_set_celery_task_log_state')
+                test_call_command('set_celery_task_log_state')
                 assert_equal(
                     ElasticsearchCeleryTaskInvocationLog.get(
                         id=logged_data.celery_task_invocation[0].id
@@ -649,7 +649,7 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
                 )
 
                 with freeze_time(now() + timedelta(seconds=30)):
-                    test_call_command('elasticsearch_set_celery_task_log_state')
+                    test_call_command('set_celery_task_log_state')
                     assert_equal(
                         ElasticsearchCeleryTaskInvocationLog.get(
                             id=logged_data.celery_task_invocation[0].id
@@ -664,14 +664,14 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
         sql_celery_task_invocation_log = SQLCeleryTaskInvocationLog.objects.get()
         change_and_save(sql_celery_task_invocation_log, state=CeleryTaskInvocationLogState.TRIGGERED)
 
-        test_call_command('sql_set_celery_task_log_state')
+        test_call_command('set_celery_task_log_state')
         sql_celery_task_invocation_log.refresh_from_db()
         assert_equal(
             sql_celery_task_invocation_log.state, CeleryTaskInvocationLogState.TRIGGERED
         )
 
         with freeze_time(now() + timedelta(seconds=30)):
-            test_call_command('sql_set_celery_task_log_state')
+            test_call_command('set_celery_task_log_state')
             sql_celery_task_invocation_log.refresh_from_db()
             assert_equal(sql_celery_task_invocation_log.state, CeleryTaskInvocationLogState.SUCCEEDED)
 
@@ -685,7 +685,7 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
             ElasticsearchCeleryTaskInvocationLog._index.refresh()
             ElasticsearchCeleryTaskRunLog._index.refresh()
 
-            test_call_command('elasticsearch_set_celery_task_log_state')
+            test_call_command('set_celery_task_log_state')
             assert_equal(
                 ElasticsearchCeleryTaskInvocationLog.get(
                     id=logged_data.celery_task_invocation[0].id
@@ -693,7 +693,7 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
             )
 
             with freeze_time(now() + timedelta(seconds=30)):
-                test_call_command('elasticsearch_set_celery_task_log_state')
+                test_call_command('set_celery_task_log_state')
                 assert_equal(
                     ElasticsearchCeleryTaskInvocationLog.get(
                         id=logged_data.celery_task_invocation[0].id

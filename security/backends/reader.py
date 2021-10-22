@@ -1,12 +1,24 @@
 from django.core.exceptions import ImproperlyConfigured
-from importlib import import_module
 
 from security.config import settings
 
 from .app import SecurityBackend
 
 
-def get_reader_backend_app():
+class BaseBackendReader:
+
+    def get_count_input_requests(self, from_time, ip=None, path=None, view_slug=None, slug=None, method=None,
+                                 exclude_log_id=None):
+        raise NotImplementedError
+
+    def get_logs_related_with_object(self, logger_name, related_object):
+        raise NotImplementedError
+
+    def get_stale_celery_task_invocation_logs(self):
+        raise NotImplementedError
+
+
+def get_reader_backend():
     if not SecurityBackend.registered_readers:
         raise ImproperlyConfigured('No registered backend reader was set')
     if settings.BACKEND_READER is not None:
@@ -17,18 +29,14 @@ def get_reader_backend_app():
         return next(iter(SecurityBackend.registered_readers.values()))
 
 
-def get_reader_backend_helpers_module():
-    return import_module(f'{get_reader_backend_app().name}.reader')
-
-
 def get_count_input_requests(from_time, ip=None, path=None, view_slug=None, slug=None, method=None,
                              exclude_log_id=None):
-    return get_reader_backend_helpers_module().get_count_input_requests(
+    return get_reader_backend().get_count_input_requests(
         from_time, ip, path, view_slug, slug, method, exclude_log_id
     )
 
 
 def get_logs_related_with_object(logger_name, related_object):
-    return get_reader_backend_helpers_module().get_logs_related_with_object(
+    return get_reader_backend().get_logs_related_with_object(
         logger_name, related_object
     )
