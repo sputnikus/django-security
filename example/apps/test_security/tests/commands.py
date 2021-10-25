@@ -30,14 +30,14 @@ from security.backends.signals import (
     command_started, input_request_started, output_request_started, celery_task_invocation_started,
     celery_task_run_started
 )
-from security.tests import capture_security_logs
+from security.backends.testing import capture_security_logs
 
 from apps.test_security.tasks import sum_task
 
 from .base import BaseTestCaseMixin, test_call_command
 
 
-@override_settings(SECURITY_BACKENDS={})
+@override_settings(SECURITY_BACKEND_WRITERS={})
 class CommandTestCase(BaseTestCaseMixin, ClientTestCase):
 
     SQL_LOG_MODELS = {
@@ -49,7 +49,7 @@ class CommandTestCase(BaseTestCaseMixin, ClientTestCase):
     }
 
     @responses.activate
-    @override_settings(SECURITY_BACKENDS={'sql'}, SECURITY_COMMAND_LOG_EXCLUDED_COMMANDS={'sql_purge_logs'})
+    @override_settings(SECURITY_BACKEND_WRITERS={'sql'}, SECURITY_COMMAND_LOG_EXCLUDED_COMMANDS={'purge_logs'})
     def test_sql_purge_logs_should_remove_logged_data(self):
         responses.add(responses.GET, 'https://localhost/test', body='test')
 
@@ -62,21 +62,21 @@ class CommandTestCase(BaseTestCaseMixin, ClientTestCase):
             ('input-request', SQLInputRequestLog),
             ('output-request', SQLOutputRequestLog),
             ('command', SQLCommandLog),
-            ('celery-invocation', SQLCeleryTaskInvocationLog),
-            ('celery-run', SQLCeleryTaskRunLog),
+            ('celery-task-invocation', SQLCeleryTaskInvocationLog),
+            ('celery-task-run', SQLCeleryTaskRunLog),
         }
 
         for log_type, log_model in sql_type_model:
-            test_call_command('sql_purge_logs', type=log_type, interactive=False, expiration='1d')
+            test_call_command('purge_logs', type=log_type, interactive=False, expiration='1d')
             assert_equal(log_model.objects.count(), 1)
 
             with freeze_time(now() + timedelta(days=1, minutes=1)):
-                test_call_command('sql_purge_logs', type=log_type, interactive=False, expiration='1d')
+                test_call_command('purge_logs', type=log_type, interactive=False, expiration='1d')
                 assert_equal(log_model.objects.count(), 0)
 
     @responses.activate
-    @override_settings(SECURITY_BACKENDS={'elasticsearch'},
-                       SECURITY_COMMAND_LOG_EXCLUDED_COMMANDS={'elasticsearch_purge_logs'})
+    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'},
+                       SECURITY_COMMAND_LOG_EXCLUDED_COMMANDS={'purge_logs'})
     def test_elasticsearch_purge_logs_should_remove_logged_data(self):
         responses.add(responses.GET, 'https://localhost/test', body='test')
 
@@ -90,19 +90,19 @@ class CommandTestCase(BaseTestCaseMixin, ClientTestCase):
                 ('input-request', ElasticsearchInputRequestLog, 'input_request'),
                 ('output-request', ElasticsearchOutputRequestLog, 'output_request'),
                 ('command', ElasticsearchCommandLog, 'command'),
-                ('celery-invocation', ElasticsearchCeleryTaskInvocationLog, 'celery_task_invocation'),
-                ('celery-run', ElasticsearchCeleryTaskRunLog, 'celery_task_run'),
+                ('celery-task-invocation', ElasticsearchCeleryTaskInvocationLog, 'celery_task_invocation'),
+                ('celery-task-run', ElasticsearchCeleryTaskRunLog, 'celery_task_run'),
             )
 
             for log_type, log_model, log_data_name in elasticsearch_type_model_receivers:
-                test_call_command('elasticsearch_purge_logs', type=log_type, interactive=False, expiration='1d')
+                test_call_command('purge_logs', type=log_type, interactive=False, expiration='1d')
                 log_model._index.refresh()
                 assert_equal(log_model.search().filter(
                     'ids', values=[logged_data[log_data_name][0].id]
                 ).count(), 1)
 
                 with freeze_time(now() + timedelta(days=1, minutes=1)):
-                    test_call_command('elasticsearch_purge_logs', type=log_type, interactive=False, expiration='1d')
+                    test_call_command('purge_logs', type=log_type, interactive=False, expiration='1d')
                     log_model._index.refresh()
                     assert_equal(log_model.search().filter(
                         'ids', values=[logged_data[log_data_name][0].id]

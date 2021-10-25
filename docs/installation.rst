@@ -51,6 +51,7 @@ Next you must add  ``security.middleware.LogMiddleware`` to list of middlewares,
         ...
     )
 
+
 SQL backend
 -----------
 
@@ -127,6 +128,37 @@ Elasticsearch backend can be configured via ``SECURITY_ELASTICSEARCH_DATABASE`` 
     SECURITY_ELASTICSEARCH_DATABASE = {
         'host': 'localhost',
     }
+
+
+Testing backend
+---------------
+
+For testing purposes you can use `'security.backends.testing'` and add it to the installed apps::
+
+    INSTALLED_APPS = (
+        ...
+        'security.backends.testing',
+        ...
+    )
+
+Your test you can surround with `security.backends.testing.capture_security_logs` decorator/context processor::
+
+    def your_test():
+       with capture_security_logs() as logged_data:
+            ...
+            assert_length_equal(logged_data.input_request, 1)
+            assert_length_equal(logged_data.output_request, 1)
+            assert_length_equal(logged_data.command, 1)
+            assert_length_equal(logged_data.celery_task_invocation, 1)
+            assert_length_equal(logged_data.celery_task_run, 1)
+
+Readers
+-------
+
+Some ``elasticsearch``, ``sql`` and ``testing`` backends can be used as readers too. You can use these helpers to get data from it:
+
+* ``security.backends.reader.get_count_input_requests(from_time, ip=None, path=None, view_slug=None, slug=None, method=None, exclude_log_id=None)`` - to get count input requests with input arguments
+* ``security.backends.reader.get_logs_related_with_object(logger_name, related_object)`` - to get list of logs which are related with object
 
 
 Setup

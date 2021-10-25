@@ -8,7 +8,7 @@ from .models import CommandLog, CeleryTaskRunLog, CeleryTaskInvocationLog, Input
 class store_elasticsearch_log(override_settings):
 
     def __init__(self):
-        super().__init__(SECURITY_BACKENDS=('elasticsearch',), SECURITY_ELASTICSEARCH_AUTO_REFRESH=True)
+        super().__init__(SECURITY_BACKEND_WRITERS=('elasticsearch',), SECURITY_ELASTICSEARCH_AUTO_REFRESH=True)
 
     def enable(self):
         super().enable()

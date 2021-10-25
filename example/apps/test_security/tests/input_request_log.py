@@ -24,12 +24,12 @@ from security import requests
 from security.backends.signals import (
     input_request_started, input_request_finished, input_request_error, output_request_started, output_request_finished
 )
-from security.tests import capture_security_logs
+from security.backends.testing import capture_security_logs
 
 from .base import BaseTestCaseMixin, TRUNCATION_CHAR
 
 
-@override_settings(SECURITY_BACKENDS={}, SECURITY_LOG_RESPONSE_BODY_CONTENT_TYPES=None)
+@override_settings(SECURITY_BACKEND_WRITERS={}, SECURITY_LOG_RESPONSE_BODY_CONTENT_TYPES=None)
 class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
 
     def test_input_request_to_homepage_should_be_logged(self):
@@ -281,7 +281,7 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
                 '"password": "secret-password"', logged_data.input_request[0].data['request_body']
             )
 
-    @override_settings(SECURITY_BACKENDS={'sql'})
+    @override_settings(SECURITY_BACKEND_WRITERS={'sql'})
     @data_consumer('create_user')
     def test_input_request_to_homepage_should_be_logged_in_sql_backend(self, user):
         with log_with_data(related_objects=[user]):
@@ -311,7 +311,7 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             )
             assert_equal([rel_obj.object for rel_obj in sql_input_request_log.related_objects.all()], [user])
 
-    @override_settings(SECURITY_BACKENDS={'elasticsearch'})
+    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'})
     @data_consumer('create_user')
     def test_input_request_to_homepage_should_be_logged_in_elasticsearch_backend(self, user):
         with log_with_data(related_objects=[user]):
@@ -346,7 +346,7 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
                     ['default|3|{}'.format(user.id)]
                 )
 
-    @override_settings(SECURITY_BACKENDS={'logging'})
+    @override_settings(SECURITY_BACKEND_WRITERS={'logging'})
     def test_input_request_to_homepage_should_be_logged_in_logging_backend(self):
         with capture_security_logs() as logged_data:
             with self.assertLogs('security.input_request', level='INFO') as cm:
@@ -363,7 +363,7 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
                     ]
                 )
 
-    @override_settings(SECURITY_BACKENDS={'sql'})
+    @override_settings(SECURITY_BACKEND_WRITERS={'sql'})
     def test_input_request_to_error_page_should_be_logged_in_sql_backend(self):
         with assert_raises(RuntimeError):
             self.get('/error/')
@@ -379,7 +379,7 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
         )
         assert_is_not_none(sql_input_request_log.error_message)
 
-    @override_settings(SECURITY_BACKENDS={'elasticsearch'})
+    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'})
     def test_input_request_to_error_page_should_be_logged_in_elasticsearch_backend(self):
         with capture_security_logs() as logged_data:
             with assert_raises(RuntimeError):
@@ -397,7 +397,7 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             )
             assert_is_not_none(elasticsearch_input_request_log.error_message)
 
-    @override_settings(SECURITY_BACKENDS={'logging'})
+    @override_settings(SECURITY_BACKEND_WRITERS={'logging'})
     def test_input_request_to_error_page_should_be_logged_in_logging_backend(self):
         with capture_security_logs() as logged_data:
             with self.assertLogs('security.input_request', level='INFO') as cm:
@@ -418,7 +418,7 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
                     ]
                 )
 
-    @override_settings(SECURITY_BACKENDS={'sql'})
+    @override_settings(SECURITY_BACKEND_WRITERS={'sql'})
     def test_input_request_to_404_page_should_be_logged_in_sql_backend(self):
         assert_http_not_found(self.get('/404/'))
         assert_equal(SQLInputRequestLog.objects.count(), 1)
@@ -429,7 +429,7 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             state=RequestLogState.WARNING,
         )
 
-    @override_settings(SECURITY_BACKENDS={'elasticsearch'})
+    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'})
     def test_input_request_to_404_page_should_be_logged_in_elasticsearch_backend(self):
         with capture_security_logs() as logged_data:
             assert_http_not_found(self.get('/404/'))
@@ -456,31 +456,42 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
         for _ in range(100):
             assert_http_redirect(self.get('/admin/'))
 
-    @override_settings(SECURITY_BACKENDS={'sql'})
-    @override_settings(SECURITY_DEFAULT_THROTTLING_VALIDATORS_PATH='apps.test_security.tests.sql_throttling_validators')
-    def test_throttling_configuration_with_sql_validators_should_be_changed_via_settings(self):
+    @override_settings(SECURITY_BACKEND_WRITERS={'sql'}, SECURITY_BACKEND_READER='sql')
+    @override_settings(SECURITY_DEFAULT_THROTTLING_VALIDATORS_PATH='apps.test_security.tests.throttling_validators')
+    def test_throttling_configuration_with_sql_backend_should_return_429(self):
         for _ in range(2):
             assert_http_redirect(self.get('/admin/'))
         assert_http_too_many_requests(self.get('/admin/'))
 
-    @override_settings(SECURITY_BACKENDS={'elasticsearch'})
+    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'}, SECURITY_BACKEND_READER='elasticsearch')
     @override_settings(
-        SECURITY_DEFAULT_THROTTLING_VALIDATORS_PATH='apps.test_security.tests.elasticsearch_throttling_validators'
+        SECURITY_DEFAULT_THROTTLING_VALIDATORS_PATH='apps.test_security.tests.throttling_validators'
     )
-    def test_throttling_configuration_with_elasticsearch_validators_should_be_changed_via_settings(self):
+    def test_throttling_configuration_with_elasticsearch_backend_should_return_429(self):
         for _ in range(2):
             assert_http_redirect(self.get('/admin/'))
             ElasticsearchInputRequestLog._index.refresh()
         assert_http_too_many_requests(self.get('/admin/'))
 
-    @override_settings(SECURITY_BACKENDS={'sql'})
-    @override_settings(SECURITY_DEFAULT_THROTTLING_VALIDATORS_PATH='apps.test_security.tests.sql_throttling_validators')
+    @override_settings(SECURITY_BACKEND_WRITERS={'testing'}, SECURITY_BACKEND_READER='testing')
+    @override_settings(
+        SECURITY_DEFAULT_THROTTLING_VALIDATORS_PATH='apps.test_security.tests.throttling_validators'
+    )
+    @capture_security_logs()
+    def test_throttling_configuration_with_testing_backends_should_return_429(self):
+        for _ in range(2):
+            assert_http_redirect(self.get('/admin/'))
+            ElasticsearchInputRequestLog._index.refresh()
+        assert_http_too_many_requests(self.get('/admin/'))
+
+    @override_settings(SECURITY_BACKEND_WRITERS={'sql'}, SECURITY_BACKEND_READER='sql')
+    @override_settings(SECURITY_DEFAULT_THROTTLING_VALIDATORS_PATH='apps.test_security.tests.throttling_validators')
     def test_decorated_view_with_throttling_exempt_should_not_raise_throttling_exception(self):
         for _ in range(20):
             assert_http_ok(self.get('/throttling-exempt/'))
         assert_http_ok(self.get('/throttling-exempt/'))
 
-    @override_settings(SECURITY_BACKENDS={'sql'})
+    @override_settings(SECURITY_BACKEND_WRITERS={'sql'}, SECURITY_BACKEND_READER='sql')
     def test_decorated_view_with_throttling_should_raise_throttling_exception(self):
         assert_http_ok(self.get('/extra-throttling/'))
         assert_http_too_many_requests(self.get('/extra-throttling/'))
