@@ -5,6 +5,7 @@ from django.utils.timezone import now
 from celery import current_app
 from celery.exceptions import NotRegistered
 
+from elasticsearch import ConflictError
 from elasticsearch_dsl import Q
 
 from security.config import settings
@@ -13,7 +14,6 @@ from security.enums import (
 )
 from security.backends.writer import BaseBackendWriter
 
-from .app import SecurityElasticsearchBackend
 from .models import (
     InputRequestLog, OutputRequestLog, CommandLog, CeleryTaskRunLog, CeleryTaskInvocationLog, get_key_from_object,
     get_response_state, get_log_model_from_logger_name
@@ -197,6 +197,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             state=CeleryTaskInvocationLogState.TIMEOUT,
             refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
             update_only_changed_fields=True,
+            retry_on_conflict=1,
             **logger.data
         )
 
@@ -258,12 +259,16 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             | Q('term', state=CeleryTaskInvocationLogState.ACTIVE.name)
         )
         for celery_task_invocation in celery_task_invocations_qs:
-            celery_task_invocation.update(
-                state=CeleryTaskInvocationLogState.SUCCEEDED,
-                stop=logger.data['stop'],
-                refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
-                update_only_changed_fields=True,
-            )
+            try:
+                celery_task_invocation.update(
+                    state=CeleryTaskInvocationLogState.SUCCEEDED,
+                    stop=logger.data['stop'],
+                    refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+                    update_only_changed_fields=True
+                )
+            except ConflictError:
+                # conflict errors are ignored, celery task invocation was changed with another process
+                pass
 
     def celery_task_run_failed(self, logger):
         celery_task_run_log = logger.backend_logs.elasticsearch
@@ -285,12 +290,16 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             | Q('term', state=CeleryTaskInvocationLogState.ACTIVE.name)
         )
         for celery_task_invocation in celery_task_invocations_qs:
-            celery_task_invocation.update(
-                state=CeleryTaskInvocationLogState.FAILED,
-                refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
-                stop=logger.data['stop'],
-                update_only_changed_fields=True,
-            )
+            try:
+                celery_task_invocation.update(
+                    state=CeleryTaskInvocationLogState.FAILED,
+                    refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+                    stop=logger.data['stop'],
+                    update_only_changed_fields=True
+                )
+            except ConflictError:
+                # conflict errors are ignored, celery task invocation was changed with another process
+                pass
 
     def celery_task_run_retried(self, logger):
         celery_task_run_log = logger.backend_logs.elasticsearch
