@@ -109,6 +109,7 @@ class LoggingBackendWriter(BaseBackendWriter):
                 output_request_method=logger.data['method'],
                 output_request_slug=logger.slug,
                 output_request_is_secure=logger.data['is_secure'],
+                output_request_response_code=logger.data['response_code'],
                 output_request_start=logger.data['start'],
                 output_request_stop=logger.data['stop'],
                 output_request_time=(logger.data['stop'] - logger.data['start']).total_seconds(),

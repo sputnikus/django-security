@@ -15,9 +15,7 @@ from security.backends.signals import (
 )
 from security.logging.common import SecurityLogger
 
-from .utils import (
-    get_headers, remove_nul_from_string, regex_sub_groups_global, clean_headers, clean_queries, clean_body
-)
+from .utils import get_headers, clean_headers, clean_queries, clean_body
 
 
 class InputRequestLogger(SecurityLogger):
