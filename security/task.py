@@ -3,12 +3,11 @@ import logging
 from datetime import timedelta
 
 from django.core.management.base import OutputWrapper
-from django.core.exceptions import ImproperlyConfigured
 from django.db import transaction
 
 from django_celery_extensions.task import DjangoTask, ResultWrapper
 
-from chamber.utils.transaction import on_success, in_atomic_block
+from chamber.utils.transaction import pre_commit, in_atomic_block
 
 from security.config import settings
 from security.utils import LogStringIO
@@ -83,8 +82,8 @@ class LoggedTask(DjangoTask):
             _super.on_invocation_apply(invocation_id, args, kwargs, options, result)
 
         if options.get('is_on_commit') and in_atomic_block():
-            if settings.TASK_USE_ON_SUCCESS:
-                on_success(_on_invocation_apply, using=options.get('using'))
+            if settings.TASK_USE_PRE_COMMIT:
+                pre_commit(_on_invocation_apply, using=options.get('using'))
             else:
                 transaction.on_commit(_on_invocation_apply, using=options.get('using'))
         else:

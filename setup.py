@@ -40,7 +40,7 @@ setup(
         'django>=3.1',
         'django-ipware>=3.0.2',
         'ansi2html>=1.6.0',
-        'django-chamber>=0.6.9',
+        'django-chamber>=0.6.11',
         'attrdict>=2.0.1',
         'django-choice-enumfields>=1.0.5',
         'django-generic-m2m-field>=0.0.4',
