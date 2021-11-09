@@ -49,6 +49,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             state=get_response_state(logger.data['response_code']),
             refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
             update_only_changed_fields=True,
+            retry_on_conflict=1,
             **logger.data
         )
 
@@ -59,6 +60,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             extra_data=logger.extra_data,
             refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
             update_only_changed_fields=True,
+            retry_on_conflict=1,
             **logger.data
         )
 
@@ -88,6 +90,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             state=get_response_state(logger.data['response_code']),
             refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
             update_only_changed_fields=True,
+            retry_on_conflict=1,
             **logger.data
         )
 
@@ -99,6 +102,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             state=RequestLogState.ERROR,
             refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
             update_only_changed_fields=True,
+            retry_on_conflict=1,
             **logger.data
         )
 
@@ -125,6 +129,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             slug=logger.slug,
             refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
             update_only_changed_fields=True,
+            retry_on_conflict=1,
             **logger.data
         )
 
@@ -136,6 +141,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             state=CommandState.SUCCEEDED,
             refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
             update_only_changed_fields=True,
+            retry_on_conflict=1,
             **logger.data
         )
 
@@ -147,6 +153,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             state=CommandState.FAILED,
             refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
             update_only_changed_fields=True,
+            retry_on_conflict=1,
             **logger.data
         )
 
@@ -175,6 +182,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             state=CeleryTaskInvocationLogState.TRIGGERED,
             refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
             update_only_changed_fields=True,
+            retry_on_conflict=1,
             **logger.data
         )
 
@@ -186,6 +194,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             state=CeleryTaskInvocationLogState.IGNORED,
             refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
             update_only_changed_fields=True,
+            retry_on_conflict=1,
             **logger.data
         )
 
@@ -247,6 +256,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             state=CeleryTaskRunLogState.SUCCEEDED,
             refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
             update_only_changed_fields=True,
+            retry_on_conflict=1,
             **logger.data
         )
 
@@ -278,6 +288,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             state=CeleryTaskRunLogState.FAILED,
             refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
             update_only_changed_fields=True,
+            retry_on_conflict=1,
             **logger.data
         )
 
@@ -309,6 +320,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             state=CeleryTaskRunLogState.RETRIED,
             refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
             update_only_changed_fields=True,
+            retry_on_conflict=1,
             **logger.data
         )
 
@@ -318,6 +330,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             slug=logger.slug,
             refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
             update_only_changed_fields=True,
+            retry_on_conflict=1,
             **logger.data,
         )
 
