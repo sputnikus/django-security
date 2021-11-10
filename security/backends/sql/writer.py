@@ -69,7 +69,7 @@ class SQLBackendWriter(BaseBackendWriter):
         if logger.parent_with_id:
             input_request_log.related_objects.create(
                 object_ct_id=ContentType.objects.get_for_model(
-                    _get_log_model_from_logger_name(logger.parent_with_id.name)
+                    get_log_model_from_logger_name(logger.parent_with_id.name)
                 ).pk,
                 object_id=logger.parent_with_id.id
             )
@@ -108,7 +108,7 @@ class SQLBackendWriter(BaseBackendWriter):
         if logger.parent_with_id:
             output_request_log.related_objects.create(
                 object_ct_id=ContentType.objects.get_for_model(
-                    _get_log_model_from_logger_name(logger.parent_with_id.name)
+                    get_log_model_from_logger_name(logger.parent_with_id.name)
                 ).pk,
                 object_id=logger.parent_with_id.id
             )
@@ -149,7 +149,7 @@ class SQLBackendWriter(BaseBackendWriter):
         if logger.parent_with_id:
             command_log.related_objects.create(
                 object_ct_id=ContentType.objects.get_for_model(
-                    _get_log_model_from_logger_name(logger.parent_with_id.name)
+                    get_log_model_from_logger_name(logger.parent_with_id.name)
                 ).pk,
                 object_id=logger.parent_with_id.id
             )
@@ -198,7 +198,7 @@ class SQLBackendWriter(BaseBackendWriter):
         if logger.parent_with_id:
             celery_task_invocation_log.related_objects.create(
                 object_ct_id=ContentType.objects.get_for_model(
-                    _get_log_model_from_logger_name(logger.parent_with_id.name)
+                    get_log_model_from_logger_name(logger.parent_with_id.name)
                 ).pk,
                 object_id=logger.parent_with_id.id
             )
@@ -268,7 +268,7 @@ class SQLBackendWriter(BaseBackendWriter):
         if logger.parent_with_id:
             celery_task_run_log.related_objects.create(
                 object_ct_id=ContentType.objects.get_for_model(
-                    _get_log_model_from_logger_name(logger.parent_with_id.name)
+                    get_log_model_from_logger_name(logger.parent_with_id.name)
                 ).pk,
                 object_id=logger.parent_with_id.id
             )
