@@ -282,7 +282,7 @@ class LoggingBackendWriter(BaseBackendWriter):
                 id=logger.id,
                 celery_task_name=logger.data['name'],
                 celery_task_queue=logger.data['queue_name'],
-                celery_task_tart=logger.data['start'],
+                celery_task_start=logger.data['start'],
                 celery_task_invocation_state='ACTIVE',
                 celery_task_attempt=logger.data['retries'],
             ),
@@ -300,11 +300,11 @@ class LoggingBackendWriter(BaseBackendWriter):
                 id=logger.id,
                 celery_task_name=logger.data['name'],
                 celery_task_queue=logger.data['queue_name'],
-                celery_task_tart=logger.data['start'],
+                celery_task_start=logger.data['start'],
                 celery_task_invocation_state='SUCCEEDED',
                 celery_task_attempt=logger.data['retries'],
                 celery_task_stop=logger.data['stop'],
-                celery_task_time=logger.data['stop'] - logger.data['start']
+                celery_task_time=(logger.data['stop'] - logger.data['start']).total_seconds()
             )
         )
 
@@ -320,11 +320,11 @@ class LoggingBackendWriter(BaseBackendWriter):
                 id=logger.id,
                 celery_task_name=logger.data['name'],
                 celery_task_queue=logger.data['queue_name'],
-                celery_task_tart=logger.data['start'],
+                celery_task_start=logger.data['start'],
                 celery_task_invocation_state='FAILED',
                 celery_task_attempt=logger.data['retries'],
                 celery_task_stop=logger.data['stop'],
-                celery_task_time=logger.data['stop'] - logger.data['start']
+                celery_task_time=(logger.data['stop'] - logger.data['start']).total_seconds()
             )
         )
 
@@ -340,11 +340,11 @@ class LoggingBackendWriter(BaseBackendWriter):
                 id=logger.id,
                 celery_task_name=logger.data['name'],
                 celery_task_queue=logger.data['queue_name'],
-                celery_task_tart=logger.data['start'],
+                celery_task_start=logger.data['start'],
                 celery_task_invocation_state='RETRIED',
                 celery_task_attempt=logger.data['retries'],
                 celery_task_stop=logger.data['stop'],
-                celery_task_time=logger.data['stop'] - logger.data['start']
+                celery_task_time=(logger.data['stop'] - logger.data['start']).total_seconds()
             )
         )
 
