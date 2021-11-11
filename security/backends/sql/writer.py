@@ -331,7 +331,10 @@ class SQLBackendWriter(BaseBackendWriter):
         )
 
     def set_stale_celery_task_log_state(self):
-        for task in CeleryTaskInvocationLog.objects.filter_processing(stale_at__lt=now()).iterator():
+        processsing_stale_tasks = CeleryTaskInvocationLog.objects.filter_processing(
+            stale_at__lt=now()
+        ).order_by('stale_at')
+        for task in processsing_stale_tasks[:settings.SET_STALE_CELERY_INVOCATIONS_LIMIT_PER_RUN]:
             task_last_run = task.last_run
             if task_last_run and task_last_run.state == CeleryTaskRunLogState.SUCCEEDED:
                 change_and_save(
