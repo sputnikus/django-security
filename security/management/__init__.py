@@ -1,5 +1,4 @@
 import sys
-import traceback
 from distutils.version import StrictVersion
 
 import django
@@ -9,24 +8,27 @@ from django.core.management import execute_from_command_line as execute_from_com
 from django.core.management import handle_default_options
 from django.utils.version import get_main_version
 
-from security.config import settings
-
 
 def execute_from_command_line(argv=None):
     from security.command import CommandExecutor
 
     def execute_from_command_line_with_stdout(argv=None, stdout=None, stderr=None):
         try:
-            if stdout:
-                sys.stdout = stdout
-            if stderr:
-                sys.stderr = stderr
+            from django.core.management.base import BaseCommand
+
+            command_stdout = stdout
+            command_stderr = stderr
+            def command_init_patch(self, stdout=None, stderr=None, no_color=False, force_color=False):
+                stdout = command_stdout if stdout is None else stdout
+                stderr = command_stderr if stderr is None else stderr
+                self._patched_init(stdout=stdout, stderr=stderr, no_color=no_color, force_color=force_color)
+
+            BaseCommand._patched_init = BaseCommand.__init__
+            BaseCommand.__init__ = command_init_patch
+
             execute_from_command_line_original(argv=argv)
         finally:
-            if stdout:
-                sys.stdout = sys.__stdout__
-            if stderr:
-                sys.stderr = sys.__stderr__
+            BaseCommand.__init__ = BaseCommand._patched_init
 
     if len(argv) > 1:
         # some arguments must be processed before django setup

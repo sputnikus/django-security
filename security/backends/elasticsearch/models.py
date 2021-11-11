@@ -109,10 +109,11 @@ class Log(Document):
         self._set_time(fields)
         if update_only_changed_fields:
             fields = {k: v for k, v in fields.items() if getattr(self, k) != v}
-        super().update(
-            using, index, detect_noop, doc_as_upsert, refresh, retry_on_conflict, script, script_id,
-            scripted_upsert, upsert, return_doc_meta, **fields
-        )
+        if fields:
+            super().update(
+                using, index, detect_noop, doc_as_upsert, refresh, retry_on_conflict, script, script_id,
+                scripted_upsert, upsert, return_doc_meta, **fields
+            )
 
 
 class RequestLog(Log):
