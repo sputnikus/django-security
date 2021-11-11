@@ -341,9 +341,8 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
                 | Q('term', state=CeleryTaskInvocationLogState.TRIGGERED.name)
                 | Q('term', state=CeleryTaskInvocationLogState.ACTIVE.name)
             )
-        )
-
-        for task in processsing_stale_tasks:
+        ).sort('stale_at')
+        for task in processsing_stale_tasks[:settings.SET_STALE_CELERY_INVOCATIONS_LIMIT_PER_RUN]:
             task_last_run = task.last_run
             if task_last_run and task_last_run.state == CeleryTaskRunLogState.SUCCEEDED:
                 task.update(
