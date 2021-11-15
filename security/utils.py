@@ -32,6 +32,7 @@ class LogStringIO(StringIO):
 
     def __init__(self, flush_callback=None, flush_timeout=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._is_closed = False
         self._last_newline = 0
         self._flush_callback = flush_callback
         self._write_time = True
@@ -44,36 +45,38 @@ class LogStringIO(StringIO):
             self._last_flush_time = time()
 
     def write(self, s):
-        lines = s.split('\n')
+        if not self._is_closed:
+            lines = s.split('\n')
 
-        for i, line in enumerate(lines):
-            cursor_first = True
-            for cursor_block in line.split('\r'):
-                if not cursor_first:
-                    self.seek(self._last_newline)
-                    self.truncate()
+            for i, line in enumerate(lines):
+                cursor_first = True
+                for cursor_block in line.split('\r'):
+                    if not cursor_first:
+                        self.seek(self._last_newline)
+                        self.truncate()
+                        self._write_time = True
+                    cursor_first = False
+
+                    if self._write_time and not is_atty_string(cursor_block):
+                        cursor_block = '{}{}[{}]{} {}'.format(
+                            self.RESET, self.BOLD, now().strftime('%d-%m-%Y %H:%M:%S'), self.RESET, cursor_block
+                        )
+                        self._write_time = False
+
+                    super().write(cursor_block)
+
+                if i != len(lines) - 1:
+                    super().write('\n')
+                    self._last_newline = self.tell()
                     self._write_time = True
-                cursor_first = False
 
-                if self._write_time and not is_atty_string(cursor_block):
-                    cursor_block = '{}{}[{}]{} {}'.format(
-                        self.RESET, self.BOLD, now().strftime('%d-%m-%Y %H:%M:%S'), self.RESET, cursor_block
-                    )
-                    self._write_time = False
-
-                super().write(cursor_block)
-
-            if i != len(lines) - 1:
-                super().write('\n')
-                self._last_newline = self.tell()
-                self._write_time = True
-
-        self._flush()
+            self._flush()
 
     def isatty(self):
         return True
 
     def close(self):
+        self._is_closed = True
         self._flush(force=True)
         super().close()
 
