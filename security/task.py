@@ -1,3 +1,5 @@
+import logging
+
 from datetime import timedelta
 
 from django.core.management.base import OutputWrapper
@@ -11,6 +13,9 @@ from chamber.utils.transaction import on_success, in_atomic_block
 from security.config import settings
 from security.utils import LogStringIO
 from security.logging.celery.logger import CeleryTaskRunLogger, CeleryInvocationLogger
+
+
+logger = logging.getLogger(__name__)
 
 
 class LoggedResultWrapper(ResultWrapper):
@@ -120,13 +125,17 @@ class LoggedTask(DjangoTask):
             self.request.output_stream.close()
         finally:
             self.request.run_logger.close()
+
     def on_task_failure(self, task_id, args, kwargs, exc, einfo):
         super().on_task_failure(task_id, args, kwargs, exc, einfo)
-        self.request.run_logger.close()
-        self.request.run_logger.log_failed(
-            ex_tb=str(exc)
-        )
-        self.request.output_stream.close()
+        if hasattr(self.request, 'run_logger'):
+            self.request.run_logger.close()
+            self.request.run_logger.log_failed(
+                ex_tb=str(exc)
+            )
+            self.request.output_stream.close()
+        else:
+            logger.error(f'Task with ID {task_id} raised exceptions {exc}')
 
     def expire_invocation(self, invocation_log_id, args, kwargs, logger_data):
         with CeleryInvocationLogger(invocation_log_id, data=logger_data) as invocation_logger:
