@@ -135,7 +135,7 @@ class LoggedTask(DjangoTask):
             )
             self.request.output_stream.close()
         else:
-            logger.error(f'Task with ID {task_id} raised exceptions {exc}')
+            logger.error(f'Task with ID {task_id} raised exceptions {exc}', extra={'einfo': einfo})
 
     def expire_invocation(self, invocation_log_id, args, kwargs, logger_data):
         with CeleryInvocationLogger(invocation_log_id, data=logger_data) as invocation_logger:
