@@ -92,8 +92,9 @@ class LoggedTask(DjangoTask):
 
     def on_task_start(self, task_id, args, kwargs):
         super().on_task_start(task_id, args, kwargs)
-        self.request.run_logger = CeleryTaskRunLogger()
-        self.request.run_logger.log_started(
+        run_logger = CeleryTaskRunLogger()
+        self.request.run_logger = run_logger
+        run_logger.log_started(
             name=self.name,
             queue_name=self.request.delivery_info.get('routing_key'),
             task_args=args,
@@ -102,7 +103,7 @@ class LoggedTask(DjangoTask):
             retries=self.request.retries,
         )
         self.request.output_stream = LogStringIO(
-            flush_callback=lambda output_stream: self.request.run_logger.log_output_updated(output_stream.getvalue())
+            flush_callback=lambda output_stream: run_logger.log_output_updated(output_stream.getvalue())
         )
 
     def on_task_retry(self, task_id, args, kwargs, exc, eta):
