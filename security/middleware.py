@@ -2,20 +2,28 @@ import traceback
 
 from django import http
 from django.conf import settings as django_settings
-from django.core.exceptions import ImproperlyConfigured
-from django.urls import is_valid_path, get_callable
+from django.urls import is_valid_path, get_callable, get_resolver, set_urlconf, Resolver404
 
 from ipware.ip import get_client_ip
 
 from security.logging.requests.logger import InputRequestLogger
 from security.throttling.exception import ThrottlingException
 
-from chamber.middleware import get_view_from_request_or_none
-
 from .config import settings
 from .utils import get_throttling_validators
 
-from importlib import import_module
+
+def get_view_from_request_or_none(request):
+    try:
+        if hasattr(request, 'urlconf'):
+            urlconf = request.urlconf
+            set_urlconf(urlconf)
+            resolver = get_resolver(urlconf)
+        else:
+            resolver = get_resolver()
+        return resolver.resolve(request.path_info)[0]
+    except Resolver404:
+        return None
 
 
 class LogMiddleware:
