@@ -29,6 +29,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
 
         input_request_log = InputRequestLog(
             slug=logger.slug,
+            release=logger.release,
             extra_data=logger.extra_data,
             state=RequestLogState.INCOMPLETE,
             related_objects=related_objects,
@@ -38,31 +39,31 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
         if logger.parent_with_id:
             input_request_log.parent_log = '{}|{}'.format(logger.parent_with_id.name, logger.parent_with_id.id)
 
-        logger.backend_logs.elasticsearch = input_request_log
         input_request_log.save()
+        logger.backend_logs.elasticsearch = input_request_log
 
     def input_request_finished(self, logger):
-        input_request_log = logger.backend_logs.elasticsearch
-        input_request_log.update(
-            slug=logger.slug,
-            extra_data=logger.extra_data,
-            state=get_response_state(logger.data['response_code']),
-            refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
-            update_only_changed_fields=True,
-            retry_on_conflict=1,
-            **logger.data
-        )
+        if 'elasticsearch' in logger.backend_logs:
+            logger.backend_logs.elasticsearch.update(
+                slug=logger.slug,
+                extra_data=logger.extra_data,
+                state=get_response_state(logger.data['response_code']),
+                refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+                update_only_changed_fields=True,
+                retry_on_conflict=1,
+                **logger.data
+            )
 
     def input_request_error(self, logger):
-        input_request_log = logger.backend_logs.elasticsearch
-        input_request_log.update(
-            slug=logger.slug,
-            extra_data=logger.extra_data,
-            refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
-            update_only_changed_fields=True,
-            retry_on_conflict=1,
-            **logger.data
-        )
+        if 'elasticsearch' in logger.backend_logs:
+            logger.backend_logs.elasticsearch.update(
+                slug=logger.slug,
+                extra_data=logger.extra_data,
+                refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+                update_only_changed_fields=True,
+                retry_on_conflict=1,
+                **logger.data
+            )
 
     def output_request_started(self, logger):
         related_objects = [
@@ -70,6 +71,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
         ]
         output_request_log = OutputRequestLog(
             slug=logger.slug,
+            release=logger.release,
             extra_data=logger.extra_data,
             state=RequestLogState.INCOMPLETE,
             related_objects=related_objects,
@@ -79,32 +81,32 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
         output_request_log.meta.id = logger.id
         if logger.parent_with_id:
             output_request_log.parent_log = '{}|{}'.format(logger.parent_with_id.name, logger.parent_with_id.id)
-        logger.backend_logs.elasticsearch = output_request_log
         output_request_log.save()
+        logger.backend_logs.elasticsearch = output_request_log
 
     def output_request_finished(self, logger):
-        output_request_log = logger.backend_logs.elasticsearch
-        output_request_log.update(
-            slug=logger.slug,
-            extra_data=logger.extra_data,
-            state=get_response_state(logger.data['response_code']),
-            refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
-            update_only_changed_fields=True,
-            retry_on_conflict=1,
-            **logger.data
-        )
+        if 'elasticsearch' in logger.backend_logs:
+            logger.backend_logs.elasticsearch.update(
+                slug=logger.slug,
+                extra_data=logger.extra_data,
+                state=get_response_state(logger.data['response_code']),
+                refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+                update_only_changed_fields=True,
+                retry_on_conflict=1,
+                **logger.data
+            )
 
     def output_request_error(self, logger):
-        output_request_log = logger.backend_logs.elasticsearch
-        output_request_log.update(
-            slug=logger.slug,
-            extra_data=logger.extra_data,
-            state=RequestLogState.ERROR,
-            refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
-            update_only_changed_fields=True,
-            retry_on_conflict=1,
-            **logger.data
-        )
+        if 'elasticsearch' in logger.backend_logs:
+            logger.backend_logs.elasticsearch.update(
+                slug=logger.slug,
+                extra_data=logger.extra_data,
+                state=RequestLogState.ERROR,
+                refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+                update_only_changed_fields=True,
+                retry_on_conflict=1,
+                **logger.data
+            )
 
     def command_started(self, logger):
         related_objects = [
@@ -112,6 +114,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
         ]
         command_log = CommandLog(
             slug=logger.slug,
+            release=logger.release,
             extra_data=logger.extra_data,
             state=CommandState.ACTIVE,
             related_objects=related_objects,
@@ -120,42 +123,42 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
         command_log.meta.id = logger.id
         if logger.parent_with_id:
             command_log.parent_log = '{}|{}'.format(logger.parent_with_id.name, logger.parent_with_id.id)
-        logger.backend_logs.elasticsearch = command_log
         command_log.save()
+        logger.backend_logs.elasticsearch = command_log
 
     def command_output_updated(self, logger):
-        command_log = logger.backend_logs.elasticsearch
-        command_log.update(
-            slug=logger.slug,
-            refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
-            update_only_changed_fields=True,
-            retry_on_conflict=1,
-            **logger.data
-        )
+        if 'elasticsearch' in logger.backend_logs:
+            logger.backend_logs.elasticsearch.update(
+                slug=logger.slug,
+                refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+                update_only_changed_fields=True,
+                retry_on_conflict=1,
+                **logger.data
+            )
 
     def command_finished(self, logger):
-        command_log = logger.backend_logs.elasticsearch
-        command_log.update(
-            slug=logger.slug,
-            extra_data=logger.extra_data,
-            state=CommandState.SUCCEEDED,
-            refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
-            update_only_changed_fields=True,
-            retry_on_conflict=1,
-            **logger.data
-        )
+        if 'elasticsearch' in logger.backend_logs:
+            logger.backend_logs.elasticsearch.update(
+                slug=logger.slug,
+                extra_data=logger.extra_data,
+                state=CommandState.SUCCEEDED,
+                refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+                update_only_changed_fields=True,
+                retry_on_conflict=1,
+                **logger.data
+            )
 
     def command_error(self, logger):
-        command_log = logger.backend_logs.elasticsearch
-        command_log.update(
-            slug=logger.slug,
-            extra_data=logger.extra_data,
-            state=CommandState.FAILED,
-            refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
-            update_only_changed_fields=True,
-            retry_on_conflict=1,
-            **logger.data
-        )
+        if 'elasticsearch' in logger.backend_logs:
+            logger.backend_logs.elasticsearch.update(
+                slug=logger.slug,
+                extra_data=logger.extra_data,
+                state=CommandState.FAILED,
+                refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+                update_only_changed_fields=True,
+                retry_on_conflict=1,
+                **logger.data
+            )
 
     def celery_task_invocation_started(self, logger):
         related_objects = [
@@ -163,52 +166,53 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
         ]
         celery_task_invocation_log = CeleryTaskInvocationLog(
             slug=logger.slug,
+            release=logger.release,
             extra_data=logger.extra_data,
             state=CeleryTaskInvocationLogState.WAITING,
             related_objects=related_objects,
             **logger.data
         )
         celery_task_invocation_log.meta.id = logger.id
+        celery_task_invocation_log.save()
         if logger.parent_with_id:
             celery_task_invocation_log.parent_log = '{}|{}'.format(logger.parent_with_id.name, logger.parent_with_id.id)
         logger.backend_logs.elasticsearch = celery_task_invocation_log
-        celery_task_invocation_log.save()
 
     def celery_task_invocation_triggered(self, logger):
-        celery_task_invocation_log = logger.backend_logs.elasticsearch
-        celery_task_invocation_log.update(
-            slug=logger.slug,
-            extra_data=logger.extra_data,
-            state=CeleryTaskInvocationLogState.TRIGGERED,
-            refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
-            update_only_changed_fields=True,
-            retry_on_conflict=1,
-            **logger.data
-        )
+        if 'elasticsearch' in logger.backend_logs:
+            logger.backend_logs.elasticsearch.update(
+                slug=logger.slug,
+                extra_data=logger.extra_data,
+                state=CeleryTaskInvocationLogState.TRIGGERED,
+                refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+                update_only_changed_fields=True,
+                retry_on_conflict=1,
+                **logger.data
+            )
 
     def celery_task_invocation_ignored(self, logger):
-        celery_task_invocation_log = logger.backend_logs.elasticsearch
-        celery_task_invocation_log.update(
-            slug=logger.slug,
-            extra_data=logger.extra_data,
-            state=CeleryTaskInvocationLogState.IGNORED,
-            refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
-            update_only_changed_fields=True,
-            retry_on_conflict=1,
-            **logger.data
-        )
+        if 'elasticsearch' in logger.backend_logs:
+            logger.backend_logs.elasticsearch.update(
+                slug=logger.slug,
+                extra_data=logger.extra_data,
+                state=CeleryTaskInvocationLogState.IGNORED,
+                refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+                update_only_changed_fields=True,
+                retry_on_conflict=1,
+                **logger.data
+            )
 
     def celery_task_invocation_timeout(self, logger):
-        celery_task_invocation_log = logger.backend_logs.elasticsearch
-        celery_task_invocation_log.update(
-            slug=logger.slug,
-            extra_data=logger.extra_data,
-            state=CeleryTaskInvocationLogState.TIMEOUT,
-            refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
-            update_only_changed_fields=True,
-            retry_on_conflict=1,
-            **logger.data
-        )
+        if 'elasticsearch' in logger.backend_logs:
+            logger.backend_logs.elasticsearch.update(
+                slug=logger.slug,
+                extra_data=logger.extra_data,
+                state=CeleryTaskInvocationLogState.TIMEOUT,
+                refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+                update_only_changed_fields=True,
+                retry_on_conflict=1,
+                **logger.data
+            )
 
     def celery_task_invocation_expired(self, logger):
         celery_task_invocation_log = CeleryTaskInvocationLog.get(id=logger.id)
@@ -237,6 +241,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
         ]
         celery_task_run_log = CeleryTaskRunLog(
             slug=logger.slug,
+            release=logger.release,
             extra_data=logger.extra_data,
             state=CeleryTaskRunLogState.ACTIVE,
             related_objects=related_objects,
@@ -245,94 +250,96 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
         celery_task_run_log.meta.id = logger.id
         if logger.parent_with_id:
             celery_task_run_log.parent_log = '{}|{}'.format(logger.parent_with_id.name, logger.parent_with_id.id)
-        logger.backend_logs.elasticsearch = celery_task_run_log
         celery_task_run_log.save()
+        logger.backend_logs.elasticsearch = celery_task_run_log
 
     def celery_task_run_succeeded(self, logger):
-        celery_task_run_log = logger.backend_logs.elasticsearch
-        celery_task_run_log.update(
-            slug=logger.slug,
-            extra_data=logger.extra_data,
-            state=CeleryTaskRunLogState.SUCCEEDED,
-            refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
-            update_only_changed_fields=True,
-            retry_on_conflict=1,
-            **logger.data
-        )
+        if 'elasticsearch' in logger.backend_logs:
+            celery_task_run_log = logger.backend_logs.elasticsearch
+            celery_task_run_log.update(
+                slug=logger.slug,
+                extra_data=logger.extra_data,
+                state=CeleryTaskRunLogState.SUCCEEDED,
+                refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+                update_only_changed_fields=True,
+                retry_on_conflict=1,
+                **logger.data
+            )
 
-        CeleryTaskInvocationLog._index.refresh()
-        celery_task_invocations_qs = CeleryTaskInvocationLog.search().filter(
-            'term', celery_task_id=celery_task_run_log.celery_task_id
-        ).query(
-            Q('term', state=CeleryTaskInvocationLogState.WAITING.name)
-            | Q('term', state=CeleryTaskInvocationLogState.TRIGGERED.name)
-            | Q('term', state=CeleryTaskInvocationLogState.ACTIVE.name)
-        )
-        for celery_task_invocation in celery_task_invocations_qs:
-            try:
-                celery_task_invocation.update(
-                    state=CeleryTaskInvocationLogState.SUCCEEDED,
-                    stop=logger.data['stop'],
-                    refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
-                    update_only_changed_fields=True
-                )
-            except ConflictError:
-                # conflict errors are ignored, celery task invocation was changed with another process
-                pass
+            CeleryTaskInvocationLog._index.refresh()
+            celery_task_invocations_qs = CeleryTaskInvocationLog.search().filter(
+                'term', celery_task_id=celery_task_run_log.celery_task_id
+            ).query(
+                Q('term', state=CeleryTaskInvocationLogState.WAITING.name)
+                | Q('term', state=CeleryTaskInvocationLogState.TRIGGERED.name)
+                | Q('term', state=CeleryTaskInvocationLogState.ACTIVE.name)
+            )
+            for celery_task_invocation in celery_task_invocations_qs:
+                try:
+                    celery_task_invocation.update(
+                        state=CeleryTaskInvocationLogState.SUCCEEDED,
+                        stop=logger.data['stop'],
+                        refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+                        update_only_changed_fields=True
+                    )
+                except ConflictError:
+                    # conflict errors are ignored, celery task invocation was changed with another process
+                    pass
 
     def celery_task_run_failed(self, logger):
-        celery_task_run_log = logger.backend_logs.elasticsearch
-        celery_task_run_log.update(
-            slug=logger.slug,
-            extra_data=logger.extra_data,
-            state=CeleryTaskRunLogState.FAILED,
-            refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
-            update_only_changed_fields=True,
-            retry_on_conflict=1,
-            **logger.data
-        )
+        if 'elasticsearch' in logger.backend_logs:
+            celery_task_run_log = logger.backend_logs.elasticsearch
+            celery_task_run_log.update(
+                slug=logger.slug,
+                extra_data=logger.extra_data,
+                state=CeleryTaskRunLogState.FAILED,
+                refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+                update_only_changed_fields=True,
+                retry_on_conflict=1,
+                **logger.data
+            )
 
-        CeleryTaskInvocationLog._index.refresh()
-        celery_task_invocations_qs = CeleryTaskInvocationLog.search().filter(
-            'term', celery_task_id=celery_task_run_log.celery_task_id
-        ).query(
-            Q('term', state=CeleryTaskInvocationLogState.WAITING.name)
-            | Q('term', state=CeleryTaskInvocationLogState.TRIGGERED.name)
-            | Q('term', state=CeleryTaskInvocationLogState.ACTIVE.name)
-        )
-        for celery_task_invocation in celery_task_invocations_qs:
-            try:
-                celery_task_invocation.update(
-                    state=CeleryTaskInvocationLogState.FAILED,
-                    refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
-                    stop=logger.data['stop'],
-                    update_only_changed_fields=True
-                )
-            except ConflictError:
-                # conflict errors are ignored, celery task invocation was changed with another process
-                pass
+            CeleryTaskInvocationLog._index.refresh()
+            celery_task_invocations_qs = CeleryTaskInvocationLog.search().filter(
+                'term', celery_task_id=celery_task_run_log.celery_task_id
+            ).query(
+                Q('term', state=CeleryTaskInvocationLogState.WAITING.name)
+                | Q('term', state=CeleryTaskInvocationLogState.TRIGGERED.name)
+                | Q('term', state=CeleryTaskInvocationLogState.ACTIVE.name)
+            )
+            for celery_task_invocation in celery_task_invocations_qs:
+                try:
+                    celery_task_invocation.update(
+                        state=CeleryTaskInvocationLogState.FAILED,
+                        refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+                        stop=logger.data['stop'],
+                        update_only_changed_fields=True
+                    )
+                except ConflictError:
+                    # conflict errors are ignored, celery task invocation was changed with another process
+                    pass
 
     def celery_task_run_retried(self, logger):
-        celery_task_run_log = logger.backend_logs.elasticsearch
-        celery_task_run_log.update(
-            slug=logger.slug,
-            extra_data=logger.extra_data,
-            state=CeleryTaskRunLogState.RETRIED,
-            refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
-            update_only_changed_fields=True,
-            retry_on_conflict=1,
-            **logger.data
-        )
+        if 'elasticsearch' in logger.backend_logs:
+            logger.backend_logs.elasticsearch.update(
+                slug=logger.slug,
+                extra_data=logger.extra_data,
+                state=CeleryTaskRunLogState.RETRIED,
+                refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+                update_only_changed_fields=True,
+                retry_on_conflict=1,
+                **logger.data
+            )
 
     def celery_task_run_output_updated(self, logger):
-        celery_task_run_log = logger.backend_logs.elasticsearch
-        celery_task_run_log.update(
-            slug=logger.slug,
-            refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
-            update_only_changed_fields=True,
-            retry_on_conflict=1,
-            **logger.data,
-        )
+        if 'elasticsearch' in logger.backend_logs:
+            logger.backend_logs.elasticsearch.update(
+                slug=logger.slug,
+                refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+                update_only_changed_fields=True,
+                retry_on_conflict=1,
+                **logger.data,
+            )
 
     def set_stale_celery_task_log_state(self):
         processsing_stale_tasks = CeleryTaskInvocationLog.search().filter(

@@ -75,6 +75,13 @@ class Log(models.Model):
         null=True,
         blank=True
     )
+    release = models.CharField(
+        verbose_name=_('release'),
+        null=True,
+        blank=True,
+        db_index=True,
+        max_length=255
+    )
 
     def save(self, update_fields=None, *args, **kwargs):
         if not self.time and self.start and self.stop:
@@ -411,6 +418,11 @@ class CeleryTaskRunLog(Log):
     )
     estimated_time_of_next_retry = models.DateTimeField(
         verbose_name=_('estimated time of arrival'),
+        null=True,
+        blank=True
+    )
+    waiting_time = models.FloatField(
+        verbose_name=_('waiting time'),
         null=True,
         blank=True
     )

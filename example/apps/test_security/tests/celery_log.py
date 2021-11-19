@@ -19,11 +19,10 @@ from germanium.test_cases.client import ClientTestCase
 from germanium.tools import (
     assert_equal, assert_false, assert_http_not_found, assert_http_ok, assert_http_redirect,
     assert_http_too_many_requests, assert_in, assert_is_none, assert_is_not_none, assert_not_in,
-    assert_raises, assert_true, assert_equal_model_fields, capture_on_commit_callbacks, assert_length_equal,
+    assert_raises, assert_true, assert_equal_model_fields, capture_commit_callbacks, assert_length_equal,
     all_eq_obj, not_none_eq_obj
 )
 
-from chamber.utils.transaction import transaction_signals
 from chamber.shortcuts import change_and_save
 
 from django_celery_extensions.task import get_django_command_task
@@ -86,6 +85,7 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
             'start': not_none_eq_obj,
             'retries': 0,
             'celery_task_id': not_none_eq_obj,
+            'waiting_time': not_none_eq_obj,
         }
         expected_run_succeeded_data = {
             **expected_run_started_data,
@@ -144,6 +144,7 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
             'start': not_none_eq_obj,
             'retries': 0,
             'celery_task_id': not_none_eq_obj,
+            'waiting_time': not_none_eq_obj,
         }
         expected_run_failed_data = {
             **expected_run_started_data,
@@ -196,6 +197,7 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
             'start': not_none_eq_obj,
             'retries': not_none_eq_obj,
             'celery_task_id': not_none_eq_obj,
+            'waiting_time': not_none_eq_obj,
         }
         expected_run_retried_data = {
             **expected_run_started_data,
@@ -222,7 +224,7 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
     @override_settings(DJANGO_CELERY_EXTENSIONS_DEFAULT_TASK_STALE_TIME_LIMIT=30, SECURITY_TASK_USE_ON_SUCCESS=True)
     def test_ignored_after_success_celery_task_should_be_logged(self):
         with capture_security_logs() as logged_data:
-            with capture_on_commit_callbacks(execute=True):
+            with capture_commit_callbacks(execute_on_commit=True):
                 ignored_after_success_task.apply_async_on_commit()
                 ignored_after_success_task.apply_async_on_commit()
 
@@ -238,17 +240,17 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
                 unique_task.apply_async_and_get_result(timeout=0)
             assert_length_equal(logged_data.celery_task_invocation_timeout, 1)
 
-    @override_settings(SECURITY_TASK_USE_ON_SUCCESS=True)
+    @override_settings(SECURITY_TASK_USE_PRE_COMMIT=True)
     def test_task_should_be_logged_with_on_commit_signal(self):
         with capture_security_logs() as logged_data:
-            with capture_on_commit_callbacks(execute=True):
-                with transaction_signals():
-                    sum_task.apply_async_on_commit(args=(5, 8))
-                    assert_length_equal(logged_data.celery_task_invocation_started, 0)
-                    assert_length_equal(logged_data.celery_task_invocation_triggered, 0)
-                assert_length_equal(logged_data.celery_task_invocation_started, 1)
-                assert_length_equal(logged_data.celery_task_invocation_triggered, 0)
-
+            with capture_commit_callbacks() as captured_commit_callbacks:
+                sum_task.apply_async_on_commit(args=(5, 8))
+            assert_length_equal(logged_data.celery_task_invocation_started, 0)
+            assert_length_equal(logged_data.celery_task_invocation_triggered, 0)
+            captured_commit_callbacks.execute_pre_commit()
+            assert_length_equal(logged_data.celery_task_invocation_started, 1)
+            assert_length_equal(logged_data.celery_task_invocation_triggered, 0)
+            captured_commit_callbacks.execute_on_commit()
             assert_length_equal(logged_data.celery_task_invocation_started, 1)
             assert_length_equal(logged_data.celery_task_invocation_triggered, 1)
 

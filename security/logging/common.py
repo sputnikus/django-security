@@ -74,6 +74,10 @@ class SecurityLogger(ContextDecorator, local):
 
                 post_revision_commit.disconnect(self._post_revision_commit)
 
+    @property
+    def release(self):
+        return settings.RELEASE
+
     def _post_revision_commit(self, **kwargs):
         """
         Called as a post save of revision model of the reversion library.

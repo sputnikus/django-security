@@ -7,6 +7,8 @@ from django.db import transaction
 
 from django_celery_extensions.task import DjangoTask, ResultWrapper
 
+from celery.utils.time import maybe_iso8601
+
 from chamber.utils.transaction import pre_commit, in_atomic_block
 
 from security.config import settings
@@ -100,6 +102,9 @@ class LoggedTask(DjangoTask):
             task_kwargs=kwargs,
             celery_task_id=task_id,
             retries=self.request.retries,
+            apply_time=maybe_iso8601(
+                self.request.headers['apply_time'] if self.request.headers else self.request.apply_time
+            )
         )
         self.request.output_stream = LogStringIO(
             flush_callback=lambda output_stream: run_logger.log_output_updated(output_stream.getvalue())
@@ -135,7 +140,7 @@ class LoggedTask(DjangoTask):
             )
             self.request.output_stream.close()
         else:
-            logger.error(f'Task with ID {task_id} raised exceptions {exc}', extra={'einfo': einfo})
+            logger.error(f'Task with ID {task_id} raised exceptions {exc}', extra={'einfo': str(einfo)})
 
     def expire_invocation(self, invocation_log_id, args, kwargs, logger_data):
         with CeleryInvocationLogger(invocation_log_id, data=logger_data) as invocation_logger:

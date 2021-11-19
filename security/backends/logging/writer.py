@@ -28,6 +28,7 @@ class LoggingBackendWriter(BaseBackendWriter):
                 input_request_slug=logger.slug,
                 input_request_is_secure=logger.data['is_secure'],
                 input_request_ip=logger.data['ip'],
+                input_request_release=logger.release
             )
         )
 
@@ -52,6 +53,7 @@ class LoggingBackendWriter(BaseBackendWriter):
                 input_request_start=logger.data['start'],
                 input_request_stop=logger.data['stop'],
                 input_request_time=(logger.data['stop'] - logger.data['start']).total_seconds(),
+                input_request_release=logger.release
             )
         )
 
@@ -73,6 +75,7 @@ class LoggingBackendWriter(BaseBackendWriter):
                 input_request_is_secure=logger.data['is_secure'],
                 input_request_ip=logger.data['ip'],
                 input_request_start=logger.data['start'],
+                input_request_release=logger.release
             )
         )
 
@@ -91,6 +94,7 @@ class LoggingBackendWriter(BaseBackendWriter):
                 output_request_method=logger.data['method'],
                 output_request_slug=logger.slug,
                 output_request_is_secure=logger.data['is_secure'],
+                output_request_release=logger.release
             )
         )
 
@@ -113,6 +117,7 @@ class LoggingBackendWriter(BaseBackendWriter):
                 output_request_start=logger.data['start'],
                 output_request_stop=logger.data['stop'],
                 output_request_time=(logger.data['stop'] - logger.data['start']).total_seconds(),
+                output_request_release=logger.release
             )
         )
 
@@ -134,6 +139,7 @@ class LoggingBackendWriter(BaseBackendWriter):
                 output_request_start=logger.data['start'],
                 output_request_stop=logger.data['stop'],
                 output_request_time=(logger.data['stop'] - logger.data['start']).total_seconds(),
+                output_request_release=logger.release
             )
         )
 
@@ -149,6 +155,7 @@ class LoggingBackendWriter(BaseBackendWriter):
                 command_name=logger.data['name'],
                 command_is_executed_from_command_line=logger.data['is_executed_from_command_line'],
                 command_start=logger.data['start'],
+                command_release=logger.release
             )
         )
 
@@ -169,7 +176,8 @@ class LoggingBackendWriter(BaseBackendWriter):
                 command_start=logger.data['start'],
                 command_stop=logger.data['stop'],
                 command_time=(logger.data['stop'] - logger.data['start']).total_seconds(),
-                command_is_error=False
+                command_is_error=False,
+                command_release=logger.release
             )
         )
 
@@ -187,7 +195,8 @@ class LoggingBackendWriter(BaseBackendWriter):
                 command_start=logger.data['start'],
                 command_stop=logger.data['stop'],
                 command_time=(logger.data['stop'] - logger.data['start']).total_seconds(),
-                command_is_error=True
+                command_is_error=True,
+                command_release=logger.release
             )
         )
 
@@ -209,6 +218,7 @@ class LoggingBackendWriter(BaseBackendWriter):
                 celery_task_invocation_queue=logger.data['queue_name'],
                 celery_task_invocation_start=logger.data['start'],
                 celery_task_invocation_state='TRIGGERED',
+                celery_task_invocation_release=logger.release
             ),
         )
 
@@ -227,6 +237,7 @@ class LoggingBackendWriter(BaseBackendWriter):
                 celery_task_invocation_stop=logger.data['stop'],
                 celery_task_invocation_time=(logger.data['stop'] - logger.data['start']).total_seconds(),
                 celery_task_invocation_state='IGNORED',
+                celery_task_invocation_release=logger.release
             ),
         )
 
@@ -247,6 +258,7 @@ class LoggingBackendWriter(BaseBackendWriter):
                 celery_task_invocation_stop=logger.data['stop'],
                 celery_task_invocation_time=(logger.data['stop'] - logger.data['start']).total_seconds(),
                 celery_task_invocation_state='TIMEOUT',
+                celery_task_invocation_release=logger.release
             ),
         )
 
@@ -266,7 +278,8 @@ class LoggingBackendWriter(BaseBackendWriter):
                 celery_task_invocation_start=logger.data['start'],
                 celery_task_invocation_stop=logger.data['stop'],
                 celery_task_invocation_time=(logger.data['stop'] - logger.data['start']).total_seconds(),
-                task_state='EXPIRED',
+                celery_task_invocation_state='EXPIRED',
+                celery_task_invocation_release=logger.release
             ),
         )
 
@@ -285,6 +298,8 @@ class LoggingBackendWriter(BaseBackendWriter):
                 celery_task_start=logger.data['start'],
                 celery_task_invocation_state='ACTIVE',
                 celery_task_attempt=logger.data['retries'],
+                celery_task_release=logger.release,
+                celery_task_waiting_time=logger.data['waiting_time']
             ),
         )
 
@@ -304,7 +319,9 @@ class LoggingBackendWriter(BaseBackendWriter):
                 celery_task_invocation_state='SUCCEEDED',
                 celery_task_attempt=logger.data['retries'],
                 celery_task_stop=logger.data['stop'],
-                celery_task_time=(logger.data['stop'] - logger.data['start']).total_seconds()
+                celery_task_time=(logger.data['stop'] - logger.data['start']).total_seconds(),
+                celery_task_release=logger.release,
+                celery_task_waiting_time=logger.data['waiting_time']
             )
         )
 
@@ -324,7 +341,9 @@ class LoggingBackendWriter(BaseBackendWriter):
                 celery_task_invocation_state='FAILED',
                 celery_task_attempt=logger.data['retries'],
                 celery_task_stop=logger.data['stop'],
-                celery_task_time=(logger.data['stop'] - logger.data['start']).total_seconds()
+                celery_task_time=(logger.data['stop'] - logger.data['start']).total_seconds(),
+                celery_task_release=logger.release,
+                celery_task_waiting_time=logger.data['waiting_time']
             )
         )
 
@@ -344,7 +363,9 @@ class LoggingBackendWriter(BaseBackendWriter):
                 celery_task_invocation_state='RETRIED',
                 celery_task_attempt=logger.data['retries'],
                 celery_task_stop=logger.data['stop'],
-                celery_task_time=(logger.data['stop'] - logger.data['start']).total_seconds()
+                celery_task_time=(logger.data['stop'] - logger.data['start']).total_seconds(),
+                celery_task_release=logger.release,
+                celery_task_waiting_time=logger.data['waiting_time']
             )
         )
 
