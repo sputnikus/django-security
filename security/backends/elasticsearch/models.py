@@ -58,6 +58,7 @@ class Log(Document):
     start = Date()
     stop = Date()
     time = Float()
+    release = Keyword()
 
     def __str__(self):
         return self.id
@@ -215,6 +216,7 @@ class CeleryTaskRunLog(Log):
     retries = Integer()
     estimated_time_of_next_retry = Date()
     queue_name = Keyword()
+    waiting_time = Float()
 
     class Index:
         name = '{}-celery-task-run-log'.format(settings.ELASTICSEARCH_DATABASE.get('prefix', 'security'))
