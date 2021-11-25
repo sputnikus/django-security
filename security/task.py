@@ -102,9 +102,7 @@ class LoggedTask(DjangoTask):
             task_kwargs=kwargs,
             celery_task_id=task_id,
             retries=self.request.retries,
-            apply_time=maybe_iso8601(
-                self.request.headers['apply_time'] if 'apply_time' in self.request.headers else self.request.apply_time
-            )
+            trigger_time=maybe_iso8601(self._get_header_from_request('trigger_time'))
         )
         self.request.output_stream = LogStringIO(
             flush_callback=lambda output_stream: run_logger.log_output_updated(output_stream.getvalue())
