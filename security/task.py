@@ -103,7 +103,7 @@ class LoggedTask(DjangoTask):
             celery_task_id=task_id,
             retries=self.request.retries,
             apply_time=maybe_iso8601(
-                self.request.headers['apply_time'] if self.request.headers else self.request.apply_time
+                self.request.headers['apply_time'] if 'apply_time' in self.request.headers else self.request.apply_time
             )
         )
         self.request.output_stream = LogStringIO(
