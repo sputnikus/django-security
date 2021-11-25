@@ -101,7 +101,7 @@ class CeleryTaskRunLogger(SecurityLogger):
 
     name = LoggerName.CELERY_TASK_RUN
 
-    def log_started(self, name, queue_name, task_args, task_kwargs, celery_task_id, retries, apply_time):
+    def log_started(self, name, queue_name, task_args, task_kwargs, celery_task_id, retries, trigger_time):
         task_input = []
         if task_args:
             task_input += [str(v) for v in task_args]
@@ -117,7 +117,7 @@ class CeleryTaskRunLogger(SecurityLogger):
             task_kwargs=task_kwargs,
             start=start,
             retries=retries,
-            waiting_time=(start - apply_time).total_seconds(),
+            waiting_time=(start - trigger_time).total_seconds(),
         ))
         celery_task_run_started.send(
             sender=CeleryTaskRunLogger,
