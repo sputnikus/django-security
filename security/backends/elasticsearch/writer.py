@@ -1,6 +1,15 @@
+import os
 import json
+import gzip
+import math
 
-from django.utils.timezone import now
+from io import TextIOWrapper
+
+from datetime import datetime, time, timedelta
+
+from django.core.serializers.json import DjangoJSONEncoder
+from django.utils.timezone import now, utc
+from django.utils.module_loading import import_string
 
 from celery import current_app
 from celery.exceptions import NotRegistered
@@ -18,6 +27,27 @@ from .models import (
     InputRequestLog, OutputRequestLog, CommandLog, CeleryTaskRunLog, CeleryTaskInvocationLog, get_key_from_object,
     get_response_state, get_log_model_from_logger_name
 )
+
+
+def lazy_serialize_qs_without_pk(qs):
+    def generator():
+        for obj in qs:
+            yield obj.to_dict()
+
+    class StreamList(list):
+        def __iter__(self):
+            return generator()
+
+        def __len__(self):
+            return 1
+
+    return StreamList()
+
+
+def get_querysets_by_batch(qs, batch):
+    steps = math.ceil(qs.count() / batch)
+    for step in range(steps):
+        yield qs[step * batch:(step+1) * batch]
 
 
 class ElasticsearchBackendWriter(BaseBackendWriter):
@@ -385,6 +415,42 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
                     )
 
     def clean_logs(self, type, timestamp, backup_path, stdout):
-        qs = get_log_model_from_logger_name(type).search().filter(Q('range', start={'lt': timestamp}))
-        stdout.write(f'  Removing "{qs.count()}" logs')
-        qs.delete()
+        storage = import_string(settings.BACKUP_STORAGE_CLASS)()
+
+        qs = get_log_model_from_logger_name(type).search().filter(Q('range', stop={'lt': timestamp})).sort('stop')
+        step_timestamp = None
+        if qs.count() != 0:
+            step_timestamp = list(qs[0:1])[0].stop
+
+        while step_timestamp and step_timestamp < timestamp:
+            min_timestamp = datetime.combine(step_timestamp, time.min).replace(tzinfo=utc)
+            max_timestamp = datetime.combine(step_timestamp, time.max).replace(tzinfo=utc)
+
+            qs_filtered_by_day = qs.filter(Q('range', stop={'gte': min_timestamp, 'lte': max_timestamp}))
+
+            if qs_filtered_by_day.count() != 0:
+                stdout.write(
+                    2 * ' ' + 'Cleaning logs for date {} ({})'.format(
+                        step_timestamp.date(), qs_filtered_by_day.count()
+                    )
+                )
+
+                if backup_path:
+                    for qs_batch in get_querysets_by_batch(qs_filtered_by_day, settings.PURGE_LOG_BACKUP_BATCH):
+                        log_file_name = os.path.join(backup_path, str(step_timestamp.date()))
+                        if storage.exists('{}.json.gz'.format(log_file_name)):
+                            i = 1
+                            while storage.exists('{}({}).json.gz'.format(log_file_name, i)):
+                                i += 1
+                            log_file_name = '{}({})'.format(log_file_name, i)
+                        stdout.write(4 * ' ' + 'generating backup file: {}.json.gz'.format(log_file_name))
+                        with storage.open('{}.json.gz'.format(log_file_name), 'wb') as f:
+                            with TextIOWrapper(gzip.GzipFile(filename='{}.json'.format(log_file_name),
+                                                             fileobj=f, mode='wb')) as gzf:
+                                json.dump(
+                                    lazy_serialize_qs_without_pk(qs_batch), gzf, cls=DjangoJSONEncoder, indent=5
+                                )
+                stdout.write(4 * ' ' + 'deleting logs')
+                qs_filtered_by_day.delete()
+
+            step_timestamp = min_timestamp + timedelta(days=1)

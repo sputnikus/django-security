@@ -1,3 +1,5 @@
+import logging
+
 from django.core.exceptions import ImproperlyConfigured
 
 from security.backends.signals import (
@@ -12,6 +14,9 @@ from security.backends.signals import (
 from security.config import settings
 
 from .app import SecurityBackend
+
+
+logger = logging.getLogger(__name__)
 
 
 class BaseBackendWriter:
@@ -48,7 +53,10 @@ class BaseBackendWriter:
         self._init_signals()
 
     def _call_receiver_method(self, signal_name, logger):
-        getattr(self, signal_name)(logger)
+        try:
+            getattr(self, signal_name)(logger)
+        except Exception:
+            logger.error(f'Cannot write log {signal_name} for writer {self._name}', exc_info=True)
 
     def _get_receiver(self, signal_name):
         def _log_receiver(sender, logger, signal, **kwargs):
