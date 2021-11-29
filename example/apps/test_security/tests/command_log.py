@@ -229,10 +229,7 @@ class CommandLogTestCase(BaseTestCaseMixin, ClientTestCase):
     def test_data_change_should_be_connected_with_command_log(self):
         with capture_security_logs() as logged_data:
             test_call_command('create_user')
-            assert_equal(
-                list(logged_data.command[0].related_objects)[0].version_set.get().content_type,
-                ContentType.objects.get_for_model(User)
-            )
+            assert_equal(logged_data.command[0].extra_data, {'reversion': {'revision_id': not_none_eq_obj}})
 
     @override_settings(SECURITY_COMMAND_LOG_EXCLUDED_COMMANDS=('test_command',))
     def test_excluded_command_should_not_be_logged(self):

@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from django.test.utils import override_settings, TestContextDecorator
+from django.test.utils import override_settings
 
 from .models import CommandLog, CeleryTaskRunLog, CeleryTaskInvocationLog, InputRequestLog, OutputRequestLog
 

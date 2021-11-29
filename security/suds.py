@@ -9,8 +9,6 @@ from suds.client import Client as DefaultClient
 from suds.transport import Reply, TransportError
 from suds.transport.http import HttpTransport
 
-from django.utils.encoding import force_text
-
 import requests as security_requests
 
 

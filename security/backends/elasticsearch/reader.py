@@ -1,11 +1,8 @@
-from django.utils.timezone import now
-
 from elasticsearch_dsl import Q
 
 from security.backends.reader import BaseBackendReader
 
-from .connection import set_connection
-from .models import InputRequestLog, get_log_model_from_logger_name, get_key_from_object, CeleryTaskInvocationLog
+from .models import InputRequestLog, get_log_model_from_logger_name, get_key_from_object
 
 
 class ElasticsearchBackendReader(BaseBackendReader):

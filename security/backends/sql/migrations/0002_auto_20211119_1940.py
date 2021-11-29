@@ -12,52 +12,52 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AlterModelOptions(
             name='celerytaskinvocationlog',
-            options={'ordering': ('-start',), 'verbose_name': 'celery task', 'verbose_name_plural': 'celery tasks'},
+            options={'ordering': ('-start',)},
         ),
         migrations.AlterModelOptions(
             name='celerytaskrunlog',
-            options={'ordering': ('-start',), 'verbose_name': 'celery task run', 'verbose_name_plural': 'celery tasks run'},
+            options={'ordering': ('-start',)},
         ),
         migrations.AlterModelOptions(
             name='commandlog',
-            options={'ordering': ('-start',), 'verbose_name': 'command log', 'verbose_name_plural': 'command logs'},
+            options={'ordering': ('-start',)},
         ),
         migrations.AlterModelOptions(
             name='inputrequestlog',
-            options={'ordering': ('-start',), 'verbose_name': 'input logged request', 'verbose_name_plural': 'input logged requests'},
+            options={'ordering': ('-start',)},
         ),
         migrations.AlterModelOptions(
             name='outputrequestlog',
-            options={'ordering': ('-start',), 'verbose_name': 'output logged request', 'verbose_name_plural': 'output logged requests'},
+            options={'ordering': ('-start',)},
         ),
         migrations.AddField(
             model_name='celerytaskinvocationlog',
             name='release',
-            field=models.CharField(blank=True, db_index=True, max_length=255, null=True, verbose_name='release'),
+            field=models.CharField(blank=True, db_index=True, max_length=255, null=True),
         ),
         migrations.AddField(
             model_name='celerytaskrunlog',
             name='release',
-            field=models.CharField(blank=True, db_index=True, max_length=255, null=True, verbose_name='release'),
+            field=models.CharField(blank=True, db_index=True, max_length=255, null=True),
         ),
         migrations.AddField(
             model_name='celerytaskrunlog',
             name='waiting_time',
-            field=models.FloatField(blank=True, null=True, verbose_name='waiting time'),
+            field=models.FloatField(blank=True, null=True),
         ),
         migrations.AddField(
             model_name='commandlog',
             name='release',
-            field=models.CharField(blank=True, db_index=True, max_length=255, null=True, verbose_name='release'),
+            field=models.CharField(blank=True, db_index=True, max_length=255, null=True),
         ),
         migrations.AddField(
             model_name='inputrequestlog',
             name='release',
-            field=models.CharField(blank=True, db_index=True, max_length=255, null=True, verbose_name='release'),
+            field=models.CharField(blank=True, db_index=True, max_length=255, null=True),
         ),
         migrations.AddField(
             model_name='outputrequestlog',
             name='release',
-            field=models.CharField(blank=True, db_index=True, max_length=255, null=True, verbose_name='release'),
+            field=models.CharField(blank=True, db_index=True, max_length=255, null=True),
         ),
     ]

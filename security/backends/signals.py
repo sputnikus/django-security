@@ -1,6 +1,4 @@
-from django.dispatch import Signal, receiver
-
-from security.config import settings
+from django.dispatch import Signal
 
 
 input_request_started = Signal()

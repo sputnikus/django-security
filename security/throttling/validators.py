@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
-from django.urls import resolve
+from django.urls import resolve, Resolver404
 
 from ipware.ip import get_client_ip
 
@@ -25,7 +25,7 @@ class ThrottlingValidator:
             raise ThrottlingException(self.description)
 
     def _validate(self, request):
-        raise NotImplemented
+        raise NotImplementedError
 
     def __repr__(self):
         return '<{} (timeframe={}, throttle_at={}, description={})>'.format(

@@ -55,7 +55,7 @@ class BaseBackendWriter:
     def _call_receiver_method(self, signal_name, logger):
         try:
             getattr(self, signal_name)(logger)
-        except:
+        except:  # noqa: E722
             logging_logger.error(f'Cannot write log {signal_name} for writer {self._name}', exc_info=True)
 
     def _get_receiver(self, signal_name):

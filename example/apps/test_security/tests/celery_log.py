@@ -269,10 +269,7 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
     def test_data_change_should_be_connected_with_celery_task_run_log(self):
         with capture_security_logs() as logged_data:
             get_django_command_task('create_user').apply_async()
-            assert_equal(
-                list(logged_data.celery_task_run[0].related_objects)[0].version_set.get().content_type,
-                ContentType.objects.get_for_model(User)
-            )
+            assert_equal(logged_data.celery_task_run[0].extra_data, {'reversion': {'revision_id': not_none_eq_obj}})
 
     @override_settings(SECURITY_BACKEND_WRITERS={'sql'})
     @data_consumer('create_user')
