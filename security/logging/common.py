@@ -35,11 +35,6 @@ class SecurityLogger(ContextDecorator, local):
 
         if self.store:
             SecurityLogger.loggers.append(self)
-
-            if 'reversion' in django_settings.INSTALLED_APPS:
-                from reversion.signals import post_revision_commit
-
-                post_revision_commit.connect(self._post_revision_commit)
         self.backend_logs = AttrDict()
 
     def _get_parent_with_id(self):
@@ -69,20 +64,7 @@ class SecurityLogger(ContextDecorator, local):
             raise RuntimeError('Log already finished')
         else:
             SecurityLogger.loggers.pop()
-            if 'reversion' in django_settings.INSTALLED_APPS:
-                from reversion.signals import post_revision_commit
-
-                post_revision_commit.disconnect(self._post_revision_commit)
 
     @property
     def release(self):
         return settings.RELEASE
-
-    def _post_revision_commit(self, **kwargs):
-        """
-        Called as a post save of revision model of the reversion library.
-        If log context manager is active input logged request, command
-        log or celery task run log is joined with revision via related objects.
-        """
-        revision = kwargs['revision']
-        self.related_objects.add(revision)
