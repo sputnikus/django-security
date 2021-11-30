@@ -178,6 +178,11 @@ LOGGING = {
             'level': 'CRITICAL',
             'propagate': False,
         },
+        'security.task': {
+            'handlers': ['console'],
+            'level': 'CRITICAL',
+            'propagate': False,
+        },
     }
 }
 

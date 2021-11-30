@@ -12,6 +12,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.utils.timezone import utc
 from django.contrib.contenttypes.models import ContentType
 from django.utils.timezone import now
+from django.utils.module_loading import import_string
 
 from celery import current_app
 from celery.exceptions import NotRegistered
@@ -32,15 +33,12 @@ def lazy_serialize_qs_without_pk(qs):
     def generator():
         for obj in qs.iterator():
             data = serializers.serialize('python', [obj])[0]
-
-            del data['pk']
             yield data
 
     class StreamList(list):
         def __iter__(self):
             return generator()
 
-        # according to the comment below
         def __len__(self):
             return 1
 
@@ -392,20 +390,22 @@ class SQLBackendWriter(BaseBackendWriter):
                     )
 
     def clean_logs(self, type, timestamp, backup_path, stdout):
+        storage = import_string(settings.BACKUP_STORAGE_CLASS)()
+
         qs = get_log_model_from_logger_name(type).objects.filter(stop__lte=timestamp).order_by('stop')
-        for timestamp in qs.datetimes('start', 'day', tzinfo=utc):
-            min_timestamp = datetime.combine(timestamp, time.min).replace(tzinfo=utc)
-            max_timestamp = datetime.combine(timestamp, time.max).replace(tzinfo=utc)
-            qs_filtered_by_day = qs.filter(start__range=(min_timestamp, max_timestamp))
+        for step_timestamp in qs.datetimes('start', 'day', tzinfo=utc):
+            min_timestamp = datetime.combine(step_timestamp, time.min).replace(tzinfo=utc)
+            max_timestamp = datetime.combine(step_timestamp, time.max).replace(tzinfo=utc)
+            qs_filtered_by_day = qs.filter(stop__range=(min_timestamp, max_timestamp))
 
             for qs_batch in get_querysets_by_batch(qs_filtered_by_day, settings.PURGE_LOG_BACKUP_BATCH):
                 stdout.write(
                     2 * ' ' + 'Cleaning logs for date {} ({})'.format(
-                        timestamp.date(), qs_batch.count()
+                        step_timestamp.date(), qs_batch.count()
                     )
                 )
                 if backup_path:
-                    log_file_name = os.path.join(backup_path, str(timestamp.date()))
+                    log_file_name = os.path.join(backup_path, str(step_timestamp.date()))
 
                     if storage.exists('{}.json.gz'.format(log_file_name)):
                         i = 1
@@ -421,7 +421,7 @@ class SQLBackendWriter(BaseBackendWriter):
                             json.dump(
                                 lazy_serialize_qs_without_pk(qs_batch), gzf, cls=DjangoJSONEncoder, indent=5
                             )
-                stdout.write(4 * ' ' + 'deleting logs')
 
+                stdout.write(4 * ' ' + 'deleting logs')
                 for qs_batch_to_delete in get_querysets_by_batch(qs_batch, settings.PURGE_LOG_DELETE_BATCH):
                     qs_filtered_by_day.filter(pk__in=qs_batch_to_delete).delete()
