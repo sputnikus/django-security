@@ -20,7 +20,7 @@ class LoggingBackendWriter(BaseBackendWriter):
                 path=logger.data['path'],
             ),
             extra=dict(
-                input_request_id=logger.id,
+                id=logger.id,
                 input_request_host=logger.data['host'],
                 input_request_path=logger.data['path'],
                 input_request_method=logger.data['method'],
@@ -41,7 +41,7 @@ class LoggingBackendWriter(BaseBackendWriter):
                 path=logger.data['path'],
             ),
             extra=dict(
-                input_request_id=logger.id,
+                id=logger.id,
                 input_request_host=logger.data['host'],
                 input_request_path=logger.data['path'],
                 input_request_method=logger.data['method'],
@@ -66,7 +66,7 @@ class LoggingBackendWriter(BaseBackendWriter):
                 path=logger.data['path'],
             ),
             extra=dict(
-                input_request_id=logger.id,
+                id=logger.id,
                 input_request_host=logger.data['host'],
                 input_request_path=logger.data['path'],
                 input_request_method=logger.data['method'],
@@ -88,7 +88,7 @@ class LoggingBackendWriter(BaseBackendWriter):
                 path=logger.data['path'],
             ),
             extra=dict(
-                output_request_id=logger.id,
+                id=logger.id,
                 output_request_host=logger.data['host'],
                 output_request_path=logger.data['path'],
                 output_request_method=logger.data['method'],
@@ -107,7 +107,7 @@ class LoggingBackendWriter(BaseBackendWriter):
                 path=logger.data['path'],
             ),
             extra=dict(
-                output_request_id=logger.id,
+                id=logger.id,
                 output_request_host=logger.data['host'],
                 output_request_path=logger.data['path'],
                 output_request_method=logger.data['method'],
@@ -130,7 +130,7 @@ class LoggingBackendWriter(BaseBackendWriter):
                 path=logger.data['path'],
             ),
             extra=dict(
-                output_request_id=logger.id,
+                id=logger.id,
                 output_request_host=logger.data['host'],
                 output_request_path=logger.data['path'],
                 output_request_method=logger.data['method'],
@@ -151,7 +151,7 @@ class LoggingBackendWriter(BaseBackendWriter):
                 name=logger.data['name'],
             ),
             extra=dict(
-                command_id=logger.id,
+                id=logger.id,
                 command_name=logger.data['name'],
                 command_is_executed_from_command_line=logger.data['is_executed_from_command_line'],
                 command_start=logger.data['start'],
@@ -170,7 +170,7 @@ class LoggingBackendWriter(BaseBackendWriter):
                 name=logger.data['name'],
             ),
             extra=dict(
-                command_id=logger.id,
+                id=logger.id,
                 command_name=logger.data['name'],
                 command_is_executed_from_command_line=logger.data['is_executed_from_command_line'],
                 command_start=logger.data['start'],
@@ -189,7 +189,7 @@ class LoggingBackendWriter(BaseBackendWriter):
                 name=logger.data['name'],
             ),
             extra=dict(
-                command_id=logger.id,
+                id=logger.id,
                 command_name=logger.data['name'],
                 command_is_executed_from_command_line=logger.data['is_executed_from_command_line'],
                 command_start=logger.data['start'],
