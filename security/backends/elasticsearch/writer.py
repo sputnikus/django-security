@@ -53,17 +53,18 @@ def get_querysets_by_batch(qs, batch):
 
 class ElasticsearchBackendWriter(BaseBackendWriter):
 
-    def input_request_started(self, logger):
-        related_objects = [
+    def _get_related_object_keys(self, logger):
+        return [
             get_key_from_object(related_object) for related_object in logger.related_objects
         ]
 
+    def input_request_started(self, logger):
         input_request_log = InputRequestLog(
             slug=logger.slug,
             release=logger.release,
+            related_objects=self._get_related_object_keys(logger),
             extra_data=logger.extra_data,
             state=RequestLogState.INCOMPLETE,
-            related_objects=related_objects,
             parent_log=get_parent_log_key_or_none(logger),
             **logger.data
         )
@@ -76,6 +77,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
         if 'elasticsearch' in logger.backend_logs:
             logger.backend_logs.elasticsearch.update(
                 slug=logger.slug,
+                related_objects=self._get_related_object_keys(logger),
                 extra_data=logger.extra_data,
                 state=get_response_state(logger.data['response_code']),
                 refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
@@ -88,6 +90,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
         if 'elasticsearch' in logger.backend_logs:
             logger.backend_logs.elasticsearch.update(
                 slug=logger.slug,
+                related_objects=self._get_related_object_keys(logger),
                 extra_data=logger.extra_data,
                 refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
                 update_only_changed_fields=True,
@@ -96,15 +99,12 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             )
 
     def output_request_started(self, logger):
-        related_objects = [
-            get_key_from_object(related_object) for related_object in logger.related_objects
-        ]
         output_request_log = OutputRequestLog(
             slug=logger.slug,
             release=logger.release,
+            related_objects=self._get_related_object_keys(logger),
             extra_data=logger.extra_data,
             state=RequestLogState.INCOMPLETE,
-            related_objects=related_objects,
             update_only_changed_fields=True,
             parent_log=get_parent_log_key_or_none(logger),
             **logger.data
@@ -117,6 +117,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
         if 'elasticsearch' in logger.backend_logs:
             logger.backend_logs.elasticsearch.update(
                 slug=logger.slug,
+                related_objects=self._get_related_object_keys(logger),
                 extra_data=logger.extra_data,
                 state=get_response_state(logger.data['response_code']),
                 refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
@@ -129,6 +130,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
         if 'elasticsearch' in logger.backend_logs:
             logger.backend_logs.elasticsearch.update(
                 slug=logger.slug,
+                related_objects=self._get_related_object_keys(logger),
                 extra_data=logger.extra_data,
                 state=RequestLogState.ERROR,
                 refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
@@ -138,15 +140,12 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             )
 
     def command_started(self, logger):
-        related_objects = [
-            get_key_from_object(related_object) for related_object in logger.related_objects
-        ]
         command_log = CommandLog(
             slug=logger.slug,
             release=logger.release,
+            related_objects=self._get_related_object_keys(logger),
             extra_data=logger.extra_data,
             state=CommandState.ACTIVE,
-            related_objects=related_objects,
             parent_log=get_parent_log_key_or_none(logger),
             **logger.data
         )
@@ -168,6 +167,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
         if 'elasticsearch' in logger.backend_logs:
             logger.backend_logs.elasticsearch.update(
                 slug=logger.slug,
+                related_objects=self._get_related_object_keys(logger),
                 extra_data=logger.extra_data,
                 state=CommandState.SUCCEEDED,
                 refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
@@ -180,6 +180,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
         if 'elasticsearch' in logger.backend_logs:
             logger.backend_logs.elasticsearch.update(
                 slug=logger.slug,
+                related_objects=self._get_related_object_keys(logger),
                 extra_data=logger.extra_data,
                 state=CommandState.FAILED,
                 refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
@@ -189,15 +190,12 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             )
 
     def celery_task_invocation_started(self, logger):
-        related_objects = [
-            get_key_from_object(related_object) for related_object in logger.related_objects
-        ]
         celery_task_invocation_log = CeleryTaskInvocationLog(
             slug=logger.slug,
             release=logger.release,
+            related_objects=self._get_related_object_keys(logger),
             extra_data=logger.extra_data,
             state=CeleryTaskInvocationLogState.WAITING,
-            related_objects=related_objects,
             parent_log=get_parent_log_key_or_none(logger),
             **logger.data
         )
@@ -263,15 +261,12 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
                 )
 
     def celery_task_run_started(self, logger):
-        related_objects = [
-            get_key_from_object(related_object) for related_object in logger.related_objects
-        ]
         celery_task_run_log = CeleryTaskRunLog(
             slug=logger.slug,
             release=logger.release,
+            related_objects=self._get_related_object_keys(logger),
             extra_data=logger.extra_data,
             state=CeleryTaskRunLogState.ACTIVE,
-            related_objects=related_objects,
             parent_log=get_parent_log_key_or_none(logger),
             **logger.data
         )
@@ -284,6 +279,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             celery_task_run_log = logger.backend_logs.elasticsearch
             celery_task_run_log.update(
                 slug=logger.slug,
+                related_objects=self._get_related_object_keys(logger),
                 extra_data=logger.extra_data,
                 state=CeleryTaskRunLogState.SUCCEEDED,
                 refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
@@ -317,6 +313,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             celery_task_run_log = logger.backend_logs.elasticsearch
             celery_task_run_log.update(
                 slug=logger.slug,
+                related_objects=self._get_related_object_keys(logger),
                 extra_data=logger.extra_data,
                 state=CeleryTaskRunLogState.FAILED,
                 refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
@@ -349,6 +346,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
         if 'elasticsearch' in logger.backend_logs:
             logger.backend_logs.elasticsearch.update(
                 slug=logger.slug,
+                related_objects=self._get_related_object_keys(logger),
                 extra_data=logger.extra_data,
                 state=CeleryTaskRunLogState.RETRIED,
                 refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
