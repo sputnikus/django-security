@@ -1,6 +1,7 @@
 Django~=3.1
-django-germanium==2.2.13
-coverage==5.0.4
+django-germanium==2.3.0
+flake8
+coveralls
 django-reversion>=2.0.13
 responses==0.9.0
 celery==5.0.5

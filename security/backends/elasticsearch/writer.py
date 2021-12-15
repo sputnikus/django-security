@@ -21,6 +21,7 @@ from security.config import settings
 from security.enums import (
     RequestLogState, CeleryTaskInvocationLogState, CeleryTaskRunLogState, CommandState
 )
+from security.backends.common.helpers import get_parent_log_key_or_none
 from security.backends.writer import BaseBackendWriter
 
 from .models import (
@@ -63,11 +64,10 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             extra_data=logger.extra_data,
             state=RequestLogState.INCOMPLETE,
             related_objects=related_objects,
+            parent_log=get_parent_log_key_or_none(logger),
             **logger.data
         )
         input_request_log.meta.id = logger.id
-        if logger.parent_with_id:
-            input_request_log.parent_log = '{}|{}'.format(logger.parent_with_id.name, logger.parent_with_id.id)
 
         input_request_log.save()
         logger.backend_logs.elasticsearch = input_request_log
@@ -106,11 +106,10 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             state=RequestLogState.INCOMPLETE,
             related_objects=related_objects,
             update_only_changed_fields=True,
+            parent_log=get_parent_log_key_or_none(logger),
             **logger.data
         )
         output_request_log.meta.id = logger.id
-        if logger.parent_with_id:
-            output_request_log.parent_log = '{}|{}'.format(logger.parent_with_id.name, logger.parent_with_id.id)
         output_request_log.save()
         logger.backend_logs.elasticsearch = output_request_log
 
@@ -148,11 +147,10 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             extra_data=logger.extra_data,
             state=CommandState.ACTIVE,
             related_objects=related_objects,
+            parent_log=get_parent_log_key_or_none(logger),
             **logger.data
         )
         command_log.meta.id = logger.id
-        if logger.parent_with_id:
-            command_log.parent_log = '{}|{}'.format(logger.parent_with_id.name, logger.parent_with_id.id)
         command_log.save()
         logger.backend_logs.elasticsearch = command_log
 
@@ -200,12 +198,11 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             extra_data=logger.extra_data,
             state=CeleryTaskInvocationLogState.WAITING,
             related_objects=related_objects,
+            parent_log=get_parent_log_key_or_none(logger),
             **logger.data
         )
         celery_task_invocation_log.meta.id = logger.id
         celery_task_invocation_log.save()
-        if logger.parent_with_id:
-            celery_task_invocation_log.parent_log = '{}|{}'.format(logger.parent_with_id.name, logger.parent_with_id.id)
         logger.backend_logs.elasticsearch = celery_task_invocation_log
 
     def celery_task_invocation_triggered(self, logger):
@@ -275,11 +272,10 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             extra_data=logger.extra_data,
             state=CeleryTaskRunLogState.ACTIVE,
             related_objects=related_objects,
+            parent_log=get_parent_log_key_or_none(logger),
             **logger.data
         )
         celery_task_run_log.meta.id = logger.id
-        if logger.parent_with_id:
-            celery_task_run_log.parent_log = '{}|{}'.format(logger.parent_with_id.name, logger.parent_with_id.id)
         celery_task_run_log.save()
         logger.backend_logs.elasticsearch = celery_task_run_log
 

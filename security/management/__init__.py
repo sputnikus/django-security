@@ -18,6 +18,7 @@ def execute_from_command_line(argv=None):
 
             command_stdout = stdout
             command_stderr = stderr
+
             def command_init_patch(self, stdout=None, stderr=None, no_color=False, force_color=False):
                 stdout = command_stdout if stdout is None else stdout
                 stderr = command_stderr if stderr is None else stderr

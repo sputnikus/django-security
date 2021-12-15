@@ -1,7 +1,3 @@
-import sys
-
-from django.db.models.signals import pre_migrate, post_migrate
-
 from security.config import settings
 
 from . import db_helpers

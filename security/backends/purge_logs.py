@@ -1,6 +1,3 @@
-import os
-import math
-
 from datetime import timedelta
 
 from django.core.management.base import CommandError

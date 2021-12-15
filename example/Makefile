@@ -81,6 +81,12 @@ initenv:
 callcommand:
 	@$(PYTHON_BIN)/python manage.py $(command) $(DJANGO_POSTFIX)
 
+runservices:
+	docker run --name=security-elasticsearch -d -e "discovery.type=single-node" -e "xpack.security.enabled=false" -p 9200:9200 docker.elastic.co/elasticsearch/elasticsearch:7.14.0
+
+stopservices:
+	docker rm $$(docker stop $$(docker ps -a -q --filter="name=security-elasticsearch"))
+
 runserver:
 	$(PYTHON_BIN)/python manage.py runserver --insecure $(DJANGO_POSTFIX)
 

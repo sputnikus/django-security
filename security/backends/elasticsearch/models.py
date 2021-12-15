@@ -1,5 +1,7 @@
 import json
 
+from elasticsearch import NotFoundError
+
 from django.db import router
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth import get_user_model
@@ -74,10 +76,6 @@ class Log(Document):
         time = kwargs.get('time', self.time)
         if not time and start and stop:
             kwargs['time'] = (stop - start).total_seconds()
-
-    def update(self, **kwargs):
-        self._set_time(kwargs)
-        return super().update(**kwargs)
 
     def save(self, **kwargs):
         self._set_time(kwargs)
@@ -265,11 +263,13 @@ def get_log_model_from_logger_name(logger_name):
 
 
 def get_log_from_key(key):
-    logger_name, id = key.split('|')
-    return get_log_model_from_logger_name(logger_name).get(id=id)
+    try:
+        logger_name, id = key.split('|')
+        return get_log_model_from_logger_name(logger_name).get(id=id)
+    except NotFoundError:
+        return None
 
 
 def get_log_key(log):
     logger_name = {v: k for k, v in logger_name_to_log_model.items()}[log.__class__]
     return '{}|{}'.format(logger_name, log.meta.id)
-

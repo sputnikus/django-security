@@ -37,7 +37,7 @@ setup(
         'Topic :: Internet :: WWW/HTTP :: Site Management',
     ],
     install_requires=[
-        'django>=3.1',
+        'django>=3.1,<4.0',
         'django-ipware>=3.0.2',
         'ansi2html>=1.6.0',
         'django-chamber>=0.6.11',

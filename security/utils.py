@@ -4,7 +4,6 @@ from io import StringIO
 from time import time
 
 from django.core.exceptions import ImproperlyConfigured
-from django.db.transaction import get_connection
 from django.utils.timezone import now
 
 from .config import settings
@@ -22,7 +21,7 @@ def remove_nul_from_string(value):
 
 
 def is_atty_string(s):
-    return bool(re.search('^\\x1b\[\d+m$', s))
+    return bool(re.search(r'^' + re.escape('\x1b[') + r'\d+m$', s))
 
 
 class LogStringIO(StringIO):
@@ -121,4 +120,3 @@ def regex_sub_groups_global(pattern, repl, string):
             start, end = search.span(i)
             string = string[:start] + repl + string[end:]
     return string
-

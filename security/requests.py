@@ -1,13 +1,8 @@
-import itertools
 import traceback
-from urllib.parse import parse_qs, urlparse
 
-from requests import *
+from requests import *  # noqa: F403, F401
+from requests import Session, Request
 
-from django.utils import timezone
-from django.utils.encoding import force_text
-
-from security.config import settings
 from security.logging.requests.logger import OutputRequestLogger
 
 
@@ -62,7 +57,7 @@ def get(url, params=None, **kwargs):
     """Sends a GET request.
     :param url: URL for the new :class:`Request` object.
     :param params: (optional) Dictionary or bytes to be sent in the query string for the :class:`Request`.
-    :param \*\*kwargs: Optional arguments that ``request`` takes.
+    :param kwargs: Optional arguments that ``request`` takes.
     :return: :class:`Response <Response>` object
     :rtype: requests.Response
     """
@@ -74,7 +69,7 @@ def get(url, params=None, **kwargs):
 def options(url, **kwargs):
     """Sends a OPTIONS request.
     :param url: URL for the new :class:`Request` object.
-    :param \*\*kwargs: Optional arguments that ``request`` takes.
+    :param kwargs: Optional arguments that ``request`` takes.
     :return: :class:`Response <Response>` object
     :rtype: requests.Response
     """
@@ -86,7 +81,7 @@ def options(url, **kwargs):
 def head(url, **kwargs):
     """Sends a HEAD request.
     :param url: URL for the new :class:`Request` object.
-    :param \*\*kwargs: Optional arguments that ``request`` takes.
+    :param kwargs: Optional arguments that ``request`` takes.
     :return: :class:`Response <Response>` object
     :rtype: requests.Response
     """
@@ -100,7 +95,7 @@ def post(url, data=None, json=None, **kwargs):
     :param url: URL for the new :class:`Request` object.
     :param data: (optional) Dictionary, bytes, or file-like object to send in the body of the :class:`Request`.
     :param json: (optional) json data to send in the body of the :class:`Request`.
-    :param \*\*kwargs: Optional arguments that ``request`` takes.
+    :param kwargs: Optional arguments that ``request`` takes.
     :return: :class:`Response <Response>` object
     :rtype: requests.Response
     """
@@ -112,7 +107,7 @@ def put(url, data=None, **kwargs):
     """Sends a PUT request.
     :param url: URL for the new :class:`Request` object.
     :param data: (optional) Dictionary, bytes, or file-like object to send in the body of the :class:`Request`.
-    :param \*\*kwargs: Optional arguments that ``request`` takes.
+    :param kwargs: Optional arguments that ``request`` takes.
     :return: :class:`Response <Response>` object
     :rtype: requests.Response
     """
@@ -124,7 +119,7 @@ def patch(url, data=None, **kwargs):
     """Sends a PATCH request.
     :param url: URL for the new :class:`Request` object.
     :param data: (optional) Dictionary, bytes, or file-like object to send in the body of the :class:`Request`.
-    :param \*\*kwargs: Optional arguments that ``request`` takes.
+    :param kwargs: Optional arguments that ``request`` takes.
     :return: :class:`Response <Response>` object
     :rtype: requests.Response
     """
@@ -135,7 +130,7 @@ def patch(url, data=None, **kwargs):
 def delete(url, **kwargs):
     """Sends a DELETE request.
     :param url: URL for the new :class:`Request` object.
-    :param \*\*kwargs: Optional arguments that ``request`` takes.
+    :param kwargs: Optional arguments that ``request`` takes.
     :return: :class:`Response <Response>` object
     :rtype: requests.Response
     """
