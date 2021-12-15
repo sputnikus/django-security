@@ -11,7 +11,7 @@ class LogDjangoModelResourceMixin:
             update_logged_request_data(self.request, related_objects=[obj])
 
     def _get_obj_or_404(self, pk=None):
-        obj = self._get_obj_or_404(pk)
+        obj = super()._get_obj_or_404(pk)
         if self.log_get_obj:
             update_logged_request_data(self.request, related_objects=[obj])
         return obj
