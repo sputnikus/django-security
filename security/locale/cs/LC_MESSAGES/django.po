@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-12-06 14:10+0100\n"
+"POT-Creation-Date: 2021-12-15 18:39+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -281,8 +281,7 @@ msgstr "zpracování celery úlohy"
 msgid "related logs"
 msgstr "vztažené logy"
 
-#: backends/elasticsearch/is_core/__init__.py:68
-#: backends/sql/is_core/__init__.py:73
+#: backends/elasticsearch/is_core/cores.py:68 backends/sql/is_core/cores.py:73
 msgid "user"
 msgstr "uživatel"
 
@@ -291,7 +290,7 @@ msgid "Invalid value. Please use one of the following values: {}."
 msgstr "Neplatná hodnota. Prosím použijte jednu z následujících hodnot: {}."
 
 #: backends/elasticsearch/is_core/filters.py:82
-#: backends/sql/is_core/filters.py:45
+#: backends/sql/is_core/filters.py:44
 msgid "Invalid value."
 msgstr "Neplatná hodnota."
 
