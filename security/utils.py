@@ -120,3 +120,14 @@ def regex_sub_groups_global(pattern, repl, string):
             start, end = search.span(i)
             string = string[:start] + repl + string[end:]
     return string
+
+
+def update_logged_request_data(request, related_objects=None, slug=None, extra_data=None):
+    input_request_logger = getattr(request, 'input_request_logger', None)
+    if input_request_logger:
+        if related_objects:
+            input_request_logger.add_related_objects(related_objects)
+        if slug:
+            input_request_logger.set_slug(slug)
+        if extra_data:
+            input_request_logger.update_extra_data(extra_data)

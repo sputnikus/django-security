@@ -11,14 +11,14 @@ from is_core.generic_views.inlines.inline_table_views import DjangoModelInlineTa
 from security.backends.common.is_core import (
     LogCoreMixin, ChildLogTableViewMixin, InputRequestLogCoreMixin, OutputRequestLogCoreMixin,
     CommandLogCoreMixin, CeleryTaskInvocationLogInlineTableViewMixin, CeleryTaskRunLogInlineTableViewMixin,
-    CeleryTaskRunLogCoreMixin, CeleryTaskInvocationLogCoreMixin
+    CeleryTaskRunLogCoreMixin, CeleryTaskInvocationLogCoreMixin, BaseRelatedLogsView, RelatedLogInlineTableViewMixin
 )
 from security.backends.sql.models import (
     CommandLog, InputRequestLog, OutputRequestLog, CeleryTaskInvocationLog, CeleryTaskRunLog, get_log_from_key,
     get_log_key
 )
 
-from .filters import UsernameUserFilter
+from .filters import UsernameUserFilter, RelatedObjectsFilter
 
 
 class ChildLogTableView(ChildLogTableViewMixin, DjangoModelInlineTableView):
@@ -49,6 +49,8 @@ class LogCore(LogCoreMixin, DjangoModelUiRestCore):
     output_request_inline_table_view = OutputRequestLogInlineTableView
     command_inline_table_view = CommandLogInlineTableView
     celery_task_invocation_inline_table_view = CeleryTaskInvocationLogInlineTableView
+
+    display_related_objects_filter = RelatedObjectsFilter
 
     def _get_parent_log_obj(self, obj):
         return get_log_from_key(obj.parent_log) if obj.parent_log else None
@@ -112,3 +114,37 @@ class CeleryTaskInvocationLogCore(CeleryTaskInvocationLogCoreMixin, LogCore):
     model = CeleryTaskInvocationLog
 
     celery_task_run_inline_table_view = CeleryTaskRunLogInlineTableView
+
+
+class RelatedInputRequestLogInlineTableView(RelatedLogInlineTableViewMixin, DjangoModelInlineTableView):
+
+    model = InputRequestLog
+
+
+class RelatedOutputRequestLogInlineTableView(RelatedLogInlineTableViewMixin, DjangoModelInlineTableView):
+
+    model = OutputRequestLog
+
+
+class RelatedCommandLogInlineTableView(RelatedLogInlineTableViewMixin, DjangoModelInlineTableView):
+
+    model = CommandLog
+
+
+class RelatedCeleryTaskInvocationLogInlineTableView(RelatedLogInlineTableViewMixin, DjangoModelInlineTableView):
+
+    model = CeleryTaskInvocationLog
+
+
+class RelatedCeleryTaskRunLogInlineTableView(RelatedLogInlineTableViewMixin, DjangoModelInlineTableView):
+
+    model = CeleryTaskRunLog
+
+
+class RelatedLogsView(BaseRelatedLogsView):
+
+    input_request_inline_view = RelatedInputRequestLogInlineTableView
+    output_request_inline_view = RelatedOutputRequestLogInlineTableView
+    command_inline_view = RelatedCommandLogInlineTableView
+    celery_task_run_inline_view = RelatedCeleryTaskInvocationLogInlineTableView
+    celery_task_invocation_inline_view = RelatedCeleryTaskRunLogInlineTableView

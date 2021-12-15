@@ -190,7 +190,7 @@ class SQLBackendWriter(BaseBackendWriter):
 
     def celery_task_invocation_triggered(self, logger):
         if 'sql' in logger.backend_logs:
-            celery_task_invocation_log = change_and_save(
+            change_and_save(
                 logger.backend_logs.sql,
                 slug=logger.slug,
                 state=CeleryTaskInvocationLogState.TRIGGERED,
@@ -198,11 +198,10 @@ class SQLBackendWriter(BaseBackendWriter):
                 update_only_changed_fields=True,
                 **logger.data
             )
-            celery_task_invocation_log.related_objects.add(*logger.related_objects)
 
     def celery_task_invocation_ignored(self, logger):
         if 'sql' in logger.backend_logs:
-            celery_task_invocation_log = change_and_save(
+            change_and_save(
                 logger.backend_logs.sql,
                 slug=logger.slug,
                 state=CeleryTaskInvocationLogState.IGNORED,
@@ -210,11 +209,10 @@ class SQLBackendWriter(BaseBackendWriter):
                 update_only_changed_fields=True,
                 **logger.data
             )
-            celery_task_invocation_log.related_objects.add(*logger.related_objects)
 
     def celery_task_invocation_timeout(self, logger):
         if 'sql' in logger.backend_logs:
-            celery_task_invocation_log = change_and_save(
+            change_and_save(
                 logger.backend_logs.sql,
                 slug=logger.slug,
                 state=CeleryTaskInvocationLogState.TIMEOUT,
@@ -222,7 +220,6 @@ class SQLBackendWriter(BaseBackendWriter):
                 update_only_changed_fields=True,
                 **logger.data
             )
-            celery_task_invocation_log.related_objects.add(*logger.related_objects)
 
     def celery_task_invocation_expired(self, logger):
         celery_task_invocation_log = CeleryTaskInvocationLog.objects.update_or_create(
@@ -240,7 +237,6 @@ class SQLBackendWriter(BaseBackendWriter):
             state=CeleryTaskRunLogState.EXPIRED,
             stop=logger.data['stop']
         )
-        celery_task_invocation_log.related_objects.add(*logger.related_objects)
 
     def celery_task_run_started(self, logger):
         celery_task_run_log = CeleryTaskRunLog(

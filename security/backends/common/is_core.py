@@ -2,6 +2,7 @@ import json
 
 from ansi2html import Ansi2HTMLConverter
 
+from django.contrib.contenttypes.models import ContentType
 from django.template.defaultfilters import truncatechars
 from django.utils.translation import ugettext_lazy as _
 from django.utils.html import mark_safe
@@ -10,6 +11,7 @@ from chamber.shortcuts import get_object_or_none
 
 from pyston.utils.decorators import filter_by, order_by
 
+from is_core.generic_views.detail_views import DjangoReadonlyDetailView
 from is_core.utils import display_code, render_model_object_with_link, render_model_objects_with_link
 from is_core.utils.decorators import short_description
 
@@ -76,6 +78,16 @@ class ChildLogTableViewMixin:
         }
 
 
+class RelatedLogInlineTableViewMixin:
+
+    def _get_list_filter(self):
+        return {
+            'filter': {
+                'display_related_objects__in': self.parent_view.get_related_obj_keys(self.parent_instance)
+            }
+        }
+
+
 class CeleryTaskInvocationLogInlineTableViewMixin:
 
     fields = (
@@ -119,6 +131,16 @@ class LogCoreMixin:
     output_request_inline_table_view = None
     command_inline_table_view = None
     celery_task_invocation_inline_table_view = None
+
+    display_related_objects_filter = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls.display_related_objects_filter is not None:
+            cls.display_related_objects.filter = cls.display_related_objects_filter
+            cls.rest_extra_filter_fields = list(cls.rest_extra_filter_fields or ()) + [
+                'display_related_objects',
+            ]
+        return super().__new__(cls)
 
     @short_description(_('error message'))
     @filter_by('error_message')
@@ -442,3 +464,44 @@ class CeleryTaskInvocationLogCoreMixin(CeleryCoreMixin, LogCoreMixin):
                 ),
             }),
         )
+
+
+class BaseRelatedLogsView(DjangoReadonlyDetailView):
+
+    input_request_inline_view = None
+    output_request_inline_view = None
+    command_inline_view = None
+    celery_task_run_inline_view = None
+    celery_task_invocation_inline_view = None
+
+    show_input_request = show_output_request = show_command = show_celery_task_run = show_celery_task_invocation = True
+
+    title = _('related logs')
+
+    inline_view_labels = {
+        'input_request': _('input request logs'),
+        'output_request': _('output request logs'),
+        'command': _('command logs'),
+        'celery_task_run': _('celery task run logs'),
+        'celery_task_invocation': _('celery task invocation logs'),
+    }
+
+    def get_fieldsets(self):
+        fieldsets = []
+        for view_name, label in self.inline_view_labels.items():
+            show_inline_view = getattr(self, f'show_{view_name}')
+            inline_view_class = getattr(self, f'{view_name}_inline_view')
+            if show_inline_view and inline_view_class:
+                fieldsets.append((
+                    label, {'inline_view': inline_view_class}
+                ))
+        return fieldsets
+
+    def _get_obj_key(self, obj):
+        return f'{ContentType.objects.get_for_model(obj).pk}|{obj.pk}'
+
+    def _get_related_objs(self, obj):
+        return [obj]
+
+    def get_related_obj_keys(self, obj):
+        return [self._get_obj_key(o) for o in self._get_related_objs(obj)]
