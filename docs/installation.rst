@@ -123,12 +123,14 @@ The second solution is have second storage for logs in this case you will use ``
 Elasticsearch backend
 ---------------------
 
-Elasticsearch backend can be configured via ``SECURITY_ELASTICSEARCH_DATABASE`` varibale::
+Elasticsearch backend can be configured via ``SECURITY_ELASTICSEARCH_DATABASE`` variable::
 
     SECURITY_ELASTICSEARCH_DATABASE = {
         'host': 'localhost',
     }
 
+
+For elasticsearch database initialization you must run ``./manage.py init_elasticsearch_log`` command.
 
 Testing backend
 ---------------

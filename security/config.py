@@ -16,7 +16,7 @@ DEFAULTS = {
     'LOG_JSON_STRING_LENGTH': 250,
     'COMMAND_LOG_EXCLUDED_COMMANDS': (
         'runserver', 'makemigrations', 'migrate', 'sqlmigrate', 'showmigrations', 'shell', 'shell_plus', 'test',
-        'help', 'reset_db', 'compilemessages', 'makemessages', 'dumpdata', 'loaddata'
+        'help', 'reset_db', 'compilemessages', 'makemessages', 'dumpdata', 'loaddata', 'init_elasticsearch_log'
     ),
     'HIDE_SENSITIVE_DATA': True,
     'HIDE_SENSITIVE_DATA_PATTERNS': {
