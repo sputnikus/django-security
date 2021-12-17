@@ -43,6 +43,7 @@ class SecurityLogger(ContextDecorator, local):
 
                 post_revision_commit.connect(self._post_revision_commit, weak=False)
         self.backend_logs = AttrDict()
+        self.stream = None
 
     def _get_parent_with_id(self):
         parent = self.parent
@@ -99,3 +100,10 @@ class SecurityLogger(ContextDecorator, local):
                 'id': kwargs['revision_id'] if 'revision_id' in kwargs else kwargs['revision'].id
             })
         reversion_data['total_count'] += 1
+
+
+def get_last_logger(name):
+    for logger in SecurityLogger.loggers[::-1]:
+        if logger.name == name:
+            return logger
+    return None

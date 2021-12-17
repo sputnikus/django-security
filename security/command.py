@@ -3,6 +3,13 @@ import sys
 import traceback
 
 from security.config import settings
+from security.enums import LoggerName
+from security.logging.common import get_last_logger
+
+
+def get_command_stream():
+    last_command_logger = get_last_logger(LoggerName.COMMAND)
+    return last_command_logger.stream if last_command_logger is not None else sys.stdout
 
 
 class CommandExecutor:
@@ -48,6 +55,7 @@ class CommandExecutor:
             self.output = LogStringIO(
                 flush_callback=lambda output_stream: command_logger.log_output_updated(output_stream.getvalue())
             )
+            command_logger.stream = self.output
             stdout = TeeStringIO(self.stdout, self.output)
             stderr = TeeStringIO(self.stderr, self.output)
             try:
