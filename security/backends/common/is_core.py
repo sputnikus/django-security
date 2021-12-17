@@ -162,8 +162,8 @@ class LogCoreMixin:
     def display_related_objects(self, obj, request):
         return render_model_objects_with_link(request, self._get_related_objects(obj))
 
-    @short_description(_('revision'))
-    def revision(self, obj, request):
+    @short_description(_('revisions'))
+    def revisions(self, obj, request):
         try:
             from reversion.models import get_revision_or_none
         except ImportError:
@@ -174,10 +174,19 @@ class LogCoreMixin:
                 except ImportError:
                     return None
 
-        revision = (
-            get_revision_or_none(obj.extra_data['reversion']['revision_id']) if 'reversion' in obj.extra_data else None
-        )
-        return render_model_object_with_link(request, revision) if revision else None
+        if 'reversion' in obj.extra_data:
+            reversion_data = obj.extra_data['reversion']
+            revisions_display = []
+            for revision_data in reversion_data['revisions']:
+                revision_obj = get_revision_or_none(revision_data['id'])
+                revision_with_link = render_model_object_with_link(request, revision_obj) if revision_obj else None
+                if revision_with_link:
+                    revisions_display.append(revision_with_link)
+            if len(reversion_data['revisions']) != reversion_data['total_count']:
+                revisions_display.append('…')
+            return revisions_display
+        else:
+            return None
 
 
 class RequestLogCoreMixin(LogCoreMixin):
@@ -270,7 +279,7 @@ class InputRequestLogCoreMixin(RequestLogCoreMixin):
             (_('relations'), {
                 'fieldsets': (
                     (None, {'fields': (
-                        'revision', 'display_source', 'display_related_objects'
+                        'revisions', 'display_source', 'display_related_objects'
                     )}),
                     (_('output requests'), {'inline_view': self.output_request_inline_table_view}),
                     (_('commands'), {'inline_view': self.command_inline_table_view}),
@@ -357,7 +366,7 @@ class CommandLogCoreMixin(OutputLogCoreMixin, LogCoreMixin):
             (_('relations'), {
                 'fieldsets': (
                     (None, {'fields': (
-                        'revision', 'display_source', 'display_related_objects'
+                        'revisions', 'display_source', 'display_related_objects'
                     )}),
                     (_('output requests'), {'inline_view': self.output_request_inline_table_view}),
                     (_('commands'), {'inline_view': self.command_inline_table_view}),
@@ -413,7 +422,7 @@ class CeleryTaskRunLogCoreMixin(OutputLogCoreMixin, CeleryCoreMixin, LogCoreMixi
             (_('relations'), {
                 'fieldsets': (
                     (None, {'fields': (
-                        'revision', 'display_related_objects',
+                        'revisions', 'display_related_objects',
                     )}),
                     (_('output requests'), {'inline_view': self.output_request_inline_table_view}),
                     (_('commands'), {'inline_view': self.command_inline_table_view}),

@@ -90,8 +90,12 @@ class SecurityLogger(ContextDecorator, local):
         If log context manager is active input logged request, command
         log or celery task run log is joined with revision via related objects.
         """
-        self.update_extra_data({
-            'reversion': {
-                'revision_id': kwargs['revision_id'] if 'revision_id' in kwargs else kwargs['revision'].id
-            }
+        reversion_data = self._extra_data['reversion'] = self._extra_data.get('reversion', {
+            'revisions': [],
+            'total_count': 0
         })
+        if reversion_data['total_count'] < settings.LOG_MAX_REVISIONS_COUNT:
+            reversion_data['revisions'].append({
+                'id': kwargs['revision_id'] if 'revision_id' in kwargs else kwargs['revision'].id
+            })
+        reversion_data['total_count'] += 1

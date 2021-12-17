@@ -43,8 +43,7 @@ jobs:
         flake8 --config .config/flake8 security
     - name: Run Tests
       run: |
-        cd example
-        coverage run --omit */site-packages/*,*/migrations/*,*/lib/* manage.py test apps.test_security.tests --settings=settings.settings -v 2
+        coverage run --omit */site-packages/*,*/migrations/*,*/lib/* example/manage.py test apps.test_security.tests --settings=settings.settings -v 2
     - name: Coveralls
       uses: AndreMiras/coveralls-python-action@develop
       with:
