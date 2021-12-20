@@ -9,7 +9,7 @@ class ConnectionHandler:
 
     connection = None
 
-    def connect(self):
+    def connect(self, init_documents):
         if not self.connection:
             if not settings.ELASTICSEARCH_DATABASE:
                 raise ImproperlyConfigured('You must set "SECURITY_ELASTICSEARCH_DATABASE" setting')
@@ -17,7 +17,8 @@ class ConnectionHandler:
             connection.connection = connections.create_connection(
                 **settings.ELASTICSEARCH_DATABASE
             )
-            self.init_documents()
+            if init_documents:
+                self.init_documents()
 
     def init_documents(self):
         from security.backends.elasticsearch.models import (
@@ -31,5 +32,5 @@ class ConnectionHandler:
 connection = ConnectionHandler()
 
 
-def set_connection():
-    connection.connect()
+def set_connection(init_documents=True):
+    connection.connect(init_documents)
