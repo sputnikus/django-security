@@ -80,7 +80,7 @@ class UnsuccessfulLoginThrottlingValidator(LoginThrottlingValidator):
 
 class SuccessfulLoginThrottlingValidator(LoginThrottlingValidator):
 
-    type = InputRequestSlug.SUCCESSFUL_LOGIN_REQUEST
+    slug = InputRequestSlug.SUCCESSFUL_LOGIN_REQUEST
 
     def __init__(self, timeframe, throttle_at, description=_('You have logged in too many times')):
         super().__init__(timeframe, throttle_at, description)
@@ -88,7 +88,7 @@ class SuccessfulLoginThrottlingValidator(LoginThrottlingValidator):
 
 class UnSuccessfulTwoFactorCodeVerificationThrottlingValidator(LoginThrottlingValidator):
 
-    type = InputRequestSlug.UNSUCCESSFUL_2FA_CODE_VERIFICATION_REQUEST
+    slug = InputRequestSlug.UNSUCCESSFUL_2FA_CODE_VERIFICATION_REQUEST
 
     def __init__(self, timeframe, throttle_at, description=_('Too many login attempts')):
         super().__init__(timeframe, throttle_at, description)
@@ -96,7 +96,7 @@ class UnSuccessfulTwoFactorCodeVerificationThrottlingValidator(LoginThrottlingVa
 
 class SuccessfulTwoFactorCodeVerificationThrottlingValidator(LoginThrottlingValidator):
 
-    type = InputRequestSlug.SUCCESSFUL_2FA_CODE_VERIFICATION_REQUEST
+    slug = InputRequestSlug.SUCCESSFUL_2FA_CODE_VERIFICATION_REQUEST
 
     def __init__(self, timeframe, throttle_at, description=_('You have logged in too many times')):
         super().__init__(timeframe, throttle_at, description)
