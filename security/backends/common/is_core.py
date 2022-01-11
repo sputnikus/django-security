@@ -142,6 +142,18 @@ class LogCoreMixin:
             ]
         return super().__new__(cls)
 
+    @filter_by('id')
+    @order_by('id')
+    @short_description(_('short ID'))
+    def short_id(self, obj):
+        return obj.short_id
+
+    @filter_by('slug')
+    @order_by('slug')
+    @short_description(_('short slug'))
+    def short_slug(self, obj):
+        return truncatechars(obj.slug, 20) if obj.slug is not None else None
+
     @short_description(_('error message'))
     @filter_by('error_message')
     def error_message_code(self, obj):
@@ -253,9 +265,9 @@ class InputRequestLogCoreMixin(RequestLogCoreMixin):
     menu_group = 'inputrequestlog'
 
     list_fields = (
-        'id', 'start', 'stop', 'release', 'slug', 'view_slug', 'host', 'short_path', 'state', 'time', 'method',
-        'short_queries', 'response_code', 'short_request_headers', 'short_request_body', 'short_response_headers',
-        'short_response_body', 'user', 'ip',
+        'short_id', 'start', 'stop', 'time', 'view_slug', 'response_code', 'state', 'method', 'host', 'short_path',
+        'user', 'short_request_body', 'short_response_body', 'short_queries', 'short_request_headers',
+        'short_response_headers', 'ip', 'release', 'short_slug',
     )
 
     verbose_name = _('input request log')
@@ -302,8 +314,9 @@ class OutputRequestLogCoreMixin(RequestLogCoreMixin):
     menu_group = 'outputrequestlog'
 
     list_fields = (
-        'id', 'start', 'stop', 'release', 'slug', 'host', 'short_path', 'state', 'time', 'method', 'short_queries',
-        'response_code', 'short_request_headers', 'short_request_body', 'short_response_headers', 'short_response_body'
+        'short_id', 'start', 'stop', 'time', 'response_code', 'state', 'method', 'host', 'short_path',
+        'short_request_body', 'short_response_headers', 'short_queries', 'short_request_headers', 'short_response_body',
+        'release'
     )
 
     fieldsets = (
@@ -344,7 +357,7 @@ class CommandLogCoreMixin(OutputLogCoreMixin, LogCoreMixin):
     menu_group = 'commandlog'
 
     list_fields = (
-        'id', 'start', 'stop', 'release', 'slug', 'name', 'state', 'time'
+        'short_id', 'start', 'stop', 'time', 'name', 'state', 'release', 'short_slug'
     )
 
     verbose_name = _('command log')
@@ -397,10 +410,11 @@ class CeleryTaskRunLogCoreMixin(OutputLogCoreMixin, CeleryCoreMixin, LogCoreMixi
 
     menu_group = 'celerytaskrunlog'
 
-    rest_fields = list_fields = (
-        'id', 'start', 'stop', 'release', 'slug', 'celery_task_id', 'name', 'state', 'waiting_time', 'time',
-        'short_input', 'queue_name'
+    list_fields = (
+        'short_id', 'start', 'stop', 'time', 'name', 'state', 'short_input', 'queue_name', 'celery_task_id',
+        'waiting_time', 'release', 'short_slug'
     )
+    rest_fields = list_fields + ('id',)
 
     verbose_name = _('celery task run log')
     verbose_name_plural = _('celery task run logs')
@@ -440,10 +454,11 @@ class CeleryTaskInvocationLogCoreMixin(CeleryCoreMixin, LogCoreMixin):
 
     menu_group = 'celerytaskinvocationlog'
 
-    rest_fields = list_fields = (
-        'id', 'start', 'stop', 'release', 'slug', 'celery_task_id', 'name', 'state_with_duplicate', 'time',
-        'short_input', 'queue_name'
+    list_fields = (
+        'short_id', 'start', 'stop', 'time', 'name', 'state_with_duplicate', 'short_input', 'queue_name',
+        'is_duplicate', 'celery_task_id', 'release', 'short_slug'
     )
+    rest_fields = list_fields + ('id',)
 
     celery_task_run_inline_table_view = None
 

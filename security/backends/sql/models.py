@@ -13,6 +13,10 @@ from chamber.models import SmartQuerySet
 
 from enumfields import IntegerEnumField
 
+from security.backends.common.mixins import (
+    CeleryTaskInvocationLogStrMixin, CeleryTaskRunLogStrMixin, CommandLogStrMixin, InputRequestLogStrMixin,
+    LogShortIdMixin, OutputRequestLogStrMixin
+)
 from security.enums import (
     LoggerName, RequestLogState, CeleryTaskInvocationLogState, CeleryTaskRunLogState, CommandState
 )
@@ -27,7 +31,7 @@ class BaseLogQuerySet(SmartQuerySet):
         )
 
 
-class Log(models.Model):
+class Log(LogShortIdMixin, models.Model):
 
     id = models.UUIDField(
         null=False,
@@ -163,7 +167,7 @@ class RequestLog(Log):
         abstract = True
 
 
-class InputRequestLog(RequestLog):
+class InputRequestLog(InputRequestLogStrMixin, RequestLog):
 
     user_id = models.TextField(
         null=True,
@@ -193,7 +197,7 @@ class InputRequestLog(RequestLog):
         return get_user_model().objects.filter(pk=self.user_id).first()
 
 
-class OutputRequestLog(RequestLog):
+class OutputRequestLog(OutputRequestLogStrMixin, RequestLog):
 
     related_objects = MultipleDBGenericManyToManyField()
 
@@ -206,7 +210,7 @@ class OutputRequestLog(RequestLog):
         is_cleaned_pre_save = False
 
 
-class CommandLog(Log):
+class CommandLog(CommandLogStrMixin, Log):
     """
     Represents a log of a command run.
 
@@ -291,7 +295,7 @@ class CeleryTaskInvocationLogManager(models.Manager):
         return qs
 
 
-class CeleryTaskInvocationLog(Log):
+class CeleryTaskInvocationLog(CeleryTaskInvocationLogStrMixin, Log):
 
     celery_task_id = models.UUIDField(
         max_length=250,
@@ -385,7 +389,7 @@ class CeleryTaskInvocationLog(Log):
         return CeleryTaskRunLog.objects.filter(celery_task_id=self.celery_task_id).last()
 
 
-class CeleryTaskRunLog(Log):
+class CeleryTaskRunLog(CeleryTaskRunLogStrMixin, Log):
 
     celery_task_id = models.UUIDField(
         max_length=250,
