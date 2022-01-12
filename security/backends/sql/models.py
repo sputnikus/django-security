@@ -11,7 +11,7 @@ from generic_m2m_field.models import MultipleDBGenericManyToManyField
 
 from chamber.models import SmartQuerySet
 
-from enumfields import NumEnumField
+from enumfields import IntegerEnumField
 
 from security.enums import (
     LoggerName, RequestLogState, CeleryTaskInvocationLogState, CeleryTaskRunLogState, CommandState
@@ -141,7 +141,7 @@ class RequestLog(Log):
         blank=True
     )
 
-    state = NumEnumField(
+    state = IntegerEnumField(
         enum=RequestLogState,
         null=False,
         blank=False,
@@ -243,7 +243,7 @@ class CommandLog(Log):
         null=True,
         editable=False
     )
-    state = NumEnumField(
+    state = IntegerEnumField(
         null=False,
         blank=False,
         enum=CommandState,
@@ -354,7 +354,7 @@ class CeleryTaskInvocationLog(Log):
         null=True,
         blank=True
     )
-    state = NumEnumField(
+    state = IntegerEnumField(
         null=False,
         blank=False,
         enum=CeleryTaskInvocationLogState,
@@ -421,7 +421,7 @@ class CeleryTaskRunLog(Log):
         editable=False,
         encoder=DjangoJSONEncoder
     )
-    state = NumEnumField(
+    state = IntegerEnumField(
         null=False,
         blank=False,
         enum=CeleryTaskRunLogState,

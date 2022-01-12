@@ -2,10 +2,10 @@ from django.utils.translation import ugettext_lazy as _
 
 from enum import Enum
 
-from enumfields import Choice, ChoiceEnum
+from enumfields import Choice, IntegerChoicesEnum
 
 
-class RequestLogState(ChoiceEnum):
+class RequestLogState(IntegerChoicesEnum):
 
     INCOMPLETE = Choice(0, _('Incomplete'))
     DEBUG = Choice(10, _('Debug'))
@@ -14,14 +14,14 @@ class RequestLogState(ChoiceEnum):
     ERROR = Choice(40, _('Error'))
 
 
-class CommandState(ChoiceEnum):
+class CommandState(IntegerChoicesEnum):
 
     ACTIVE = Choice(1, _('Active'))
     SUCCEEDED = Choice(2, _('Succeeded'))
     FAILED = Choice(3, _('Failed'))
 
 
-class CeleryTaskInvocationLogState(ChoiceEnum):
+class CeleryTaskInvocationLogState(IntegerChoicesEnum):
 
     WAITING = Choice(1, _('Waiting'))
     TRIGGERED = Choice(7, _('Triggered'))
@@ -33,7 +33,7 @@ class CeleryTaskInvocationLogState(ChoiceEnum):
     IGNORED = Choice(9, _('Ignored'))
 
 
-class CeleryTaskRunLogState(ChoiceEnum):
+class CeleryTaskRunLogState(IntegerChoicesEnum):
 
     ACTIVE = Choice(1, _('Active'))
     SUCCEEDED = Choice(2, _('Succeeded'))

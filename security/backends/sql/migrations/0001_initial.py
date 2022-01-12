@@ -44,8 +44,9 @@ class Migration(migrations.Migration):
                  models.DateTimeField(blank=True, null=True)),
                 ('expires_at', models.DateTimeField(blank=True, null=True)),
                 ('stale_at', models.DateTimeField(blank=True, null=True)),
-                ('state', enumfields.fields.NumEnumField(db_index=True, default=1,
-                                                         enum=security.enums.CeleryTaskInvocationLogState)),
+                ('state', enumfields.fields.IntegerEnumField(
+                    db_index=True, default=1, enum=security.enums.CeleryTaskInvocationLogState
+                )),
             ],
             options={
                 'ordering': ('-created_at',),
@@ -71,8 +72,9 @@ class Migration(migrations.Migration):
                 ('task_kwargs',
                  models.JSONField(blank=True, editable=False, encoder=django.core.serializers.json.DjangoJSONEncoder,
                                   null=True)),
-                ('state',
-                 enumfields.fields.NumEnumField(db_index=True, default=1, enum=security.enums.CeleryTaskRunLogState)),
+                ('state', enumfields.fields.IntegerEnumField(
+                    db_index=True, default=1, enum=security.enums.CeleryTaskRunLogState)
+                 ),
                 ('result',
                  models.JSONField(blank=True, editable=False, encoder=django.core.serializers.json.DjangoJSONEncoder,
                                   null=True)),
@@ -101,7 +103,9 @@ class Migration(migrations.Migration):
                 ('is_executed_from_command_line',
                  models.BooleanField(default=False, editable=False)),
                 ('output', models.TextField(blank=True, editable=False, null=True)),
-                ('state', enumfields.fields.NumEnumField(db_index=True, default=1, enum=security.enums.CommandState)),
+                ('state', enumfields.fields.IntegerEnumField(
+                    db_index=True, default=1, enum=security.enums.CommandState
+                )),
                 ('error_message', models.TextField(blank=True, editable=False, null=True)),
             ],
             options={
@@ -132,7 +136,7 @@ class Migration(migrations.Migration):
                  models.JSONField(blank=True, encoder=django.core.serializers.json.DjangoJSONEncoder, null=True)),
                 ('response_body', models.TextField(blank=True, null=True)),
                 ('state',
-                 enumfields.fields.NumEnumField(default=0, enum=security.enums.RequestLogState)),
+                 enumfields.fields.IntegerEnumField(default=0, enum=security.enums.RequestLogState)),
                 ('error_message', models.TextField(blank=True, null=True)),
                 ('user_id', models.TextField(blank=True, db_index=True, null=True)),
                 ('ip', models.GenericIPAddressField(db_index=True)),
@@ -167,7 +171,7 @@ class Migration(migrations.Migration):
                  models.JSONField(blank=True, encoder=django.core.serializers.json.DjangoJSONEncoder, null=True)),
                 ('response_body', models.TextField(blank=True, null=True)),
                 ('state',
-                 enumfields.fields.NumEnumField(default=0, enum=security.enums.RequestLogState)),
+                 enumfields.fields.IntegerEnumField(default=0, enum=security.enums.RequestLogState)),
                 ('error_message', models.TextField(blank=True, null=True)),
             ],
             options={

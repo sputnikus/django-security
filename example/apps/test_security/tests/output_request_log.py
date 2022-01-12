@@ -9,7 +9,7 @@ from germanium.decorators import data_consumer
 from germanium.test_cases.client import ClientTestCase
 from germanium.tools import (
     assert_equal, assert_raises, assert_not_in, assert_in, assert_equal_model_fields, assert_is_not_none,
-    assert_length_equal, all_eq_obj
+    assert_length_equal, all_eq_obj, not_none_eq_obj
 )
 
 from security import requests
@@ -34,7 +34,7 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
         responses.add(responses.POST, 'https://localhost/test', body='test')
         expected_output_request_started_data = {
             'request_headers': {
-                'User-Agent': 'python-requests/2.26.0',
+                'User-Agent': not_none_eq_obj,
                 'Accept-Encoding': 'gzip, deflate',
                 'Accept': '*/*',
                 'Connection': 'keep-alive',
@@ -74,7 +74,7 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
     def test_output_request_error_should_be_logged(self):
         expected_output_request_started_data = {
             'request_headers': {
-                'User-Agent': 'python-requests/2.26.0',
+                'User-Agent': not_none_eq_obj,
                 'Accept-Encoding': 'gzip, deflate',
                 'Accept': '*/*',
                 'Connection': 'keep-alive',
@@ -163,7 +163,7 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
         assert_equal_model_fields(
             sql_output_request_log,
             request_headers={
-                'User-Agent': 'python-requests/2.26.0',
+                'User-Agent': not_none_eq_obj,
                 'Accept-Encoding': 'gzip, deflate',
                 'Accept': '*/*',
                 'Connection': 'keep-alive',
@@ -203,8 +203,7 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             )
             assert_equal_model_fields(
                 elasticsearch_output_request_log,
-                request_headers='{"User-Agent": "python-requests/2.26.0", "Accept-Encoding": "gzip, deflate", '
-                                '"Accept": "*/*", "Connection": "keep-alive", "Content-Length": "16"}',
+                request_headers=not_none_eq_obj,
                 request_body='{"test": "test"}',
                 method='POST',
                 host='localhost',
@@ -264,7 +263,7 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
         assert_equal_model_fields(
             sql_output_request_log,
             request_headers={
-                'User-Agent': 'python-requests/2.26.0',
+                'User-Agent': not_none_eq_obj,
                 'Accept-Encoding': 'gzip, deflate',
                 'Accept': '*/*',
                 'Connection': 'keep-alive',
@@ -301,8 +300,7 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             )
             assert_equal_model_fields(
                 elasticsearch_input_request_log,
-                request_headers='{"User-Agent": "python-requests/2.26.0", "Accept-Encoding": "gzip, deflate", '
-                                '"Accept": "*/*", "Connection": "keep-alive", "Content-Length": "16"}',
+                request_headers=not_none_eq_obj,
                 request_body='{"test": "test"}',
                 method='POST',
                 host='localhost',
