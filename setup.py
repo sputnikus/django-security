@@ -42,7 +42,7 @@ setup(
         'ansi2html>=1.6.0',
         'django-chamber>=0.6.11',
         'attrdict>=2.0.1',
-        'django-choice-enumfields>=1.0.5',
+        'django-choice-enumfields>=1.1.0',
         'django-generic-m2m-field>=0.0.4',
         'django-celery-extensions>=0.0.28',
     ],
