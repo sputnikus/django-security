@@ -11,6 +11,10 @@ from django.core.serializers.json import DjangoJSONEncoder
 from elasticsearch_dsl import Q
 from elasticsearch_dsl import Document, Date, Integer, Keyword, Text, Object, Boolean, Float, CustomField
 
+from security.backends.common.mixins import (
+    CeleryTaskInvocationLogStrMixin, CeleryTaskRunLogStrMixin, CommandLogStrMixin, InputRequestLogStrMixin,
+    LogShortIdMixin, OutputRequestLogStrMixin
+)
 from security.config import settings
 from security.enums import (
     RequestLogState, CeleryTaskInvocationLogState, CeleryTaskRunLogState, CommandState, LoggerName
@@ -51,7 +55,7 @@ class EnumField(CustomField):
             return self._enum[data]
 
 
-class Log(Document):
+class Log(LogShortIdMixin, Document):
 
     extra_data = Object()
     slug = Keyword()
@@ -136,7 +140,7 @@ class RequestLog(Log):
     error_message = Text()
 
 
-class InputRequestLog(RequestLog):
+class InputRequestLog(InputRequestLogStrMixin, RequestLog):
 
     user_id = Keyword()
     ip = Keyword()
@@ -150,13 +154,13 @@ class InputRequestLog(RequestLog):
         return get_user_model().objects.filter(pk=self.user_id).first()
 
 
-class OutputRequestLog(RequestLog):
+class OutputRequestLog(OutputRequestLogStrMixin, RequestLog):
 
     class Index:
         name = '{}-output-request-log'.format(settings.ELASTICSEARCH_DATABASE.get('prefix', 'security'))
 
 
-class CommandLog(Log):
+class CommandLog(CommandLogStrMixin, Log):
 
     name = Keyword()
     input = Text()
@@ -170,7 +174,7 @@ class CommandLog(Log):
         name = '{}-command-log'.format(settings.ELASTICSEARCH_DATABASE.get('prefix', 'security'))
 
 
-class CeleryTaskInvocationLog(Log):
+class CeleryTaskInvocationLog(CeleryTaskInvocationLogStrMixin, Log):
 
     celery_task_id = Keyword()
     name = Keyword()
@@ -200,7 +204,7 @@ class CeleryTaskInvocationLog(Log):
         name = '{}-celery-task-invocation-log'.format(settings.ELASTICSEARCH_DATABASE.get('prefix', 'security'))
 
 
-class CeleryTaskRunLog(Log):
+class CeleryTaskRunLog(CeleryTaskRunLogStrMixin, Log):
 
     celery_task_id = Keyword()
     state = EnumField(enum=CeleryTaskRunLogState)
