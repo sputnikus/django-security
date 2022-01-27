@@ -144,13 +144,13 @@ class LogCoreMixin:
 
     @filter_by('id')
     @order_by('id')
-    @short_description(_('short ID'))
+    @short_description(_('ID'))
     def short_id(self, obj):
         return obj.short_id
 
     @filter_by('slug')
     @order_by('slug')
-    @short_description(_('short slug'))
+    @short_description(_('slug'))
     def short_slug(self, obj):
         return truncatechars(obj.slug, 20) if obj.slug is not None else None
 
@@ -163,12 +163,6 @@ class LogCoreMixin:
     def display_source(self, obj, request):
         parent_log_obj = self._get_parent_log_obj(obj)
         return render_model_object_with_link(request, parent_log_obj) if parent_log_obj else None
-
-    @filter_by('state')
-    @order_by('state')
-    @short_description(_('state'))
-    def state_display(self, obj):
-        return obj.state.label
 
     def _get_parent_log_obj(self, obj):
         raise NotImplementedError
@@ -271,7 +265,7 @@ class InputRequestLogCoreMixin(RequestLogCoreMixin):
     menu_group = 'inputrequestlog'
 
     list_fields = (
-        'short_id', 'start', 'stop', 'time', 'view_slug', 'response_code', 'state_display', 'method', 'host',
+        'short_id', 'start', 'stop', 'time', 'short_view_slug', 'response_code', 'state', 'method', 'host',
         'short_path', 'user', 'short_request_body', 'short_response_body', 'short_queries', 'short_request_headers',
         'short_response_headers', 'ip', 'release', 'short_slug',
     )
@@ -307,6 +301,12 @@ class InputRequestLogCoreMixin(RequestLogCoreMixin):
             (None, {'fields': ('debug_toolbar',)})
         )
 
+    @filter_by('view_slug')
+    @order_by('view_slug')
+    @short_description(_('view slug'))
+    def short_view_slug(self, obj):
+        return truncatechars(obj.view_slug, 20) if obj.view_slug is not None else None
+
     @short_description('')
     def debug_toolbar(self, obj):
         return (
@@ -320,7 +320,7 @@ class OutputRequestLogCoreMixin(RequestLogCoreMixin):
     menu_group = 'outputrequestlog'
 
     list_fields = (
-        'short_id', 'start', 'stop', 'time', 'response_code', 'state_display', 'method', 'host', 'short_path',
+        'short_id', 'start', 'stop', 'time', 'response_code', 'state', 'method', 'host', 'short_path',
         'short_request_body', 'short_response_body', 'short_queries', 'short_request_headers', 'short_response_headers',
         'release', 'slug'
     )
@@ -363,7 +363,7 @@ class CommandLogCoreMixin(OutputLogCoreMixin, LogCoreMixin):
     menu_group = 'commandlog'
 
     list_fields = (
-        'short_id', 'start', 'stop', 'time', 'name', 'state_display', 'release', 'short_slug'
+        'short_id', 'start', 'stop', 'time', 'name', 'state', 'release', 'short_slug'
     )
 
     verbose_name = _('command log')
@@ -399,7 +399,7 @@ class CeleryCoreMixin(LogCoreMixin):
 
     @filter_by('celery_task_id')
     @order_by('celery_task_id')
-    @short_description(_('celery task short ID'))
+    @short_description(_('celery task ID'))
     def celery_task_short_id(self, obj):
         return truncatechars(obj.celery_task_id, 8)
 
@@ -423,7 +423,7 @@ class CeleryTaskRunLogCoreMixin(OutputLogCoreMixin, CeleryCoreMixin, LogCoreMixi
     menu_group = 'celerytaskrunlog'
 
     list_fields = (
-        'short_id', 'start', 'stop', 'time', 'name', 'state_display', 'short_input', 'queue_name',
+        'short_id', 'start', 'stop', 'time', 'name', 'state', 'short_input', 'queue_name',
         'celery_task_short_id', 'waiting_time', 'release', 'short_slug'
     )
     rest_fields = list_fields + ('id',)
