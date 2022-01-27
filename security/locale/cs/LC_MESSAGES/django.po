@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-01-26 19:42+0100\n"
+"POT-Creation-Date: 2022-01-27 11:57+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,387 +18,350 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
 
-#: security/backends/common/is_core.py:20
+#: backends/common/is_core.py:20 backends/common/is_core.py:147
 msgid "ID"
 msgstr "ID"
 
-#: security/backends/common/is_core.py:21
+#: backends/common/is_core.py:21
 msgid "release"
 msgstr "release"
 
-#: security/backends/common/is_core.py:22
+#: backends/common/is_core.py:22 backends/common/is_core.py:153
 msgid "slug"
 msgstr "slug"
 
-#: security/backends/common/is_core.py:23
+#: backends/common/is_core.py:23 backends/common/is_core.py:306
 msgid "view slug"
 msgstr "view slug"
 
-#: security/backends/common/is_core.py:24
+#: backends/common/is_core.py:24
 msgid "host"
 msgstr "host"
 
-#: security/backends/common/is_core.py:25
-#: security/backends/common/is_core.py:214
+#: backends/common/is_core.py:25 backends/common/is_core.py:208
 msgid "path"
 msgstr "cesta"
 
-#: security/backends/common/is_core.py:26
-#: security/backends/common/is_core.py:169
-#: security/backends/common/is_core.py:482
+#: backends/common/is_core.py:26 backends/common/is_core.py:482
 msgid "state"
 msgstr "stav"
 
-#: security/backends/common/is_core.py:27
+#: backends/common/is_core.py:27
 msgid "start"
 msgstr "start"
 
-#: security/backends/common/is_core.py:28
+#: backends/common/is_core.py:28
 msgid "stop"
 msgstr "stop"
 
-#: security/backends/common/is_core.py:29
+#: backends/common/is_core.py:29
 msgid "time"
 msgstr "čas"
 
-#: security/backends/common/is_core.py:30
+#: backends/common/is_core.py:30
 msgid "method"
 msgstr "metoda"
 
-#: security/backends/common/is_core.py:31
+#: backends/common/is_core.py:31
 msgid "response code"
 msgstr "kód odpovědi"
 
-#: security/backends/common/is_core.py:32
+#: backends/common/is_core.py:32
 msgid "IP"
 msgstr "IP"
 
-#: security/backends/common/is_core.py:33
+#: backends/common/is_core.py:33
 msgid "HTTPS connection"
 msgstr "HTTPS spojení"
 
-#: security/backends/common/is_core.py:34
+#: backends/common/is_core.py:34
 msgid "pah"
 msgstr "cesta"
 
-#: security/backends/common/is_core.py:35
-#: security/backends/common/is_core.py:232
-#: security/backends/common/is_core.py:256
+#: backends/common/is_core.py:35 backends/common/is_core.py:226
+#: backends/common/is_core.py:250
 msgid "queries"
 msgstr "query string"
 
-#: security/backends/common/is_core.py:36
-#: security/backends/common/is_core.py:238
-#: security/backends/common/is_core.py:244
-#: security/backends/common/is_core.py:260
+#: backends/common/is_core.py:36 backends/common/is_core.py:232
+#: backends/common/is_core.py:238 backends/common/is_core.py:254
 msgid "request headers"
 msgstr "hlavičky dotazu"
 
-#: security/backends/common/is_core.py:37
-#: security/backends/common/is_core.py:220
-#: security/backends/common/is_core.py:248
+#: backends/common/is_core.py:37 backends/common/is_core.py:214
+#: backends/common/is_core.py:242
 msgid "request body"
 msgstr "tělo dotazu"
 
-#: security/backends/common/is_core.py:38
-#: security/backends/common/is_core.py:264
+#: backends/common/is_core.py:38 backends/common/is_core.py:258
 msgid "response headers"
 msgstr "hlavičky odpovědi"
 
-#: security/backends/common/is_core.py:39
-#: security/backends/common/is_core.py:226
-#: security/backends/common/is_core.py:252
+#: backends/common/is_core.py:39 backends/common/is_core.py:220
+#: backends/common/is_core.py:246
 msgid "response body"
 msgstr "tělo odpovědi"
 
-#: security/backends/common/is_core.py:40
+#: backends/common/is_core.py:40
 msgid "name"
 msgstr "název"
 
-#: security/backends/common/is_core.py:41
-#: security/backends/common/is_core.py:416
+#: backends/common/is_core.py:41 backends/common/is_core.py:416
 msgid "input"
 msgstr "vstup"
 
-#: security/backends/common/is_core.py:42
+#: backends/common/is_core.py:42
 msgid "is executed from command line"
 msgstr "spuštěno z příkazové řádky?"
 
-#: security/backends/common/is_core.py:43
+#: backends/common/is_core.py:43 backends/common/is_core.py:402
 msgid "celery task ID"
 msgstr "ID celery úlohy"
 
-#: security/backends/common/is_core.py:44
+#: backends/common/is_core.py:44
 msgid "queue name"
 msgstr "název fronty"
 
-#: security/backends/common/is_core.py:45
+#: backends/common/is_core.py:45
 msgid "applied at"
 msgstr "aplikováno"
 
-#: security/backends/common/is_core.py:46
+#: backends/common/is_core.py:46
 msgid "triggered at"
 msgstr "vyvoláno"
 
-#: security/backends/common/is_core.py:47
+#: backends/common/is_core.py:47
 msgid "is unique"
 msgstr "unikátní"
 
-#: security/backends/common/is_core.py:48
+#: backends/common/is_core.py:48
 msgid "is async"
 msgstr "asynchronní"
 
-#: security/backends/common/is_core.py:49
+#: backends/common/is_core.py:49
 msgid "is duplicate"
 msgstr "duplicitní"
 
-#: security/backends/common/is_core.py:50
+#: backends/common/is_core.py:50
 msgid "is on commit"
 msgstr "vyvoláno v módu on commit"
 
-#: security/backends/common/is_core.py:51
+#: backends/common/is_core.py:51
 msgid "estimated time of first arrival"
 msgstr "předpokládaný čas spuštění prvního zpracování úlohy"
 
-#: security/backends/common/is_core.py:52
+#: backends/common/is_core.py:52
 msgid "expires at"
 msgstr "čas expirace"
 
-#: security/backends/common/is_core.py:53
+#: backends/common/is_core.py:53
 msgid "stale at"
 msgstr "čas zneplatnění"
 
-#: security/backends/common/is_core.py:54
+#: backends/common/is_core.py:54
 msgid "retries"
 msgstr "opakování"
 
-#: security/backends/common/is_core.py:55
+#: backends/common/is_core.py:55
 msgid "estimated time of next retry"
 msgstr "předpokládaný čas opakovaného spuštění"
 
-#: security/backends/common/is_core.py:147
-msgid "short ID"
-msgstr "zkrácené ID"
-
-#: security/backends/common/is_core.py:153
-msgid "short slug"
-msgstr "zkrácený slug"
-
-#: security/backends/common/is_core.py:157
+#: backends/common/is_core.py:157
 msgid "error message"
 msgstr "zpráva chyby"
 
-#: security/backends/common/is_core.py:162
+#: backends/common/is_core.py:162
 msgid "source"
 msgstr "zdroj"
 
-#: security/backends/common/is_core.py:179
+#: backends/common/is_core.py:173
 msgid "related objects"
 msgstr "vztažené objekty"
 
-#: security/backends/common/is_core.py:183
+#: backends/common/is_core.py:177
 msgid "revisions"
 msgstr "datové změny"
 
-#: security/backends/common/is_core.py:279
+#: backends/common/is_core.py:273
 msgid "input request log"
 msgstr "vstupní logovaný dotaz"
 
-#: security/backends/common/is_core.py:280
-#: security/backends/common/is_core.py:518
+#: backends/common/is_core.py:274 backends/common/is_core.py:518
 msgid "input request logs"
 msgstr "vstupní logované dotazy"
 
-#: security/backends/common/is_core.py:290
-#: security/backends/common/is_core.py:334
+#: backends/common/is_core.py:284 backends/common/is_core.py:334
 msgid "request"
 msgstr "dotaz"
 
-#: security/backends/common/is_core.py:291
-#: security/backends/common/is_core.py:335
+#: backends/common/is_core.py:285 backends/common/is_core.py:335
 msgid "response"
 msgstr "odpověď"
 
-#: security/backends/common/is_core.py:292
-#: security/backends/common/is_core.py:336
-#: security/backends/common/is_core.py:354
-#: security/backends/common/is_core.py:380
-#: security/backends/common/is_core.py:443
+#: backends/common/is_core.py:286 backends/common/is_core.py:336
+#: backends/common/is_core.py:354 backends/common/is_core.py:380
+#: backends/common/is_core.py:443
 msgid "output"
 msgstr "výstup"
 
-#: security/backends/common/is_core.py:297
-#: security/backends/common/is_core.py:341
-#: security/backends/common/is_core.py:385
-#: security/backends/common/is_core.py:448
-#: security/backends/common/is_core.py:497
+#: backends/common/is_core.py:291 backends/common/is_core.py:341
+#: backends/common/is_core.py:385 backends/common/is_core.py:448
+#: backends/common/is_core.py:497
 msgid "relations"
 msgstr "vztažené objekty"
 
-#: security/backends/common/is_core.py:302
-#: security/backends/common/is_core.py:390
-#: security/backends/common/is_core.py:453
+#: backends/common/is_core.py:296 backends/common/is_core.py:390
+#: backends/common/is_core.py:453
 msgid "output requests"
 msgstr "výstupní logované dotazy"
 
-#: security/backends/common/is_core.py:303
-#: security/backends/common/is_core.py:391
-#: security/backends/common/is_core.py:454
+#: backends/common/is_core.py:297 backends/common/is_core.py:391
+#: backends/common/is_core.py:454
 msgid "commands"
 msgstr "úlohy na pozadí"
 
-#: security/backends/common/is_core.py:304
-#: security/backends/common/is_core.py:392
-#: security/backends/common/is_core.py:455
+#: backends/common/is_core.py:298 backends/common/is_core.py:392
+#: backends/common/is_core.py:455
 msgid "celery invocations"
 msgstr "vyvolání celery úloh"
 
-#: security/backends/common/is_core.py:348
+#: backends/common/is_core.py:348
 msgid "output request log"
 msgstr "výstupní logovaný dotaz"
 
-#: security/backends/common/is_core.py:349
-#: security/backends/common/is_core.py:519
+#: backends/common/is_core.py:349 backends/common/is_core.py:519
 msgid "output request logs"
 msgstr "výstupní logované dotazy"
 
-#: security/backends/common/is_core.py:369
+#: backends/common/is_core.py:369
 msgid "command log"
 msgstr "log spustitelné úlohy"
 
-#: security/backends/common/is_core.py:370
-#: security/backends/common/is_core.py:520
+#: backends/common/is_core.py:370 backends/common/is_core.py:520
 msgid "command logs"
 msgstr "logy spustitelných úloh"
 
-#: security/backends/common/is_core.py:402
-msgid "celery task short ID"
-msgstr "short ID celery úlohy"
-
-#: security/backends/common/is_core.py:406
+#: backends/common/is_core.py:406
 msgid "task args"
 msgstr "úloha - args"
 
-#: security/backends/common/is_core.py:410
+#: backends/common/is_core.py:410
 msgid "task kwargs"
 msgstr "úloha - kwargs"
 
-#: security/backends/common/is_core.py:431
+#: backends/common/is_core.py:431
 msgid "celery task run log"
 msgstr "zpracování celery úlohy"
 
-#: security/backends/common/is_core.py:432
-#: security/backends/common/is_core.py:521
+#: backends/common/is_core.py:432 backends/common/is_core.py:521
 msgid "celery task run logs"
 msgstr "zpracování celery úlohy"
 
-#: security/backends/common/is_core.py:460
+#: backends/common/is_core.py:460
 msgid "result"
 msgstr "výsledek"
 
-#: security/backends/common/is_core.py:477
+#: backends/common/is_core.py:477
 msgid "celery task invocation log"
 msgstr "vyvolání celery úlohy"
 
-#: security/backends/common/is_core.py:478
-#: security/backends/common/is_core.py:522
+#: backends/common/is_core.py:478 backends/common/is_core.py:522
 msgid "celery task invocation logs"
 msgstr "vyvolání celery úloh"
 
-#: security/backends/common/is_core.py:484
+#: backends/common/is_core.py:484
 msgid "duplicate"
 msgstr "duplicitní"
 
-#: security/backends/common/is_core.py:496
+#: backends/common/is_core.py:496
 msgid "celery task runs"
 msgstr "zpracování celery úlohy"
 
-#: security/backends/common/is_core.py:515
+#: backends/common/is_core.py:515
 msgid "related logs"
 msgstr "vztažené logy"
 
-#: security/backends/elasticsearch/is_core/cores.py:68
-#: security/backends/sql/is_core/cores.py:73
+#: backends/elasticsearch/is_core/cores.py:68 backends/sql/is_core/cores.py:73
 msgid "user"
 msgstr "uživatel"
 
-#: security/backends/elasticsearch/is_core/filters.py:52
+#: backends/elasticsearch/is_core/filters.py:52
 msgid "Invalid value. Please use one of the following values: {}."
 msgstr "Neplatná hodnota. Prosím použijte jednu z následujících hodnot: {}."
 
-#: security/backends/elasticsearch/is_core/filters.py:82
-#: security/backends/sql/is_core/filters.py:44
+#: backends/elasticsearch/is_core/filters.py:82
+#: backends/sql/is_core/filters.py:44
 msgid "Invalid value."
 msgstr "Neplatná hodnota."
 
-#: security/enums.py:10
+#: enums.py:10
 msgid "Incomplete"
 msgstr "Nedokončený"
 
-#: security/enums.py:11
+#: enums.py:11
 msgid "Debug"
 msgstr "Debug"
 
-#: security/enums.py:12
+#: enums.py:12
 msgid "Info"
 msgstr "Info"
 
-#: security/enums.py:13
+#: enums.py:13
 msgid "Warning"
 msgstr "Varování"
 
-#: security/enums.py:14
+#: enums.py:14
 msgid "Error"
 msgstr "Chyba"
 
-#: security/enums.py:19 security/enums.py:28 security/enums.py:38
+#: enums.py:19 enums.py:28 enums.py:38
 msgid "Active"
 msgstr "Aktivní"
 
-#: security/enums.py:20 security/enums.py:29 security/enums.py:39
+#: enums.py:20 enums.py:29 enums.py:39
 msgid "Succeeded"
 msgstr "Dokončený"
 
-#: security/enums.py:21 security/enums.py:30 security/enums.py:40
+#: enums.py:21 enums.py:30 enums.py:40
 msgid "Failed"
 msgstr "Chyba"
 
-#: security/enums.py:26
+#: enums.py:26
 msgid "Waiting"
 msgstr "Čeká"
 
-#: security/enums.py:27
+#: enums.py:27
 msgid "Triggered"
 msgstr "Vyvoláno"
 
-#: security/enums.py:31 security/enums.py:42
+#: enums.py:31 enums.py:42
 msgid "Expired"
 msgstr "Expirovaný"
 
-#: security/enums.py:32
+#: enums.py:32
 msgid "Timeout"
 msgstr "Časový limig"
 
-#: security/enums.py:33
+#: enums.py:33
 msgid "Ignored"
 msgstr "Ignorováno"
 
-#: security/enums.py:41
+#: enums.py:41
 msgid "Retried"
 msgstr "Opakovaný"
 
-#: security/templates/429.html:9
+#: templates/429.html:9
 msgid "Too Many Requests (429)"
 msgstr "Příliš mnoho HTTP dotazů (429)"
 
-#: security/throttling/validators.py:38
+#: throttling/validators.py:38
 msgid "Slow down"
 msgstr "Zpomal"
 
-#: security/throttling/validators.py:77 security/throttling/validators.py:93
+#: throttling/validators.py:77 throttling/validators.py:93
 msgid "Too many login attempts"
 msgstr "Příliš mnoho pokusů o přihlášení"
 
-#: security/throttling/validators.py:85 security/throttling/validators.py:101
+#: throttling/validators.py:85 throttling/validators.py:101
 msgid "You have logged in too many times"
 msgstr "Příliš mnoho přihlášení najednou"
