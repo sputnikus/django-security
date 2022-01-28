@@ -121,7 +121,9 @@ class LogCoreMixin:
     field_labels = field_labels
 
     default_ordering = ('-start',)
-    rest_extra_filter_fields = ('parent_log',)
+    rest_extra_filter_fields = (
+        'parent_log',
+    )
 
     can_create = False
     can_read = True
@@ -396,6 +398,10 @@ class CommandLogCoreMixin(OutputLogCoreMixin, LogCoreMixin):
 
 
 class CeleryCoreMixin(LogCoreMixin):
+
+    rest_extra_filter_fields = LogCoreMixin.rest_extra_filter_fields + (
+        'celery_task_id',
+    )
 
     @filter_by('celery_task_id')
     @order_by('celery_task_id')
