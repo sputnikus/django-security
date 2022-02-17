@@ -1,4 +1,5 @@
 from security.backends.reader import BaseBackendReader
+from security.utils import get_object_triple
 
 from .writer import capture_security_logs
 
@@ -28,5 +29,5 @@ class TestingBackendReader(BaseBackendReader):
 
         return [
             logger for logger in capture_security_logs.logged_data.get(logger_name.replace('-', '_'))
-            if related_object in logger.related_objects
+            if get_object_triple(related_object) in logger.related_objects
         ]

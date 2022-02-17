@@ -50,7 +50,7 @@ class InputRequestLogger(SecurityLogger):
             is_secure=request.is_secure(),
             ip=get_client_ip(request)[0],
             start=now(),
-            view_slug=view_slug
+            view_slug=view_slug,
         ))
         input_request_started.send(sender=InputRequestLogger, logger=self)
 

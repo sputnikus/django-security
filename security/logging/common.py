@@ -10,6 +10,7 @@ from contextlib import ContextDecorator
 from django.conf import settings as django_settings
 
 from security.config import settings
+from security.utils import get_object_triple
 
 
 class SecurityLogger(ContextDecorator, local):
@@ -18,10 +19,14 @@ class SecurityLogger(ContextDecorator, local):
     name = None
     store = True
 
-    def __init__(self, id=None, related_objects=None, slug=None, data=None, extra_data=None):
+    def __init__(self, id=None, parent_key=None, related_objects=None, slug=None, data=None, extra_data=None):
         self.id = id or (uuid4() if self.name else None)
         self.parent = SecurityLogger.loggers[-1] if SecurityLogger.loggers else None
-        self.related_objects = set(related_objects) if related_objects else set()
+
+        self.related_objects = set()
+        if related_objects:
+            self.add_related_objects(*related_objects)
+
         self.slug = slug
         if self.parent:
             self.related_objects |= self.parent.related_objects
@@ -30,7 +35,12 @@ class SecurityLogger(ContextDecorator, local):
         self.data = {}
         if data:
             self.data.update(data)
-        self.parent_with_id = self._get_parent_with_id()
+
+        parent_with_id = self._get_parent_with_id()
+        self.parent_key = (
+            '{}|{}'.format(parent_with_id.name, parent_with_id.id) if parent_with_id else None
+        ) if parent_key is None else parent_key
+
         self._extra_data = extra_data
         if self._extra_data is None:
             self._extra_data = self.parent.extra_data if self.parent else {}
@@ -62,7 +72,7 @@ class SecurityLogger(ContextDecorator, local):
         self.slug = slug
 
     def add_related_objects(self, *related_objects):
-        self.related_objects |= set(related_objects)
+        self.related_objects |= set(get_object_triple(obj) for obj in related_objects)
 
     @property
     def extra_data(self):

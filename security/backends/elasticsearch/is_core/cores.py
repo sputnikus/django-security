@@ -59,6 +59,9 @@ class LogCore(LogCoreMixin, ElasticsearchUiRestCore):
             get_object_from_key(related_object_key) for related_object_key in obj.related_objects or ()
         ])
 
+    def _get_extra_data_dict(self, obj):
+        return obj.extra_data.to_dict()
+
 
 class InputRequestLogCore(InputRequestLogCoreMixin, LogCore):
 

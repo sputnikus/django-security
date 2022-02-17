@@ -111,21 +111,21 @@ class LoggedTask(DjangoTask):
     def on_task_retry(self, task_id, args, kwargs, exc, eta):
         super().on_task_retry(task_id, args, kwargs, exc, eta)
         try:
+            self.request.output_stream.close()
             self.request.run_logger.log_retried(
                 ex_tb=str(exc),
                 estimated_time_of_next_retry=eta
             )
-            self.request.output_stream.close()
         finally:
             self.request.run_logger.close()
 
     def on_task_success(self, task_id, args, kwargs, retval):
         super().on_task_success(task_id, args, kwargs, retval)
         try:
+            self.request.output_stream.close()
             self.request.run_logger.log_succeeded(
                 result=retval
             )
-            self.request.output_stream.close()
         finally:
             self.request.run_logger.close()
 
@@ -134,11 +134,13 @@ class LoggedTask(DjangoTask):
         log_id = None
         if hasattr(self.request, 'run_logger'):
             log_id = self.request.run_logger.id
-            self.request.run_logger.close()
-            self.request.run_logger.log_failed(
-                ex_tb=str(exc)
-            )
-            self.request.output_stream.close()
+            try:
+                self.request.output_stream.close()
+                self.request.run_logger.log_failed(
+                    ex_tb=str(exc)
+                )
+            finally:
+                self.request.run_logger.close()
 
         logger.error(
             f'Task with name {self.name} raised exception',
@@ -151,7 +153,7 @@ class LoggedTask(DjangoTask):
         )
 
     def expire_invocation(self, invocation_log_id, args, kwargs, logger_data):
-        with CeleryInvocationLogger(invocation_log_id, data=logger_data) as invocation_logger:
+        with CeleryInvocationLogger(invocation_log_id, **logger_data) as invocation_logger:
             invocation_logger.log_expired(self.name)
 
         logger.error(

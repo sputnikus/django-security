@@ -9,6 +9,7 @@ from datetime import datetime, time
 
 from django.core import serializers
 from django.core.serializers.json import DjangoJSONEncoder
+from django.db import router
 from django.utils.timezone import utc
 from django.utils.timezone import now
 from django.utils.module_loading import import_string
@@ -18,7 +19,6 @@ from celery.exceptions import NotRegistered
 
 from chamber.shortcuts import change_and_save
 
-from security.backends.common.helpers import get_parent_log_key_or_none
 from security.backends.writer import BaseBackendWriter
 from security.config import settings
 from security.enums import RequestLogState, CeleryTaskInvocationLogState, CeleryTaskRunLogState, CommandState
@@ -53,6 +53,11 @@ def get_querysets_by_batch(qs, batch):
 
 class SQLBackendWriter(BaseBackendWriter):
 
+    def _set_related_objects(self, log, logger):
+        log.related_objects.add(
+            *[related_object_triple[1:] for related_object_triple in logger.related_objects]
+        )
+
     def input_request_started(self, logger):
         input_request_log = InputRequestLog(
             id=logger.id,
@@ -60,11 +65,11 @@ class SQLBackendWriter(BaseBackendWriter):
             slug=logger.slug,
             state=RequestLogState.INCOMPLETE,
             extra_data=logger.extra_data,
-            parent_log=get_parent_log_key_or_none(logger),
+            parent_log=logger.parent_key,
             **logger.data
         )
         input_request_log.save()
-        input_request_log.related_objects.add(*logger.related_objects)
+        self._set_related_objects(input_request_log, logger)
         logger.backend_logs.sql = input_request_log
 
     def input_request_finished(self, logger):
@@ -77,7 +82,7 @@ class SQLBackendWriter(BaseBackendWriter):
                 update_only_changed_fields=True,
                 **logger.data
             )
-            input_request_log.related_objects.add(*logger.related_objects)
+            self._set_related_objects(input_request_log, logger)
 
     def input_request_error(self, logger):
         if 'sql' in logger.backend_logs:
@@ -88,7 +93,7 @@ class SQLBackendWriter(BaseBackendWriter):
                 update_only_changed_fields=True,
                 **logger.data
             )
-            input_request_log.related_objects.add(*logger.related_objects)
+            self._set_related_objects(input_request_log, logger)
 
     def output_request_started(self, logger):
         output_request_log = OutputRequestLog(
@@ -96,11 +101,11 @@ class SQLBackendWriter(BaseBackendWriter):
             release=logger.release,
             state=RequestLogState.INCOMPLETE,
             extra_data=logger.extra_data,
-            parent_log=get_parent_log_key_or_none(logger),
+            parent_log=logger.parent_key,
             **logger.data
         )
         output_request_log.save()
-        output_request_log.related_objects.add(*logger.related_objects)
+        self._set_related_objects(output_request_log, logger)
         logger.backend_logs.sql = output_request_log
 
     def output_request_finished(self, logger):
@@ -113,7 +118,7 @@ class SQLBackendWriter(BaseBackendWriter):
                 update_only_changed_fields=True,
                 **logger.data
             )
-            output_request_log.related_objects.add(*logger.related_objects)
+            self._set_related_objects(output_request_log, logger)
 
     def output_request_error(self, logger):
         if 'sql' in logger.backend_logs:
@@ -125,7 +130,7 @@ class SQLBackendWriter(BaseBackendWriter):
                 update_only_changed_fields=True,
                 **logger.data
             )
-            output_request_log.related_objects.add(*logger.related_objects)
+            self._set_related_objects(output_request_log, logger)
 
     def command_started(self, logger):
         command_log = CommandLog(
@@ -134,11 +139,11 @@ class SQLBackendWriter(BaseBackendWriter):
             slug=logger.slug,
             state=CommandState.ACTIVE,
             extra_data=logger.extra_data,
-            parent_log=get_parent_log_key_or_none(logger),
+            parent_log=logger.parent_key,
             **logger.data
         )
         command_log.save()
-        command_log.related_objects.add(*logger.related_objects)
+        self._set_related_objects(command_log, logger)
         logger.backend_logs.sql = command_log
 
     def command_output_updated(self, logger):
@@ -160,7 +165,7 @@ class SQLBackendWriter(BaseBackendWriter):
                 update_only_changed_fields=True,
                 **logger.data
             )
-            command_log.related_objects.add(*logger.related_objects)
+            self._set_related_objects(command_log, logger)
 
     def command_error(self, logger):
         if 'sql' in logger.backend_logs:
@@ -172,7 +177,7 @@ class SQLBackendWriter(BaseBackendWriter):
                 update_only_changed_fields=True,
                 **logger.data
             )
-            command_log.related_objects.add(*logger.related_objects)
+            self._set_related_objects(command_log, logger)
 
     def celery_task_invocation_started(self, logger):
         celery_task_invocation_log = CeleryTaskInvocationLog(
@@ -181,11 +186,11 @@ class SQLBackendWriter(BaseBackendWriter):
             slug=logger.slug,
             state=CeleryTaskInvocationLogState.WAITING,
             extra_data=logger.extra_data,
-            parent_log=get_parent_log_key_or_none(logger),
+            parent_log=logger.parent_key,
             **logger.data
         )
         celery_task_invocation_log.save()
-        celery_task_invocation_log.related_objects.add(*logger.related_objects)
+        self._set_related_objects(celery_task_invocation_log, logger)
         logger.backend_logs.sql = celery_task_invocation_log
 
     def celery_task_invocation_triggered(self, logger):
@@ -245,11 +250,11 @@ class SQLBackendWriter(BaseBackendWriter):
             slug=logger.slug,
             state=CeleryTaskRunLogState.ACTIVE,
             extra_data=logger.extra_data,
-            parent_log=get_parent_log_key_or_none(logger),
+            parent_log=logger.parent_key,
             **logger.data
         )
         celery_task_run_log.save()
-        celery_task_run_log.related_objects.add(*logger.related_objects)
+        self._set_related_objects(celery_task_run_log, logger)
         logger.backend_logs.sql = celery_task_run_log
 
     def celery_task_run_succeeded(self, logger):
@@ -270,7 +275,7 @@ class SQLBackendWriter(BaseBackendWriter):
                 state=CeleryTaskInvocationLogState.SUCCEEDED,
                 stop=logger.data['stop']
             )
-            celery_task_run_log.related_objects.add(*logger.related_objects)
+            self._set_related_objects(celery_task_run_log, logger)
 
     def celery_task_run_failed(self, logger):
         if 'sql' in logger.backend_logs:
@@ -290,7 +295,7 @@ class SQLBackendWriter(BaseBackendWriter):
                 state=CeleryTaskInvocationLogState.FAILED,
                 stop=logger.data['stop']
             )
-            celery_task_run_log.related_objects.add(*logger.related_objects)
+            self._set_related_objects(celery_task_run_log, logger)
 
     def celery_task_run_retried(self, logger):
         if 'sql' in logger.backend_logs:
@@ -302,7 +307,7 @@ class SQLBackendWriter(BaseBackendWriter):
                 update_only_changed_fields=True,
                 **logger.data
             )
-            celery_task_run_log.related_objects.add(*logger.related_objects)
+            self._set_related_objects(celery_task_run_log, logger)
 
     def celery_task_run_output_updated(self, logger):
         if 'sql' in logger.backend_logs:
@@ -340,11 +345,34 @@ class SQLBackendWriter(BaseBackendWriter):
                         task.task_args,
                         task.task_kwargs,
                         dict(
-                            start=task.start,
-                            celery_task_id=task.celery_task_id,
-                            stop=now(),
-                            name=task.name,
-                            queue_name=task.queue_name,
+                            slug=task.slug,
+                            parent_key=task.parent_log,
+                            related_objects=[
+                                (
+                                    router.db_for_write(related_object.object_ct.model_class()),
+                                    related_object.object_ct_id,
+                                    related_object.object_id
+                                ) for related_object in task.related_objects.all()
+                            ],
+                            data=dict(
+                                start=task.start,
+                                celery_task_id=task.celery_task_id,
+                                stop=now(),
+                                name=task.name,
+                                queue_name=task.queue_name,
+                                applied_at=task.applied_at,
+                                triggered_at=task.triggered_at,
+                                is_unique=task.is_unique,
+                                is_async=task.is_async,
+                                is_duplicate=task.is_duplicate,
+                                is_on_commit=task.is_on_commit,
+                                input=task.input,
+                                task_args=task.task_args,
+                                task_kwargs=task.task_kwargs,
+                                estimated_time_of_first_arrival=task.estimated_time_of_first_arrival,
+                                expires_at=task.expires_at,
+                                stale_at=task.stale_at,
+                            )
                         )
                     )
                 except NotRegistered:

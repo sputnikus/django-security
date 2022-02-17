@@ -23,6 +23,13 @@ from security.enums import (
 from .connection import set_connection
 
 
+def get_index_name(logger_name):
+    return '{}-{}-log'.format(
+        settings.ELASTICSEARCH_DATABASE.get('prefix', 'security'),
+        logger_name.value,
+    )
+
+
 class JSONTextField(CustomField):
 
     name = 'jsontext'
@@ -74,17 +81,6 @@ class Log(LogShortIdMixin, Document):
         set_connection()
         return super()._get_using(using)
 
-    def _set_time(self, kwargs):
-        start = kwargs.get('start', self.start)
-        stop = kwargs.get('stop', self.stop)
-        time = kwargs.get('time', self.time)
-        if not time and start and stop:
-            kwargs['time'] = (stop - start).total_seconds()
-
-    def save(self, **kwargs):
-        self._set_time(kwargs)
-        return super().save(**kwargs)
-
     @property
     def id(self):
         return self.meta.id
@@ -109,7 +105,6 @@ class Log(LogShortIdMixin, Document):
         update_only_changed_fields=False,
         **fields
     ):
-        self._set_time(fields)
         if update_only_changed_fields:
             fields = {k: v for k, v in fields.items() if getattr(self, k) != v}
         if fields:
@@ -147,7 +142,7 @@ class InputRequestLog(InputRequestLogStrMixin, RequestLog):
     view_slug = Keyword()
 
     class Index:
-        name = '{}-input-request-log'.format(settings.ELASTICSEARCH_DATABASE.get('prefix', 'security'))
+        name = get_index_name(LoggerName.INPUT_REQUEST)
 
     @cached_property
     def user(self):
@@ -157,7 +152,7 @@ class InputRequestLog(InputRequestLogStrMixin, RequestLog):
 class OutputRequestLog(OutputRequestLogStrMixin, RequestLog):
 
     class Index:
-        name = '{}-output-request-log'.format(settings.ELASTICSEARCH_DATABASE.get('prefix', 'security'))
+        name = get_index_name(LoggerName.OUTPUT_REQUEST)
 
 
 class CommandLog(CommandLogStrMixin, Log):
@@ -171,7 +166,7 @@ class CommandLog(CommandLogStrMixin, Log):
     error_message = Text()
 
     class Index:
-        name = '{}-command-log'.format(settings.ELASTICSEARCH_DATABASE.get('prefix', 'security'))
+        name = get_index_name(LoggerName.COMMAND)
 
 
 class CeleryTaskInvocationLog(CeleryTaskInvocationLogStrMixin, Log):
@@ -201,7 +196,7 @@ class CeleryTaskInvocationLog(CeleryTaskInvocationLogStrMixin, Log):
         return runs[0] if runs else None
 
     class Index:
-        name = '{}-celery-task-invocation-log'.format(settings.ELASTICSEARCH_DATABASE.get('prefix', 'security'))
+        name = get_index_name(LoggerName.CELERY_TASK_INVOCATION)
 
 
 class CeleryTaskRunLog(CeleryTaskRunLogStrMixin, Log):
@@ -221,27 +216,32 @@ class CeleryTaskRunLog(CeleryTaskRunLogStrMixin, Log):
     waiting_time = Float()
 
     class Index:
-        name = '{}-celery-task-run-log'.format(settings.ELASTICSEARCH_DATABASE.get('prefix', 'security'))
+        name = get_index_name(LoggerName.CELERY_TASK_RUN)
 
 
 def _get_content_type(model, using=None):
     return ContentType.objects.db_manager(using).get_for_model(model)
 
 
-def get_key_from_content_type_and_id(content_type, object_id, model_db=None):
-    model_db = model_db or router.db_for_write(content_type.model_class())
-    return '|'.join((model_db, str(content_type.pk), str(object_id)))
+def get_key_from_content_type_object_id_and_model_db(content_type_pk, object_pk, model_db):
+    return '|'.join((model_db, str(content_type_pk), str(object_pk)))
 
 
 def get_key_from_object(obj, model_db=None):
-    return get_key_from_content_type_and_id(_get_content_type(obj), obj.pk, model_db)
+    content_type = _get_content_type(obj)
+    model_db = model_db or router.db_for_write(content_type.model_class())
+    return get_key_from_content_type_object_id_and_model_db(content_type.pk, obj.pk, model_db)
 
 
 def get_object_from_key(key):
-    model_db, content_type_id, object_id = key.split('|')
+    model_db, content_type_id, object_pk = key.split('|')
     return ContentType.objects.get(
         pk=content_type_id
-    ).model_class().objects.using(model_db).filter(pk=object_id).first()
+    ).model_class().objects.using(model_db).filter(pk=object_pk).first()
+
+
+def get_object_triple_from_key(key):
+    return key.split('|')
 
 
 def get_response_state(status_code):

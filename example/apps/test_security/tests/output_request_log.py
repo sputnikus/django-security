@@ -21,8 +21,9 @@ from security.enums import RequestLogState
 from security.backends.sql.models import OutputRequestLog as SQLOutputRequestLog
 from security.backends.elasticsearch.models import OutputRequestLog as ElasticsearchOutputRequestLog
 from security.backends.testing import capture_security_logs
+from security.utils import get_object_triple
 
-from .base import BaseTestCaseMixin, TRUNCATION_CHAR
+from .base import BaseTestCaseMixin, TRUNCATION_CHAR, assert_equal_logstash
 
 
 @override_settings(SECURITY_BACKEND_WRITERS={})
@@ -68,7 +69,7 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             assert_equal(logged_data.output_request_started[0].data, expected_output_request_started_data)
             assert_equal(logged_data.output_request_finished[0].data, expected_output_request_finished_data)
             assert_equal(logged_data.output_request_started[0].slug, 'test')
-            assert_equal(logged_data.output_request_finished[0].related_objects, [user])
+            assert_equal(logged_data.output_request_finished[0].related_objects, [get_object_triple(user)])
 
     @responses.activate
     def test_output_request_error_should_be_logged(self):
@@ -225,6 +226,64 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             )
 
     @responses.activate
+    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'}, SECURITY_ELASTICSEARCH_LOGSTASH_WRITER=True)
+    @data_consumer('create_user')
+    def test_output_request_should_be_logged_in_elasticsearch_backend_through_logstash(self, user):
+        responses.add(responses.POST, 'https://localhost/test', body='test')
+        with capture_security_logs() as logged_data:
+            with self.assertLogs('security.logstash', level='INFO') as cm:
+                requests.post(
+                    'https://localhost/test',
+                    data=json.dumps({'test': 'test'}),
+                    slug='test',
+                    related_objects=[user]
+                )
+                output_request_log = logged_data.output_request[0]
+                assert_equal(len(cm.output), 2)
+                request_log, response_log = cm.output
+
+                request_log_expected_data = {
+                    'slug': 'test',
+                    'release': None,
+                    'related_objects': ['|'.join(str(v) for v in get_object_triple(user))],
+                    'extra_data': {},
+                    'parent_log': None,
+                    'is_secure': True,
+                    'host': 'localhost',
+                    'path': '/test',
+                    'method': 'POST',
+                    'queries': '{}',
+                    'start': not_none_eq_obj,
+                    'request_headers': not_none_eq_obj,
+                    'request_body': '{"test": "test"}',
+                    'state': 'INCOMPLETE'
+                }
+                response_log_expected_data = {
+                    **request_log_expected_data,
+                    'state': 'INFO',
+                    'stop': not_none_eq_obj,
+                    'time': not_none_eq_obj,
+                    'response_body': 'test',
+                    'response_code': 200,
+                    'response_headers': not_none_eq_obj,
+                }
+
+                assert_equal_logstash(
+                    request_log,
+                    'security-output-request-log',
+                    0,
+                    output_request_log.id,
+                    request_log_expected_data
+                )
+                assert_equal_logstash(
+                    response_log,
+                    'security-output-request-log',
+                    9999,
+                    output_request_log.id,
+                    response_log_expected_data
+                )
+
+    @responses.activate
     @override_settings(SECURITY_BACKEND_WRITERS={'logging'})
     @data_consumer('create_user')
     def test_output_request_should_be_logged_in_logging_backend(self, user):
@@ -318,6 +377,60 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             assert_is_not_none(elasticsearch_input_request_log.error_message)
 
     @responses.activate
+    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'}, SECURITY_ELASTICSEARCH_LOGSTASH_WRITER=True)
+    def test_error_output_request_should_be_logged_in_elasticsearch_backend_through_logstash(self):
+        with capture_security_logs() as logged_data:
+            with self.assertLogs('security.logstash', level='INFO') as cm:
+                with assert_raises(ConnectionError):
+                    requests.post(
+                        'https://localhost/test',
+                        data=json.dumps({'test': 'test'}),
+                        slug='test',
+                    )
+                output_request_log = logged_data.output_request[0]
+                assert_equal(len(cm.output), 2)
+                request_log, error_log = cm.output
+
+                request_log_expected_data = {
+                    'slug': 'test',
+                    'release': None,
+                    'related_objects': [],
+                    'extra_data': {},
+                    'parent_log': None,
+                    'is_secure': True,
+                    'host': 'localhost',
+                    'path': '/test',
+                    'method': 'POST',
+                    'queries': '{}',
+                    'start': not_none_eq_obj,
+                    'request_headers': not_none_eq_obj,
+                    'request_body': '{"test": "test"}',
+                    'state': 'INCOMPLETE'
+                }
+                error_log_expected_data = {
+                    **request_log_expected_data,
+                    'state': 'ERROR',
+                    'stop': not_none_eq_obj,
+                    'time': not_none_eq_obj,
+                    'error_message': not_none_eq_obj,
+                }
+
+                assert_equal_logstash(
+                    request_log,
+                    'security-output-request-log',
+                    0,
+                    output_request_log.id,
+                    request_log_expected_data
+                )
+                assert_equal_logstash(
+                    error_log,
+                    'security-output-request-log',
+                    9999,
+                    output_request_log.id,
+                    error_log_expected_data
+                )
+
+    @responses.activate
     @override_settings(SECURITY_BACKEND_WRITERS={'logging'})
     def test_error_output_request_should_be_logged_in_logging_backend(self):
         with capture_security_logs() as logged_data:
@@ -350,5 +463,5 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
                     'https://localhost/test',
                     data=json.dumps({'test': 'test'}),
                 )
-                assert_equal(logged_data.output_request[0].related_objects, {user})
+                assert_equal(logged_data.output_request[0].related_objects, {get_object_triple(user)})
                 assert_equal(logged_data.output_request[0].slug, 'TEST')

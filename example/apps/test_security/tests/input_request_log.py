@@ -11,7 +11,7 @@ from germanium.test_cases.client import ClientTestCase
 from germanium.tools import (
     assert_equal, assert_false, assert_http_not_found, assert_http_ok, assert_http_redirect,
     assert_http_too_many_requests, assert_in, assert_is_none, assert_is_not_none, assert_not_in,
-    assert_raises, assert_true, assert_equal_model_fields, assert_length_equal, all_eq_obj
+    assert_raises, assert_true, assert_equal_model_fields, assert_length_equal, all_eq_obj, not_none_eq_obj
 )
 
 from security.enums import RequestLogState
@@ -25,8 +25,9 @@ from security.backends.signals import (
     input_request_started, input_request_finished, input_request_error, output_request_started, output_request_finished
 )
 from security.backends.testing import capture_security_logs
+from security.utils import get_object_triple
 
-from .base import BaseTestCaseMixin, TRUNCATION_CHAR
+from .base import BaseTestCaseMixin, TRUNCATION_CHAR, assert_equal_logstash
 
 
 @override_settings(SECURITY_BACKEND_WRITERS={}, SECURITY_LOG_RESPONSE_BODY_CONTENT_TYPES=None)
@@ -44,7 +45,7 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             'is_secure': False,
             'ip': '127.0.0.1',
             'start': all_eq_obj,
-            'view_slug': 'home'
+            'view_slug': 'home',
         }
         expected_input_request_finished_data = {
             **expected_input_request_started_data,
@@ -82,7 +83,7 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             'is_secure': False,
             'ip': '127.0.0.1',
             'start': all_eq_obj,
-            'view_slug': 'admin:login'
+            'view_slug': 'admin:login',
         }
         expected_input_request_finished_data = {
             **expected_input_request_started_data,
@@ -119,7 +120,7 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             'is_secure': False,
             'ip': '127.0.0.1',
             'start': all_eq_obj,
-            'view_slug': 'apps.test_security.views.error_view'
+            'view_slug': 'apps.test_security.views.error_view',
         }
         expected_input_request_error_data = {
             **expected_input_request_started_data,
@@ -225,7 +226,7 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             assert_length_equal(logged_data.output_request_started, 1)
             assert_length_equal(logged_data.output_request_finished, 1)
             assert_equal(
-                logged_data.output_request[0].parent_with_id,
+                logged_data.output_request[0]._get_parent_with_id(),
                 logged_data.input_request[0]
             )
 
@@ -237,7 +238,7 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             responses.add(responses.GET, 'http://localhost', body='test')
             assert_equal(self.get('/proxy/?url=http://localhost').content, b'test')
             assert_equal(len(logged_data.output_request[0].related_objects), 1)
-            assert_equal(list(logged_data.output_request[0].related_objects)[0], user)
+            assert_equal(list(logged_data.output_request[0].related_objects)[0], get_object_triple(user))
 
     @responses.activate
     @data_consumer('create_user')
@@ -246,7 +247,7 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             assert_http_redirect(self.post('/admin/login/', data={'username': 'test', 'password': 'test'}))
             assert_http_ok(self.get('/home/'))
             assert_equal(len(logged_data.input_request[1].related_objects), 1)
-            assert_equal(list(logged_data.input_request[1].related_objects)[0], user)
+            assert_equal(list(logged_data.input_request[1].related_objects)[0], get_object_triple(user))
             assert_equal(logged_data.input_request_finished[1].slug, 'user-home')
 
     @data_consumer('create_user')
@@ -346,6 +347,61 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
                     ['default|3|{}'.format(user.id)]
                 )
 
+    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'}, SECURITY_ELASTICSEARCH_LOGSTASH_WRITER=True)
+    @data_consumer('create_user')
+    def test_input_request_to_homepage_should_be_logged_in_elasticsearch_backend_through_logstash(self, user):
+        with log_with_data(related_objects=[user]):
+            with capture_security_logs() as logged_data:
+                with self.assertLogs('security.logstash', level='INFO') as cm:
+                    assert_http_ok(self.get('/home/?name=value'))
+                    input_request_log = logged_data.input_request[0]
+                    assert_equal(len(cm.output), 2)
+                    request_log, response_log = cm.output
+
+                    request_log_expected_data = {
+                        'slug': None,
+                        'release': None,
+                        'related_objects': ['|'.join(str(v) for v in get_object_triple(user))],
+                        'extra_data': {},
+                        'parent_log': None,
+                        'request_headers': '{"COOKIE": "[Filtered]"}',
+                        'request_body': '',
+                        'user_id': None,
+                        'method': 'GET',
+                        'host': 'testserver',
+                        'path': '/home/',
+                        'queries': '{"name": "value"}',
+                        'is_secure': False,
+                        'ip': '127.0.0.1',
+                        'start': not_none_eq_obj,
+                        'view_slug': 'home',
+                        'state': 'INCOMPLETE'
+                    }
+                    response_log_expected_data = {
+                        **request_log_expected_data,
+                        'state': 'INFO',
+                        'stop': not_none_eq_obj,
+                        'time': not_none_eq_obj,
+                        'response_body': 'home page response',
+                        'response_code': 200,
+                        'response_headers': '{"Content-Type": "text/html; charset=utf-8", ''"X-Frame-Options": "DENY"}',
+                    }
+
+                    assert_equal_logstash(
+                        request_log,
+                        'security-input-request-log',
+                        0,
+                        input_request_log.id,
+                        request_log_expected_data
+                    )
+                    assert_equal_logstash(
+                        response_log,
+                        'security-input-request-log',
+                        9999,
+                        input_request_log.id,
+                        response_log_expected_data
+                    )
+
     @override_settings(SECURITY_BACKEND_WRITERS={'logging'})
     def test_input_request_to_homepage_should_be_logged_in_logging_backend(self):
         with capture_security_logs() as logged_data:
@@ -396,6 +452,71 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
                 state=RequestLogState.ERROR,
             )
             assert_is_not_none(elasticsearch_input_request_log.error_message)
+
+    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'}, SECURITY_ELASTICSEARCH_LOGSTASH_WRITER=True)
+    def test_input_request_to_error_page_should_be_logged_in_elasticsearch_backend_through_logstash(self):
+        with capture_security_logs() as logged_data:
+            with self.assertLogs('security.logstash', level='INFO') as cm:
+                with assert_raises(RuntimeError):
+                    self.get('/error/')
+                input_request_log = logged_data.input_request[0]
+                assert_equal(len(cm.output), 3)
+                request_log, error_log, response_log = cm.output
+
+                request_log_expected_data = {
+                    'slug': None,
+                    'release': None,
+                    'related_objects': [],
+                    'extra_data': {},
+                    'parent_log': None,
+                    'request_headers': '{"COOKIE": "[Filtered]"}',
+                    'request_body': '',
+                    'user_id': None,
+                    'method': 'GET',
+                    'host': 'testserver',
+                    'path': '/error/',
+                    'queries': '{}',
+                    'is_secure': False,
+                    'ip': '127.0.0.1',
+                    'start': not_none_eq_obj,
+                    'view_slug': 'apps.test_security.views.error_view',
+                    'state': 'INCOMPLETE'
+                }
+                error_log_expoected_data = {
+                    **request_log_expected_data,
+                    'error_message': not_none_eq_obj,
+                    'state': 'ERROR',
+                }
+                response_log_expected_data = {
+                    **error_log_expoected_data,
+                    'stop': not_none_eq_obj,
+                    'time': not_none_eq_obj,
+                    'response_body': not_none_eq_obj,
+                    'response_code': 500,
+                    'response_headers': not_none_eq_obj,
+                }
+
+                assert_equal_logstash(
+                    request_log,
+                    'security-input-request-log',
+                    0,
+                    input_request_log.id,
+                    request_log_expected_data
+                )
+                assert_equal_logstash(
+                    error_log,
+                    'security-input-request-log',
+                    1,
+                    input_request_log.id,
+                    error_log_expoected_data
+                )
+                assert_equal_logstash(
+                    response_log,
+                    'security-input-request-log',
+                    9999,
+                    input_request_log.id,
+                    response_log_expected_data
+                )
 
     @override_settings(SECURITY_BACKEND_WRITERS={'logging'})
     def test_input_request_to_error_page_should_be_logged_in_logging_backend(self):
@@ -501,5 +622,5 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
         with log_with_data(related_objects=[user], slug='TEST'):
             with capture_security_logs() as logged_data:
                 assert_http_ok(self.get('/home/'))
-                assert_equal(logged_data.input_request[0].related_objects, {user})
+                assert_equal(logged_data.input_request[0].related_objects, {get_object_triple(user)})
                 assert_equal(logged_data.input_request[0].slug, 'TEST')

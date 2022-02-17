@@ -57,6 +57,7 @@ field_labels = {
 
 
 def display_json(value, indent=4):
+    print(type(value), value)
     dict_value = json.loads(value) if isinstance(value, str) else value
     return json.dumps(dict_value, indent=indent, ensure_ascii=False)
 
@@ -202,6 +203,16 @@ class LogCoreMixin:
         else:
             return None
 
+    def _get_extra_data_dict(self, obj):
+        return obj.extra_data
+
+    @short_description('metadata')
+    def meta(self, obj):
+        extra_data = self._get_extra_data_dict(obj)
+        return (
+            display_code(display_json(extra_data['meta'])) if extra_data and 'meta' in extra_data else None
+        )
+
 
 class RequestLogCoreMixin(LogCoreMixin):
 
@@ -300,7 +311,7 @@ class InputRequestLogCoreMixin(RequestLogCoreMixin):
                     (_('celery invocations'), {'inline_view': self.celery_task_invocation_inline_table_view}),
                 ),
             }),
-            (None, {'fields': ('debug_toolbar',)})
+            (None, {'fields': ('meta', 'debug_toolbar',)}),
         )
 
     @filter_by('view_slug')
@@ -311,9 +322,9 @@ class InputRequestLogCoreMixin(RequestLogCoreMixin):
 
     @short_description('')
     def debug_toolbar(self, obj):
+        extra_data = self._get_extra_data_dict(obj)
         return (
-            mark_safe(obj.extra_data.get('debug_toolbar'))
-            if obj.extra_data and 'debug_toolbar' in obj.extra_data else ''
+            mark_safe(extra_data['debug_toolbar']) if extra_data and 'debug_toolbar' in extra_data else ''
         )
 
 
@@ -345,6 +356,7 @@ class OutputRequestLogCoreMixin(RequestLogCoreMixin):
                 'display_source', 'display_related_objects'
             ),
         }),
+        (None, {'fields': ('meta',)}),
     )
 
     verbose_name = _('output request log')
@@ -394,6 +406,7 @@ class CommandLogCoreMixin(OutputLogCoreMixin, LogCoreMixin):
                     (_('celery invocations'), {'inline_view': self.celery_task_invocation_inline_table_view}),
                 ),
             }),
+            (None, {'fields': ('meta',)}),
         )
 
 
@@ -461,6 +474,7 @@ class CeleryTaskRunLogCoreMixin(OutputLogCoreMixin, CeleryCoreMixin, LogCoreMixi
                     (_('celery invocations'), {'inline_view': self.celery_task_invocation_inline_table_view}),
                 ),
             }),
+            (None, {'fields': ('meta',)}),
         )
 
     @short_description(_('result'))
@@ -505,6 +519,7 @@ class CeleryTaskInvocationLogCoreMixin(CeleryCoreMixin, LogCoreMixin):
                     'display_source', 'display_related_objects'
                 ),
             }),
+            (None, {'fields': ('meta',)}),
         )
 
 

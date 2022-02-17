@@ -31,7 +31,7 @@ class CeleryInvocationLogger(SecurityLogger):
             is_async=is_async,
             is_unique=is_unique,
             is_on_commit=is_on_commit,
-            start=now()
+            start=now(),
         ))
         celery_task_invocation_started.send(
             sender=CeleryInvocationLogger,

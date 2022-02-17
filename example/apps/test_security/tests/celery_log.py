@@ -34,7 +34,6 @@ from security.backends.sql.models import CeleryTaskRunLog as SQLCeleryTaskRunLog
 from security.backends.sql.models import CeleryTaskInvocationLog as SQLCeleryTaskInvocationLog
 from security.backends.elasticsearch.models import CeleryTaskRunLog as ElasticsearchCeleryTaskRunLog
 from security.backends.elasticsearch.models import CeleryTaskInvocationLog as ElasticsearchCeleryTaskInvocationLog
-
 from security.backends.signals import (
     celery_task_invocation_started, celery_task_invocation_expired, celery_task_invocation_triggered,
     celery_task_invocation_ignored, celery_task_invocation_timeout, celery_task_run_started, celery_task_run_failed,
@@ -42,10 +41,11 @@ from security.backends.signals import (
 )
 from security.backends.testing import capture_security_logs
 from security.backends.reader import get_logs_related_with_object
+from security.utils import get_object_triple
 
 from apps.test_security.tasks import error_task, retry_task, sum_task, unique_task, ignored_after_success_task
 
-from .base import BaseTestCaseMixin, TRUNCATION_CHAR, test_call_command
+from .base import BaseTestCaseMixin, TRUNCATION_CHAR, test_call_command, assert_equal_logstash
 
 
 @override_settings(SECURITY_BACKEND_WRITERS={})
@@ -90,7 +90,7 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
         expected_run_succeeded_data = {
             **expected_run_started_data,
             'stop': not_none_eq_obj,
-            'result': 13
+            'result': 13,
         }
 
         with capture_security_logs() as logged_data:
@@ -99,14 +99,13 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
             assert_length_equal(logged_data.celery_task_invocation_triggered, 1)
             assert_length_equal(logged_data.celery_task_run_started, 1)
             assert_length_equal(logged_data.celery_task_run_succeeded, 1)
-            assert_length_equal(logged_data.celery_task_run_output_updated, 1)
             assert_length_equal(logged_data.celery_task_run_failed, 0)
             assert_length_equal(logged_data.celery_task_run_retried, 0)
             assert_equal(logged_data.celery_task_invocation_started[0].data, expected_invocation_started_data)
             assert_equal(logged_data.celery_task_invocation_triggered[0].data, expected_invocation_triggered_data)
             assert_equal(logged_data.celery_task_run_started[0].data, expected_run_started_data)
             assert_equal(logged_data.celery_task_run_succeeded[0].data, expected_run_succeeded_data)
-            assert_equal(logged_data.celery_task_invocation[0].related_objects, {user})
+            assert_equal(logged_data.celery_task_invocation[0].related_objects, {get_object_triple(user)})
             assert_equal(
                 get_logs_related_with_object(LoggerName.CELERY_TASK_INVOCATION, user),
                 [logged_data.celery_task_invocation[0]]
@@ -157,7 +156,6 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
             assert_length_equal(logged_data.celery_task_invocation_triggered, 1)
             assert_length_equal(logged_data.celery_task_run_started, 1)
             assert_length_equal(logged_data.celery_task_run_succeeded, 0)
-            assert_length_equal(logged_data.celery_task_run_output_updated, 1)
             assert_length_equal(logged_data.celery_task_run_failed, 1)
             assert_length_equal(logged_data.celery_task_run_retried, 0)
             assert_equal(logged_data.celery_task_invocation_started[0].data, expected_invocation_started_data)
@@ -213,7 +211,6 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
             assert_length_equal(logged_data.celery_task_invocation_triggered, 1)
             assert_length_equal(logged_data.celery_task_run_started, 6)
             assert_length_equal(logged_data.celery_task_run_succeeded, 1)
-            assert_length_equal(logged_data.celery_task_run_output_updated, 6)
             assert_length_equal(logged_data.celery_task_run_failed, 0)
             assert_length_equal(logged_data.celery_task_run_retried, 5)
             assert_equal(logged_data.celery_task_invocation_started[0].data, expected_invocation_started_data)
@@ -359,6 +356,104 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
                     retries=0
                 )
 
+    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'}, SECURITY_ELASTICSEARCH_LOGSTASH_WRITER=True)
+    @data_consumer('create_user')
+    def test_sum_celery_task_should_be_logged_in_elasticsearch_backend_through_logstash(self, user):
+        with log_with_data(related_objects=[user]):
+            with capture_security_logs() as logged_data:
+                with self.assertLogs('security.logstash', level='INFO') as cm:
+                    sum_task.apply(args=(5, 8), related_objects=[user])
+
+                    celery_task_invocation_log = logged_data.celery_task_invocation[0]
+                    celery_task_run_log = logged_data.celery_task_run[0]
+
+                    assert_equal(len(cm.output), 4)
+                    start_invocation, trigger_invocation, start_run, success_run = cm.output
+
+                    start_invocation_expected_data = {
+                        'slug': None,
+                        'release': None,
+                        'related_objects': ['|'.join(str(v) for v in get_object_triple(user))],
+                        'extra_data': {},
+                        'parent_log': None,
+                        'name': 'sum_task',
+                        'queue_name': 'default',
+                        'input': '5, 8',
+                        'task_args': '[5, 8]',
+                        'task_kwargs': '{}',
+                        'applied_at': not_none_eq_obj,
+                        'is_async': False,
+                        'is_unique': False,
+                        'is_on_commit': False,
+                        'start': not_none_eq_obj,
+                        'state': 'WAITING'
+                    }
+                    trigger_invocation_expected_data = {
+                        **start_invocation_expected_data,
+                        'triggered_at': not_none_eq_obj,
+                        'state': 'TRIGGERED',
+                        'stale_at': None,
+                        'is_duplicate': False,
+                        'celery_task_id': not_none_eq_obj,
+                        'estimated_time_of_first_arrival': not_none_eq_obj,
+                        'expires_at': None,
+                    }
+
+                    start_run_expected_data = {
+                        'slug': None,
+                        'release': None,
+                        'related_objects': ['|'.join(str(v) for v in get_object_triple(user))],
+                        'extra_data': {},
+                        'parent_log': None,
+                        'name': 'sum_task',
+                        'celery_task_id': not_none_eq_obj,
+                        'queue_name': None,
+                        'input': '5, 8',
+                        'task_args': '[5, 8]',
+                        'task_kwargs': '{}',
+                        'start': not_none_eq_obj,
+                        'retries': 0,
+                        'waiting_time': not_none_eq_obj,
+                        'state': 'ACTIVE',
+                    }
+                    success_run_expected_data = {
+                        **start_run_expected_data,
+                        'time': not_none_eq_obj,
+                        'stop': not_none_eq_obj,
+                        'state': 'SUCCEEDED',
+                        'result': 13,
+                    }
+
+                    assert_equal_logstash(
+                        start_invocation,
+                        'security-celery-task-invocation-log',
+                        0,
+                        celery_task_invocation_log.id,
+                        start_invocation_expected_data
+                    )
+                    assert_equal_logstash(
+                        trigger_invocation,
+                        'security-celery-task-invocation-log',
+                        1,
+                        celery_task_invocation_log.id,
+                        trigger_invocation_expected_data
+                    )
+
+                    assert_equal_logstash(
+                        start_run,
+                        'security-celery-task-run-log',
+                        0,
+                        celery_task_run_log.id,
+                        start_run_expected_data
+                    )
+                    assert_equal_logstash(
+                        success_run,
+                        'security-celery-task-run-log',
+                        9999,
+                        celery_task_run_log.id,
+                        success_run_expected_data
+                    )
+
     @override_settings(SECURITY_BACKEND_WRITERS={'logging'})
     def test_sum_celery_task_should_be_logged_in_logging_backend(self):
         with capture_security_logs() as logged_data:
@@ -422,6 +517,7 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
             elasticsearch_celery_task_invocation_log = ElasticsearchCeleryTaskInvocationLog.get(
                 id=logged_data.celery_task_invocation[0].id
             )
+            ElasticsearchCeleryTaskRunLog._index.refresh()
             elasticsearch_celery_task_run_log = ElasticsearchCeleryTaskRunLog.get(
                 id=logged_data.celery_task_run[0].id
             )
@@ -453,6 +549,102 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
                 retries=0
             )
             assert_is_not_none(elasticsearch_celery_task_run_log.error_message)
+
+    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'}, SECURITY_ELASTICSEARCH_LOGSTASH_WRITER=True)
+    def test_error_celery_task_should_be_logged_in_elasticsearch_backend_through_logstash(self):
+        with capture_security_logs() as logged_data:
+            with self.assertLogs('security.logstash', level='INFO') as cm:
+                error_task.apply()
+                celery_task_invocation_log = logged_data.celery_task_invocation[0]
+                celery_task_run_log = logged_data.celery_task_run[0]
+
+                assert_equal(len(cm.output), 4)
+                start_invocation, trigger_invocation, start_run, failed_run = cm.output
+
+                start_invocation_expected_data = {
+                    'slug': None,
+                    'release': None,
+                    'related_objects': [],
+                    'extra_data': {},
+                    'parent_log': None,
+                    'name': 'error_task',
+                    'queue_name': 'default',
+                    'input': '',
+                    'task_args': '[]',
+                    'task_kwargs': '{}',
+                    'applied_at': not_none_eq_obj,
+                    'is_async': False,
+                    'is_unique': False,
+                    'is_on_commit': False,
+                    'start': not_none_eq_obj,
+                    'state': 'WAITING'
+                }
+                trigger_invocation_expected_data = {
+                    **start_invocation_expected_data,
+                    'triggered_at': not_none_eq_obj,
+                    'state': 'TRIGGERED',
+                    'stale_at': not_none_eq_obj,
+                    'is_duplicate': False,
+                    'celery_task_id': not_none_eq_obj,
+                    'estimated_time_of_first_arrival': not_none_eq_obj,
+                    'expires_at': None,
+                }
+
+                start_run_expected_data = {
+                    'slug': None,
+                    'release': None,
+                    'related_objects': [],
+                    'extra_data': {},
+                    'parent_log': None,
+                    'name': 'error_task',
+                    'celery_task_id': not_none_eq_obj,
+                    'queue_name': None,
+                    'input': '',
+                    'task_args': '[]',
+                    'task_kwargs': '{}',
+                    'start': not_none_eq_obj,
+                    'retries': 0,
+                    'waiting_time': not_none_eq_obj,
+                    'state': 'ACTIVE',
+                }
+                failed_run_expected_data = {
+                    **start_run_expected_data,
+                    'time': not_none_eq_obj,
+                    'stop': not_none_eq_obj,
+                    'state': 'FAILED',
+                    'error_message': 'error'
+                }
+
+                assert_equal_logstash(
+                    start_invocation,
+                    'security-celery-task-invocation-log',
+                    0,
+                    celery_task_invocation_log.id,
+                    start_invocation_expected_data
+                )
+                assert_equal_logstash(
+                    trigger_invocation,
+                    'security-celery-task-invocation-log',
+                    1,
+                    celery_task_invocation_log.id,
+                    trigger_invocation_expected_data
+                )
+
+                assert_equal_logstash(
+                    start_run,
+                    'security-celery-task-run-log',
+                    0,
+                    celery_task_run_log.id,
+                    start_run_expected_data
+                )
+                assert_equal_logstash(
+                    failed_run,
+                    'security-celery-task-run-log',
+                    9999,
+                    celery_task_run_log.id,
+                    failed_run_expected_data
+                )
+
 
     @override_settings(SECURITY_BACKEND_WRITERS={'logging'})
     def test_error_celery_task_should_be_logged_in_logging_backend(self):
@@ -584,6 +776,143 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
             )
             ElasticsearchCeleryTaskRunLog._index.refresh()
             assert_equal(elasticsearch_celery_task_invocation_log.last_run.id, elasticsearch_celery_task_run_log.id)
+
+    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'}, SECURITY_ELASTICSEARCH_LOGSTASH_WRITER=True)
+    def test_retry_celery_task_should_be_logged_in_elasticsearch_backend_through_logstash(self):
+        with capture_security_logs() as logged_data:
+            with self.assertLogs('security.logstash', level='INFO') as cm:
+                retry_task.apply()
+                celery_task_invocation_log = logged_data.celery_task_invocation[0]
+
+                assert_equal(len(cm.output), 14)
+                start_invocation, trigger_invocation = cm.output[:2]
+
+                start_invocation_expected_data = {
+                    'slug': None,
+                    'release': None,
+                    'related_objects': [],
+                    'extra_data': {},
+                    'parent_log': None,
+                    'name': 'retry_task',
+                    'queue_name': 'default',
+                    'input': '',
+                    'task_args': '[]',
+                    'task_kwargs': '{}',
+                    'applied_at': not_none_eq_obj,
+                    'is_async': False,
+                    'is_unique': False,
+                    'is_on_commit': False,
+                    'start': not_none_eq_obj,
+                    'state': 'WAITING'
+                }
+                trigger_invocation_expected_data = {
+                    **start_invocation_expected_data,
+                    'triggered_at': not_none_eq_obj,
+                    'state': 'TRIGGERED',
+                    'stale_at': None,
+                    'is_duplicate': False,
+                    'celery_task_id': not_none_eq_obj,
+                    'estimated_time_of_first_arrival': not_none_eq_obj,
+                    'expires_at': None,
+                }
+
+                assert_equal_logstash(
+                    start_invocation,
+                    'security-celery-task-invocation-log',
+                    0,
+                    celery_task_invocation_log.id,
+                    start_invocation_expected_data
+                )
+                assert_equal_logstash(
+                    trigger_invocation,
+                    'security-celery-task-invocation-log',
+                    1,
+                    celery_task_invocation_log.id,
+                    trigger_invocation_expected_data
+                )
+                for i, celery_task_run_log in enumerate(logged_data.celery_task_run[0:5]):
+                    start_run, retry_run = cm.output[2 + (i*2):4 + (i*2)]
+                    start_run_expected_data = {
+                        'slug': None,
+                        'release': None,
+                        'related_objects': [],
+                        'extra_data': {},
+                        'parent_log': None,
+                        'name': 'retry_task',
+                        'celery_task_id': not_none_eq_obj,
+                        'queue_name': None,
+                        'input': '',
+                        'task_args': '[]',
+                        'task_kwargs': '{}',
+                        'start': not_none_eq_obj,
+                        'retries': i,
+                        'waiting_time': not_none_eq_obj,
+                        'state': 'ACTIVE',
+                    }
+                    retry_run_expected_data = {
+                        **start_run_expected_data,
+                        'time': not_none_eq_obj,
+                        'stop': not_none_eq_obj,
+                        'state': 'RETRIED',
+                        'error_message': 'error',
+                        'estimated_time_of_next_retry': not_none_eq_obj,
+                    }
+
+                    assert_equal_logstash(
+                        start_run,
+                        'security-celery-task-run-log',
+                        0,
+                        celery_task_run_log.id,
+                        start_run_expected_data
+                    )
+                    assert_equal_logstash(
+                        retry_run,
+                        'security-celery-task-run-log',
+                        9999,
+                        celery_task_run_log.id,
+                        retry_run_expected_data
+                    )
+                celery_task_run_log = logged_data.celery_task_run[-1]
+                start_run, succes_run = cm.output[12:14]
+                start_run_expected_data = {
+                    'slug': None,
+                    'release': None,
+                    'related_objects': [],
+                    'extra_data': {},
+                    'parent_log': None,
+                    'name': 'retry_task',
+                    'celery_task_id': not_none_eq_obj,
+                    'queue_name': None,
+                    'input': '',
+                    'task_args': '[]',
+                    'task_kwargs': '{}',
+                    'start': not_none_eq_obj,
+                    'retries': 5,
+                    'waiting_time': not_none_eq_obj,
+                    'state': 'ACTIVE',
+                }
+                succes_run_expected_data = {
+                    **start_run_expected_data,
+                    'time': not_none_eq_obj,
+                    'stop': not_none_eq_obj,
+                    'state': 'SUCCEEDED',
+                    'result': None
+                }
+
+                assert_equal_logstash(
+                    start_run,
+                    'security-celery-task-run-log',
+                    0,
+                    celery_task_run_log.id,
+                    start_run_expected_data
+                )
+                assert_equal_logstash(
+                    succes_run,
+                    'security-celery-task-run-log',
+                    9999,
+                    celery_task_run_log.id,
+                    succes_run_expected_data
+                )
 
     @override_settings(SECURITY_BACKEND_WRITERS={'logging'})
     def test_retry_celery_task_should_be_logged_in_logging_backend(self):
