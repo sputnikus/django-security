@@ -62,10 +62,10 @@ class CommandExecutor:
                 ret_val = self.command_function(
                     stdout=stdout, stderr=stderr, *self.command_args, **self.command_kwargs
                 )
+                self.output.close()
                 command_logger.log_finished()
                 return ret_val
             except (Exception, KeyboardInterrupt, SystemExit) as ex:  # pylint: disable=W0703
+                self.output.close()
                 command_logger.log_exception(traceback.format_exc())
                 raise ex
-            finally:
-                self.output.close()

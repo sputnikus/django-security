@@ -23,8 +23,9 @@ from security.backends.signals import (
 )
 from security.backends.reader import get_logs_related_with_object
 from security.backends.testing import capture_security_logs
+from security.utils import get_object_triple
 
-from .base import BaseTestCaseMixin, TRUNCATION_CHAR, test_call_command
+from .base import BaseTestCaseMixin, TRUNCATION_CHAR, test_call_command, assert_equal_logstash
 
 
 @override_settings(SECURITY_BACKEND_WRITERS={})
@@ -40,12 +41,12 @@ class CommandLogTestCase(BaseTestCaseMixin, ClientTestCase):
         expected_command_finished_data = {
             **expected_command_started_data,
             'stop': all_eq_obj,
+            'output': not_none_eq_obj,
         }
         with capture_security_logs() as logged_data:
             test_call_command('test_command', verbosity=0)
             assert_length_equal(logged_data.command_started, 1)
             assert_length_equal(logged_data.command_finished, 1)
-            assert_length_equal(logged_data.command_output_updated, 1)
             assert_length_equal(logged_data.command_error, 0)
             assert_equal(logged_data.command_started[0].data, expected_command_started_data)
             assert_equal(logged_data.command_finished[0].data, expected_command_finished_data)
@@ -54,7 +55,7 @@ class CommandLogTestCase(BaseTestCaseMixin, ClientTestCase):
     def test_command_log_string_io_flush_timeout_should_changed(self):
         with capture_security_logs() as logged_data:
             test_call_command('test_command')
-            assert_length_equal(logged_data.command_output_updated, 21)
+            assert_length_equal(logged_data.command_output_updated, 20)
 
     def test_error_command_should_be_logged(self):
         expected_command_started_data = {
@@ -86,12 +87,12 @@ class CommandLogTestCase(BaseTestCaseMixin, ClientTestCase):
                 test_call_command('test_command_with_response')
                 command_logger = logged_data.command[0]
                 output_request_logger = logged_data.output_request[0]
-                assert_equal(output_request_logger.parent_with_id, command_logger)
+                assert_equal(output_request_logger._get_parent_with_id(), command_logger)
                 assert_equal(command_logger.slug, 'TEST')
-                assert_equal(command_logger.related_objects, {user})
+                assert_equal(command_logger.related_objects, {get_object_triple(user)})
                 assert_equal(command_logger.extra_data, {'test': 'test'})
                 assert_equal(output_request_logger.slug, 'TEST')
-                assert_equal(output_request_logger.related_objects, {user})
+                assert_equal(output_request_logger.related_objects, {get_object_triple(user)})
                 assert_equal(output_request_logger.extra_data, {'test': 'test'})
 
     @override_settings(SECURITY_BACKEND_WRITERS={'sql'}, SECURITY_BACKEND_READER='sql')
@@ -140,6 +141,61 @@ class CommandLogTestCase(BaseTestCaseMixin, ClientTestCase):
                 )
                 assert_equal(get_logs_related_with_object(LoggerName.COMMAND, user), [elasticsearch_command_log])
 
+    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'}, SECURITY_ELASTICSEARCH_LOGSTASH_WRITER=True)
+    @data_consumer('create_user')
+    def test_command_should_be_logged_in_elasticsearch_backend_through_logstash(self, user):
+        with capture_security_logs() as logged_data:
+            with self.assertLogs('security.logstash', level='INFO') as cm:
+                test_call_command('test_command', verbosity=0)
+                command_log = logged_data.command[0]
+                assert_equal(len(cm.output), 3)
+                start_log, output_updated_log, success_log = cm.output
+
+                start_log_expected_data = {
+                    'slug': None,
+                    'release': None,
+                    'related_objects': [],
+                    'extra_data': {},
+                    'parent_log': None,
+                    'name': 'test_command',
+                    'input': 'verbosity=0',
+                    'is_executed_from_command_line': False,
+                    'start': not_none_eq_obj,
+                    'state': 'ACTIVE'
+                }
+                output_updated_log_expected_data = {
+                    **start_log_expected_data,
+                    'output': not_none_eq_obj,
+                }
+                success_log_expected_data = {
+                    **output_updated_log_expected_data,
+                    'stop': not_none_eq_obj,
+                    'state': 'SUCCEEDED',
+                    'time': not_none_eq_obj
+                }
+
+                assert_equal_logstash(
+                    start_log,
+                    'security-command-log',
+                    0,
+                    command_log.id,
+                    start_log_expected_data
+                )
+                assert_equal_logstash(
+                    output_updated_log,
+                    'security-command-log',
+                    1,
+                    command_log.id,
+                    output_updated_log_expected_data
+                )
+                assert_equal_logstash(
+                    success_log,
+                    'security-command-log',
+                    9999,
+                    command_log.id,
+                    success_log_expected_data
+                )
+
     @responses.activate
     @override_settings(SECURITY_BACKEND_WRITERS={'logging'})
     @data_consumer('create_user')
@@ -175,7 +231,7 @@ class CommandLogTestCase(BaseTestCaseMixin, ClientTestCase):
                 is_executed_from_command_line=False,
                 time=(sql_command_log.stop - sql_command_log.start).total_seconds(),
                 state=CommandState.FAILED,
-                output='',
+                output=None,
             )
             assert_is_not_none(sql_command_log.error_message)
             assert_equal([rel_obj.object for rel_obj in sql_command_log.related_objects.all()], [user])
@@ -197,13 +253,60 @@ class CommandLogTestCase(BaseTestCaseMixin, ClientTestCase):
                     is_executed_from_command_line=False,
                     time=(elasticsearch_command_log.stop - elasticsearch_command_log.start).total_seconds(),
                     state=CommandState.FAILED,
-                    output='',
+                    output=None,
                 )
                 assert_is_not_none(elasticsearch_command_log.error_message)
                 assert_equal(
                     [rel_obj for rel_obj in elasticsearch_command_log.related_objects],
                     ['default|3|{}'.format(user.id)]
                 )
+
+    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'}, SECURITY_ELASTICSEARCH_LOGSTASH_WRITER=True)
+    @data_consumer('create_user')
+    def test_error_command_should_be_logged_in_elasticsearch_backend_through_logstash(self, user):
+        with capture_security_logs() as logged_data:
+            with log_with_data(related_objects=[user]):
+                with self.assertLogs('security.logstash', level='INFO') as cm:
+                    with assert_raises(RuntimeError):
+                        test_call_command('test_error_command')
+                    command_log = logged_data.command[0]
+                    assert_equal(len(cm.output), 2)
+                    start_log, error_log = cm.output
+
+                    start_log_expected_data = {
+                        'slug': None,
+                        'release': None,
+                        'related_objects': ['|'.join(str(v) for v in get_object_triple(user))],
+                        'extra_data': {},
+                        'parent_log': None,
+                        'name': 'test_error_command',
+                        'input': '',
+                        'is_executed_from_command_line': False,
+                        'start': not_none_eq_obj,
+                        'state': 'ACTIVE'
+                    }
+                    error_log_expected_data = {
+                        **start_log_expected_data,
+                        'stop': not_none_eq_obj,
+                        'error_message': not_none_eq_obj,
+                        'state': 'FAILED',
+                        'time': not_none_eq_obj
+                    }
+
+                    assert_equal_logstash(
+                        start_log,
+                        'security-command-log',
+                        0,
+                        command_log.id,
+                        start_log_expected_data
+                    )
+                    assert_equal_logstash(
+                        error_log,
+                        'security-command-log',
+                        9999,
+                        command_log.id,
+                        error_log_expected_data
+                    )
 
     @responses.activate
     @override_settings(SECURITY_BACKEND_WRITERS={'logging'})
