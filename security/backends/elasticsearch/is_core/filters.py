@@ -8,7 +8,7 @@ from django.contrib.contenttypes.models import ContentType
 from elasticsearch_dsl import Q
 
 from pyston.contrib.elasticsearch.filters import ElasticsearchFilter
-from pyston.filters.filters import OPERATORS
+from pyston.filters.utils import OperatorSlug
 from pyston.filters.exceptions import FilterValueError
 
 from is_core.contrib.elasticsearch.filters import CoreElasticsearchFilterManagerFilterManager
@@ -18,7 +18,7 @@ from security.backends.elasticsearch.models import get_key_from_content_type_obj
 
 class UsernameUserFilter(ElasticsearchFilter):
 
-    allowed_operators = (OPERATORS.CONTAINS,)
+    allowed_operators = (OperatorSlug.CONTAINS,)
 
     def clean_value(self, value, operator_slug, request):
         user_model = get_user_model()
@@ -36,7 +36,7 @@ class UsernameUserFilter(ElasticsearchFilter):
 
 class EnumElasticsearchFilter(ElasticsearchFilter):
 
-    allowed_operators = (OPERATORS.EQ,)
+    allowed_operators = (OperatorSlug.EQ,)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -69,7 +69,7 @@ class SecurityElasticsearchFilterManager(CoreElasticsearchFilterManagerFilterMan
 
 class RelatedObjectsFilter(ElasticsearchFilter):
 
-    allowed_operators = (OPERATORS.IN,)
+    allowed_operators = (OperatorSlug.IN,)
 
     def clean_value(self, value, operator_slug, request):
         cleaned_values = []
