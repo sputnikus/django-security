@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.db import router
 from django.db.models import TextField
 from django.db.models.functions import Cast
 from django.utils.translation import ugettext
@@ -12,7 +13,7 @@ from pyston.filters.exceptions import FilterValueError
 
 from is_core.contrib.elasticsearch.filters import CoreElasticsearchFilterManagerFilterManager
 
-from security.backends.elasticsearch.models import get_key_from_content_type_and_id
+from security.backends.elasticsearch.models import get_key_from_content_type_object_id_and_model_db
 
 
 class UsernameUserFilter(ElasticsearchFilter):
@@ -75,8 +76,12 @@ class RelatedObjectsFilter(ElasticsearchFilter):
         for v in value:
             try:
                 content_type_id, object_id = v.split('|')
+
+                content_type = ContentType.objects.get(pk=content_type_id)
+                model_db = router.db_for_write(content_type.model_class())
+
                 cleaned_values.append(
-                    get_key_from_content_type_and_id(ContentType.objects.get(pk=content_type_id), object_id)
+                    get_key_from_content_type_object_id_and_model_db(model_db, content_type_id, object_id)
                 )
             except (ValueError, ContentType.DoesNotExist):
                 raise FilterValueError(ugettext('Invalid value.'))

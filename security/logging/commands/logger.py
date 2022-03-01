@@ -16,7 +16,7 @@ class CommandLogger(SecurityLogger):
             name=name,
             input=input,
             is_executed_from_command_line=is_executed_from_command_line,
-            start=now()
+            start=now(),
         ))
         command_started.send(sender=CommandLogger, logger=self)
 

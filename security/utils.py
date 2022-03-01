@@ -4,6 +4,7 @@ from io import StringIO
 from time import time
 
 from django.core.exceptions import ImproperlyConfigured
+from django.db import router
 from django.utils.timezone import now
 
 from .config import settings
@@ -37,14 +38,18 @@ class LogStringIO(StringIO):
         self._write_time = True
         self._last_flush_time = time()
         self._flush_timeout = settings.LOG_STRING_IO_FLUSH_TIMEOUT if flush_timeout is None else flush_timeout
+        self._flushed = True
 
     def _flush(self, force=False):
-        if self._flush_callback and (force or time() - self._last_flush_time > self._flush_timeout):
+        if (not self._flushed and self._flush_callback
+                and (force or time() - self._last_flush_time > self._flush_timeout)):
             self._flush_callback(self)
             self._last_flush_time = time()
+            self._flushed = True
 
     def write(self, s):
         if not self._is_closed:
+            self._flushed = False
             lines = s.split('\n')
 
             for i, line in enumerate(lines):
@@ -131,3 +136,13 @@ def update_logged_request_data(request, related_objects=None, slug=None, extra_d
             input_request_logger.set_slug(slug)
         if extra_data:
             input_request_logger.update_extra_data(extra_data)
+
+
+def get_object_triple(obj):
+    from django.contrib.contenttypes.models import ContentType
+
+    if isinstance(obj, (list, tuple)) and len(obj) == 3:
+        return obj
+    else:
+        content_type = ContentType.objects.get_for_model(obj)
+        return router.db_for_write(content_type.model_class()), content_type.pk, obj.pk

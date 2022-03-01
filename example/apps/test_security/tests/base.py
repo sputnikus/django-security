@@ -1,3 +1,5 @@
+import json
+
 from io import StringIO
 
 from contextlib import contextmanager
@@ -25,3 +27,11 @@ class BaseTestCaseMixin:
 
 def test_call_command(*args, **kwargs):
     call_command(*args, **kwargs, stdout=StringIO(), stderr=StringIO())
+
+
+def assert_equal_logstash(logstash_output, expected_index, expected_version, expected_logger_id, expected_data):
+    prefix_and_index, version, logger_id, data = logstash_output.split(' ', 3)
+    assert_equal(prefix_and_index, f'INFO:security.logstash:{expected_index}')
+    assert_equal(version, str(expected_version))
+    assert_equal(logger_id, str(expected_logger_id))
+    assert_equal(json.loads(data), expected_data)
