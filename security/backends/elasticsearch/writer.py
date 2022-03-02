@@ -194,7 +194,7 @@ class LogstashElasticsearchDataWriter(BaseElasticsearchDataWriter):
         logstash_logger.info(
             self._get_log_message(
                 index.id,
-                logger_name.value,
+                logger_name,
                 self.MAX_ELASTICSEARCH_VERSION,
                 self._update_data(data)
             )
