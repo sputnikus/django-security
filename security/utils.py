@@ -142,7 +142,7 @@ def get_object_triple(obj):
     from django.contrib.contenttypes.models import ContentType
 
     if isinstance(obj, (list, tuple)) and len(obj) == 3:
-        return obj
+        return tuple(obj)
     else:
         content_type = ContentType.objects.get_for_model(obj)
         return router.db_for_write(content_type.model_class()), content_type.pk, obj.pk
