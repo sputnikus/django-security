@@ -364,8 +364,8 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
                 )
             else:
                 try:
-                    task_args = json.loads(task.task_args),
-                    task_kwargs = json.loads(task.task_kwargs),
+                    task_args = json.loads(task.task_args)
+                    task_kwargs = json.loads(task.task_kwargs)
                     current_app.tasks[task.name].expire_invocation(
                         task.id,
                         task_args,
@@ -399,7 +399,9 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
                     )
                 except NotRegistered:
                     self.get_data_writer().update_index(
-                        task, state=CeleryTaskInvocationLogState.EXPIRED, stop=task_last_run.stop
+                        task,
+                        state=CeleryTaskInvocationLogState.EXPIRED,
+                        stop=now()
                     )
 
     def clean_logs(self, type, timestamp, backup_path, stdout):
