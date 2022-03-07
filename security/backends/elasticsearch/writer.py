@@ -66,8 +66,10 @@ class BaseElasticsearchDataWriter:
 
     def _get_index_data(self, index):
         return {
-            field_name: getattr(index, field_name)
-            for field_name in index._doc_type.mapping.properties.to_dict()['properties'].keys()
+            field_name: (
+                getattr(index, field_name).to_dict() if description['type'] == 'object' else getattr(index, field_name)
+            )
+            for field_name, description in index._doc_type.mapping.properties.to_dict()['properties'].items()
         }
 
     def _update_data(self, data):
