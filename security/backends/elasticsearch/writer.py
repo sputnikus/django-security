@@ -10,6 +10,8 @@ from io import TextIOWrapper
 
 from datetime import datetime, time, timedelta
 
+from elasticsearch_dsl.utils import AttrDict, AttrList
+
 from django.utils.timezone import now, utc
 from django.utils.module_loading import import_string
 from django.core.serializers.json import DjangoJSONEncoder
@@ -65,12 +67,16 @@ class BaseElasticsearchDataWriter:
         ]
 
     def _get_index_data(self, index):
-        return {
-            field_name: (
-                getattr(index, field_name).to_dict() if description['type'] == 'object' else getattr(index, field_name)
-            )
-            for field_name, description in index._doc_type.mapping.properties.to_dict()['properties'].items()
-        }
+        index_data = {}
+        for field_name in index._doc_type.mapping.properties.to_dict()['properties'].keys():
+            value = getattr(index, field_name)
+            if isinstance(value, AttrList):
+                value = value._l_
+            elif isinstance(value, AttrDict):
+                value = value.to_dict()
+
+            index_data[field_name] = value
+        return index_data
 
     def _update_data(self, data):
         data = dict(data)
