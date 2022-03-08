@@ -28,7 +28,7 @@ from security.backends.writer import BaseBackendWriter
 
 from .models import (
     CeleryTaskRunLog, CeleryTaskInvocationLog, get_key_from_content_type_object_id_and_model_db, get_response_state,
-    get_log_model_from_logger_name, get_object_triple_from_key, logger_name_to_log_model, get_index_name
+    get_log_model_from_logger_name, get_object_triple_from_key, logger_name_to_log_model, get_index_name, refresh_model
 )
 
 
@@ -300,7 +300,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             logger, is_last=True, state=CeleryTaskRunLogState.SUCCEEDED
         )
 
-        CeleryTaskInvocationLog._index.refresh()
+        refresh_model(CeleryTaskInvocationLog)
         celery_task_invocations_qs = CeleryTaskInvocationLog.search().filter(
             'term', celery_task_id=logger.data['celery_task_id']
         ).query(
@@ -319,7 +319,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
         self.get_data_writer().create_or_update_index_from_logger(
             logger, is_last=True, state=CeleryTaskRunLogState.FAILED
         )
-        CeleryTaskInvocationLog._index.refresh()
+        refresh_model(CeleryTaskInvocationLog)
         celery_task_invocations_qs = CeleryTaskInvocationLog.search().filter(
             'term', celery_task_id=logger.data['celery_task_id']
         ).query(
