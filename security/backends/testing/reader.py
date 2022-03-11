@@ -14,12 +14,12 @@ class TestingBackendReader(BaseBackendReader):
         count_requests = 0
         for logger in capture_security_logs.logged_data.input_request:
             if ((exclude_log_id is None or logger.id != exclude_log_id)
-                    and (method is None or logger.data['method'] == method)
-                    and (ip is None or logger.data['ip'] == ip)
-                    and (path is None or logger.data['path'] == path)
-                    and (view_slug is None or logger.data['view_slug'] == view_slug)
+                    and (method is None or logger.method == method)
+                    and (ip is None or logger.ip == ip)
+                    and (path is None or logger.path == path)
+                    and (view_slug is None or logger.view_slug == view_slug)
                     and (slug is None or logger.slug == slug)
-                    and (logger.data['start'] >= from_time)):
+                    and (logger.start >= from_time)):
                 count_requests += 1
         return count_requests
 

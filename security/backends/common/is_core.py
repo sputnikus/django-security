@@ -46,7 +46,6 @@ field_labels = {
     'triggered_at': _('triggered at'),
     'is_unique': _('is unique'),
     'is_async': _('is async'),
-    'is_duplicate': _('is duplicate'),
     'is_on_commit': _('is on commit'),
     'estimated_time_of_first_arrival': _('estimated time of first arrival'),
     'expires_at': _('expires at'),
@@ -57,7 +56,6 @@ field_labels = {
 
 
 def display_json(value, indent=4):
-    print(type(value), value)
     dict_value = json.loads(value) if isinstance(value, str) else value
     return json.dumps(dict_value, indent=indent, ensure_ascii=False)
 
@@ -487,8 +485,8 @@ class CeleryTaskInvocationLogCoreMixin(CeleryCoreMixin, LogCoreMixin):
     menu_group = 'celerytaskinvocationlog'
 
     list_fields = (
-        'short_id', 'start', 'stop', 'time', 'name', 'state_with_duplicate', 'short_input', 'queue_name',
-        'is_duplicate', 'celery_task_short_id', 'release', 'short_slug'
+        'short_id', 'start', 'stop', 'time', 'name', 'state', 'short_input', 'queue_name',
+        'celery_task_short_id', 'release', 'short_slug'
     )
     rest_fields = list_fields + ('id',)
 
@@ -497,20 +495,13 @@ class CeleryTaskInvocationLogCoreMixin(CeleryCoreMixin, LogCoreMixin):
     verbose_name = _('celery task invocation log')
     verbose_name_plural = _('celery task invocation logs')
 
-    @filter_by('state')
-    @order_by('state')
-    @short_description(_('state'))
-    def state_with_duplicate(self, obj):
-        return '{} ({})'.format(obj.state.label, _('duplicate')) if obj.is_duplicate else obj.state.label
-
     def get_fieldsets(self, request, obj=None):
         return (
             (None, {
                 'fields': (
-                    'id', 'release', 'celery_task_id', 'slug', 'name', 'state_with_duplicate', 'start', 'stop', 'time',
+                    'id', 'release', 'celery_task_id', 'slug', 'name', 'state', 'start', 'stop', 'time',
                     'input', 'task_args_code', 'task_kwargs_code', 'applied_at', 'triggered_at', 'queue_name',
-                    'is_unique', 'is_async', 'is_duplicate', 'is_on_commit', 'estimated_time_of_first_arrival',
-                    'expires_at', 'stale_at'
+                    'is_unique', 'is_async', 'is_on_commit', 'estimated_time_of_first_arrival', 'expires_at', 'stale_at'
                 ),
             }),
             (_('celery task runs'), {'inline_view': self.celery_task_run_inline_table_view}),

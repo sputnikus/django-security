@@ -2,10 +2,16 @@ import re
 from importlib import import_module
 from io import StringIO
 from time import time
+import datetime
+import decimal
+import uuid
+
+import isodate
 
 from django.core.exceptions import ImproperlyConfigured
 from django.db import router
-from django.utils.timezone import now
+from django.utils.timezone import now, is_aware
+from django.utils.duration import duration_iso_string
 
 from .config import settings
 
@@ -146,3 +152,61 @@ def get_object_triple(obj):
     else:
         content_type = ContentType.objects.get_for_model(obj)
         return router.db_for_write(content_type.model_class()), content_type.pk, obj.pk
+
+
+def serialize_data(o):
+    if isinstance(o, datetime.datetime):
+        r = o.isoformat()
+        if o.microsecond:
+            r = r[:23] + r[26:]
+        if r.endswith('+00:00'):
+            r = r[:-6] + 'Z'
+        return {'@type': 'datetime',  '@value': r}
+    elif isinstance(o, datetime.date):
+        return {'@type': 'date',  '@value': o.isoformat()}
+    elif isinstance(o, datetime.time):
+        if is_aware(o):
+            raise ValueError("JSON can't represent timezone-aware times.")
+        r = o.isoformat()
+        if o.microsecond:
+            r = r[:12]
+        return {'@type': 'time', '@value': r}
+    elif isinstance(o, datetime.timedelta):
+        return {'@type': 'timedelta', '@value': duration_iso_string(o)}
+    elif isinstance(o, decimal.Decimal):
+        return {'@type': 'decimal', '@value': str(o)}
+    elif isinstance(o, uuid.UUID):
+        return {'@type': 'uuid', '@value': str(o)}
+    elif isinstance(o, (list, tuple, set)):
+        return [serialize_data(v) for v in o]
+    elif isinstance(o, dict):
+        return {
+            k: serialize_data(v) for k, v in o.items()
+        }
+    else:
+        return o
+
+
+def deserialize_data(o):
+    if isinstance(o, dict) and set(o.keys()) == {'@type', '@value'}:
+        o_type, o_value = o['@type'], o['@value']
+        if o_type == 'uuid':
+            return uuid.UUID(o_value)
+        elif o_type == 'decimal':
+            return decimal.Decimal(o_value)
+        elif o_type == 'timedelta':
+            return isodate.parse_duration(o_value)
+        elif o_type == 'time':
+            return isodate.parse_time(o_value)
+        elif o_type == 'date':
+            return isodate.parse_date(o_value)
+        elif o_type == 'datetime':
+            return isodate.parse_datetime(o_value)
+    elif isinstance(o, dict):
+        return {
+            k: deserialize_data(v) for k, v in o.items()
+        }
+    elif isinstance(o, list):
+        return [deserialize_data(v) for v in o]
+    else:
+        return o

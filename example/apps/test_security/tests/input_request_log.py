@@ -19,6 +19,7 @@ from security.config import settings
 from security.decorators import log_with_data
 from security.backends.sql.models import InputRequestLog as SQLInputRequestLog
 from security.backends.elasticsearch.models import InputRequestLog as ElasticsearchInputRequestLog
+from security.backends.elasticsearch.tests import store_elasticsearch_log
 
 from security import requests
 from security.backends.signals import (
@@ -27,7 +28,7 @@ from security.backends.signals import (
 from security.backends.testing import capture_security_logs
 from security.utils import get_object_triple
 
-from .base import BaseTestCaseMixin, TRUNCATION_CHAR, assert_equal_logstash
+from .base import BaseTestCaseMixin, TRUNCATION_CHAR, assert_equal_logstash, assert_equal_log_data
 
 
 @override_settings(SECURITY_BACKEND_WRITERS={}, SECURITY_LOG_RESPONSE_BODY_CONTENT_TYPES=None)
@@ -59,8 +60,8 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             assert_length_equal(logged_data.input_request_started, 1)
             assert_length_equal(logged_data.input_request_finished, 1)
             assert_length_equal(logged_data.input_request_error, 0)
-            assert_equal(logged_data.input_request_started[0].data, expected_input_request_started_data)
-            assert_equal(logged_data.input_request_finished[0].data, expected_input_request_finished_data)
+            assert_equal_log_data(logged_data.input_request_started[0], expected_input_request_started_data)
+            assert_equal_log_data(logged_data.input_request_finished[0], expected_input_request_finished_data)
 
     @data_consumer('create_user')
     def test_input_request_to_login_page_should_be_logged(self, user):
@@ -105,8 +106,8 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             assert_http_redirect(self.post('/admin/login/', data={'username': 'test', 'password': 'test'}))
             assert_length_equal(logged_data.input_request_started, 1)
             assert_length_equal(logged_data.input_request_finished, 1)
-            assert_equal(logged_data.input_request_started[0].data, expected_input_request_started_data)
-            assert_equal(logged_data.input_request_finished[0].data, expected_input_request_finished_data)
+            assert_equal_log_data(logged_data.input_request_started[0], expected_input_request_started_data)
+            assert_equal_log_data(logged_data.input_request_finished[0], expected_input_request_finished_data)
 
     def test_input_request_to_error_page_should_be_logged(self):
         expected_input_request_started_data = {
@@ -140,9 +141,9 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             assert_length_equal(logged_data.input_request_started, 1)
             assert_length_equal(logged_data.input_request_finished, 1)
             assert_length_equal(logged_data.input_request_error, 1)
-            assert_equal(logged_data.input_request_started[0].data, expected_input_request_started_data)
-            assert_equal(logged_data.input_request_finished[0].data, expected_input_request_finished_data)
-            assert_equal(logged_data.input_request_error[0].data, expected_input_request_error_data)
+            assert_equal_log_data(logged_data.input_request_started[0], expected_input_request_started_data)
+            assert_equal_log_data(logged_data.input_request_finished[0], expected_input_request_finished_data)
+            assert_equal_log_data(logged_data.input_request_error[0], expected_input_request_error_data)
 
     @override_settings(SECURITY_LOG_REQUEST_IGNORE_IP=('127.0.0.1',))
     def test_ignored_client_ip_should_not_be_logged(self):
@@ -160,35 +161,35 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
     def test_request_body_should_be_truncated(self):
         with capture_security_logs() as logged_data:
             self.post('/admin/login/', data={'username': 20 * 'a', 'password': 20 * 'b'})
-            assert_equal(len(logged_data.input_request[0].data['request_body']), 10)
-            assert_true(logged_data.input_request[0].data['request_body'].endswith(TRUNCATION_CHAR))
+            assert_equal(len(logged_data.input_request[0].request_body), 10)
+            assert_true(logged_data.input_request[0].request_body.endswith(TRUNCATION_CHAR))
 
     @override_settings(SECURITY_LOG_RESPONSE_BODY_LENGTH=10)
     def test_response_body_should_be_truncated(self):
         with capture_security_logs() as logged_data:
             self.post('/admin/login/', data={'username': 20 * 'a', 'password': 20 * 'b'})
-            assert_equal(len(logged_data.input_request[0].data['response_body']), 10)
-            assert_true(logged_data.input_request[0].data['response_body'].endswith(TRUNCATION_CHAR))
+            assert_equal(len(logged_data.input_request[0].response_body), 10)
+            assert_true(logged_data.input_request[0].response_body.endswith(TRUNCATION_CHAR))
 
     @override_settings(SECURITY_LOG_REQUEST_BODY_LENGTH=None, SECURITY_HIDE_SENSITIVE_DATA=False)
     def test_request_body_truncation_should_be_turned_off(self):
         with capture_security_logs() as logged_data:
             self.post('/admin/login/', data={'username': 2000 * 'a', 'password': 2000 * 'b'})
-            assert_equal(len(logged_data.input_request[0].data['request_body']), 4162)
-            assert_false(logged_data.input_request[0].data['request_body'].endswith(TRUNCATION_CHAR))
+            assert_equal(len(logged_data.input_request[0].request_body), 4162)
+            assert_false(logged_data.input_request[0].request_body.endswith(TRUNCATION_CHAR))
 
     @override_settings(SECURITY_LOG_RESPONSE_BODY_LENGTH=None, SECURITY_HIDE_SENSITIVE_DATA=False)
     def test_response_body_truncation_should_be_turned_off(self):
         with capture_security_logs() as logged_data:
             response = self.post('/admin/login/', data={'username': 2000 * 'a', 'password': 2000 * 'b'})
-            assert_equal(logged_data.input_request[0].data['response_body'], force_text(response.content))
-            assert_false(logged_data.input_request[0].data['response_body'].endswith(TRUNCATION_CHAR))
+            assert_equal(logged_data.input_request[0].response_body, force_text(response.content))
+            assert_false(logged_data.input_request[0].response_body.endswith(TRUNCATION_CHAR))
 
     @override_settings(SECURITY_LOG_RESPONSE_BODY_CONTENT_TYPES=())
     def test_not_allowed_content_type_body_should_not_be_logged(self):
         with capture_security_logs() as logged_data:
             assert_http_ok(self.get('/home/'))
-            assert_is_none(logged_data.input_request[0].data['response_body'])
+            assert_is_none(logged_data.input_request[0].response_body)
 
     @override_settings(SECURITY_LOG_REQUEST_BODY_LENGTH=100, SECURITY_LOG_JSON_STRING_LENGTH=10)
     def test_json_request_data_should_be_truncated(self):
@@ -196,7 +197,7 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             self.c.post('/admin/login/', data=json.dumps({'a': 50 * 'a', 'b': 50 * 'b'}),
                         content_type='application/json')
             assert_equal(
-                json.loads(logged_data.input_request[0].data['request_body']),
+                json.loads(logged_data.input_request[0].request_body),
                 json.loads('{"a": "%s%s", "b": "%s%s"}' % (
                     9 * 'a', TRUNCATION_CHAR, 9 * 'b', TRUNCATION_CHAR
                 ))
@@ -207,16 +208,16 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
         with capture_security_logs() as logged_data:
             self.c.post('/admin/login/', data=json.dumps({'a': 50 * 'a'}),
                         content_type='application/json')
-            assert_equal(logged_data.input_request[0].data['request_body'], '{"a": "' + 42 * 'a' + TRUNCATION_CHAR)
-            assert_true(logged_data.input_request[0].data['request_body'].endswith(TRUNCATION_CHAR))
+            assert_equal(logged_data.input_request[0].request_body, '{"a": "' + 42 * 'a' + TRUNCATION_CHAR)
+            assert_true(logged_data.input_request[0].request_body.endswith(TRUNCATION_CHAR))
 
     @override_settings(SECURITY_LOG_REQUEST_BODY_LENGTH=100, SECURITY_LOG_JSON_STRING_LENGTH=10)
     def test_json_request_should_have_been_whole_truncated_values_and_inner_data_too(self):
         with capture_security_logs() as logged_data:
             self.c.post('/admin/login/', data=json.dumps({50 * 'a': 50 * 'a', 50 * 'b': 50 * 'b'}),
                         content_type='application/json')
-            assert_equal(len(logged_data.input_request[0].data['request_body']), 100)
-            assert_true(logged_data.input_request[0].data['request_body'].endswith(TRUNCATION_CHAR))
+            assert_equal(len(logged_data.input_request[0].request_body), 100)
+            assert_true(logged_data.input_request[0].request_body.endswith(TRUNCATION_CHAR))
 
     @responses.activate
     def test_output_request_should_be_logged_with_input_request(self):
@@ -255,31 +256,31 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
     def test_sensitive_replacement_should_be_changed(self, user):
         with capture_security_logs() as logged_data:
             assert_http_redirect(self.post('/admin/login/', data={'username': 'test', 'password': 'test'}))
-            assert_equal(logged_data.input_request[0].data['request_headers']['COOKIE'], '(Filtered)')
+            assert_equal(logged_data.input_request[0].request_headers['COOKIE'], '(Filtered)')
 
     def test_sensitive_queries_should_be_hidden(self):
         with capture_security_logs() as logged_data:
             assert_http_ok(self.get('/home/?token=test'))
-            assert_equal(logged_data.input_request[0].data['queries']['token'], '[Filtered]')
+            assert_equal(logged_data.input_request[0].queries['token'], '[Filtered]')
 
     @data_consumer('create_user')
     def test_sensitive_headers_should_be_hidden(self, user):
         with capture_security_logs() as logged_data:
             assert_http_redirect(self.post('/admin/login/', data={'username': 'test', 'password': 'test'}))
-            assert_equal(logged_data.input_request[0].data['request_headers']['COOKIE'], '[Filtered]')
+            assert_equal(logged_data.input_request[0].request_headers['COOKIE'], '[Filtered]')
 
     def test_sensitive_data_body_in_raw_form_should_be_hidden(self):
         with capture_security_logs() as logged_data:
             self.post('/admin/login/', data={'username': 'test', 'password': 'secret-password\nddd'})
-            assert_in('[Filtered]', logged_data.input_request[0].data['request_body'])
+            assert_in('[Filtered]', logged_data.input_request[0].request_body)
 
     def test_sensitive_data_body_in_json_should_be_hidden(self):
         with capture_security_logs() as logged_data:
             self.c.post('/admin/login/', data=json.dumps({'username': 'test', 'password': 'secret-password'}),
                         content_type='application/json')
-            assert_in('"password": "[Filtered]"', logged_data.input_request[0].data['request_body'])
+            assert_in('"password": "[Filtered]"', logged_data.input_request[0].request_body)
             assert_not_in(
-                '"password": "secret-password"', logged_data.input_request[0].data['request_body']
+                '"password": "secret-password"', logged_data.input_request[0].request_body
             )
 
     @override_settings(SECURITY_BACKEND_WRITERS={'sql'})
@@ -312,7 +313,7 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             )
             assert_equal([rel_obj.object for rel_obj in sql_input_request_log.related_objects.all()], [user])
 
-    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'})
+    @store_elasticsearch_log()
     @data_consumer('create_user')
     def test_input_request_to_homepage_should_be_logged_in_elasticsearch_backend(self, user):
         with log_with_data(related_objects=[user]):
@@ -347,7 +348,7 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
                     ['default|3|{}'.format(user.id)]
                 )
 
-    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'}, SECURITY_ELASTICSEARCH_LOGSTASH_WRITER=True)
+    @store_elasticsearch_log(SECURITY_ELASTICSEARCH_LOGSTASH_WRITER=True)
     @data_consumer('create_user')
     def test_input_request_to_homepage_should_be_logged_in_elasticsearch_backend_through_logstash(self, user):
         with log_with_data(related_objects=[user]):
@@ -435,7 +436,7 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
         )
         assert_is_not_none(sql_input_request_log.error_message)
 
-    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'})
+    @store_elasticsearch_log()
     def test_input_request_to_error_page_should_be_logged_in_elasticsearch_backend(self):
         with capture_security_logs() as logged_data:
             with assert_raises(RuntimeError):
@@ -453,7 +454,7 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             )
             assert_is_not_none(elasticsearch_input_request_log.error_message)
 
-    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'}, SECURITY_ELASTICSEARCH_LOGSTASH_WRITER=True)
+    @store_elasticsearch_log(SECURITY_ELASTICSEARCH_LOGSTASH_WRITER=True)
     def test_input_request_to_error_page_should_be_logged_in_elasticsearch_backend_through_logstash(self):
         with capture_security_logs() as logged_data:
             with self.assertLogs('security.logstash', level='INFO') as cm:
@@ -550,7 +551,7 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             state=RequestLogState.WARNING,
         )
 
-    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'})
+    @store_elasticsearch_log()
     def test_input_request_to_404_page_should_be_logged_in_elasticsearch_backend(self):
         with capture_security_logs() as logged_data:
             assert_http_not_found(self.get('/404/'))
@@ -566,7 +567,7 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
     def test_decorated_view_with_hide_request_body_should_not_log_request_body(self):
         with capture_security_logs() as logged_data:
             self.post('/hide-request-body/', data={'a': 20 * 'a', 'b': 20 * 'b'})
-            assert_equal(logged_data.input_request[0].data['request_body'], '[Filtered]')
+            assert_equal(logged_data.input_request[0].request_body, '[Filtered]')
 
     def test_decorated_view_with_log_exempt_should_not_log_request(self):
         with capture_security_logs() as logged_data:
@@ -577,16 +578,19 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
         for _ in range(100):
             assert_http_redirect(self.get('/admin/'))
 
-    @override_settings(SECURITY_BACKEND_WRITERS={'sql'}, SECURITY_BACKEND_READER='sql')
-    @override_settings(SECURITY_DEFAULT_THROTTLING_VALIDATORS_PATH='apps.test_security.tests.throttling_validators')
+    @override_settings(
+        SECURITY_BACKEND_WRITERS={'sql'},
+        SECURITY_BACKEND_READER='sql',
+        SECURITY_DEFAULT_THROTTLING_VALIDATORS_PATH='apps.test_security.tests.throttling_validators'
+    )
     def test_throttling_configuration_with_sql_backend_should_return_429(self):
         for _ in range(2):
             assert_http_redirect(self.get('/admin/'))
         assert_http_too_many_requests(self.get('/admin/'))
 
-    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'}, SECURITY_BACKEND_READER='elasticsearch')
-    @override_settings(
-        SECURITY_DEFAULT_THROTTLING_VALIDATORS_PATH='apps.test_security.tests.throttling_validators'
+    @store_elasticsearch_log(
+        SECURITY_DEFAULT_THROTTLING_VALIDATORS_PATH='apps.test_security.tests.throttling_validators',
+        SECURITY_BACKEND_READER='elasticsearch'
     )
     def test_throttling_configuration_with_elasticsearch_backend_should_return_429(self):
         for _ in range(2):
@@ -594,8 +598,9 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             ElasticsearchInputRequestLog._index.refresh()
         assert_http_too_many_requests(self.get('/admin/'))
 
-    @override_settings(SECURITY_BACKEND_WRITERS={'testing'}, SECURITY_BACKEND_READER='testing')
     @override_settings(
+        SECURITY_BACKEND_WRITERS={'testing'},
+        SECURITY_BACKEND_READER='testing',
         SECURITY_DEFAULT_THROTTLING_VALIDATORS_PATH='apps.test_security.tests.throttling_validators'
     )
     @capture_security_logs()
@@ -605,8 +610,11 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             ElasticsearchInputRequestLog._index.refresh()
         assert_http_too_many_requests(self.get('/admin/'))
 
-    @override_settings(SECURITY_BACKEND_WRITERS={'sql'}, SECURITY_BACKEND_READER='sql')
-    @override_settings(SECURITY_DEFAULT_THROTTLING_VALIDATORS_PATH='apps.test_security.tests.throttling_validators')
+    @override_settings(
+        SECURITY_BACKEND_WRITERS={'sql'},
+        SECURITY_BACKEND_READER='sql',
+        SECURITY_DEFAULT_THROTTLING_VALIDATORS_PATH='apps.test_security.tests.throttling_validators'
+    )
     def test_decorated_view_with_throttling_exempt_should_not_raise_throttling_exception(self):
         for _ in range(20):
             assert_http_ok(self.get('/throttling-exempt/'))

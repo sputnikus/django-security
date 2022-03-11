@@ -1,5 +1,5 @@
-import os, shutil
-
+import os
+import shutil
 import responses
 from datetime import timedelta
 
@@ -28,6 +28,7 @@ from security.backends.sql.models import InputRequestLog as SQLInputRequestLog
 from security.backends.elasticsearch.models import InputRequestLog as ElasticsearchInputRequestLog
 from security.backends.sql.models import OutputRequestLog as SQLOutputRequestLog
 from security.backends.elasticsearch.models import OutputRequestLog as ElasticsearchOutputRequestLog
+from security.backends.elasticsearch.tests import store_elasticsearch_log
 
 from security.backends.testing import capture_security_logs
 
@@ -82,8 +83,7 @@ class CommandTestCase(BaseTestCaseMixin, ClientTestCase):
         shutil.rmtree(settings.BACKUP_STORAGE_PATH)
 
     @responses.activate
-    @override_settings(
-        SECURITY_BACKEND_WRITERS={'elasticsearch'},
+    @store_elasticsearch_log(
         SECURITY_COMMAND_LOG_EXCLUDED_COMMANDS={'purge_logs'},
         SECURITY_BACKUP_STORAGE_PATH=os.path.join(django_settings.PROJECT_DIR, 'var', 'backup_elastic')
     )

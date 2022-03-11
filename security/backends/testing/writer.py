@@ -10,11 +10,8 @@ from .app import SecurityTestingBackend
 class CapturedLog:
 
     def __init__(self, logger):
-        self.id = logger.id
-        self.slug = logger.slug
-        self.data = dict(logger.data)
-        self.related_objects = list(logger.related_objects)
-        self.extra_data = dict(logger.extra_data)
+        for k, v in logger.to_dict().items():
+            setattr(self, k, v)
         self.logger = logger
 
 
