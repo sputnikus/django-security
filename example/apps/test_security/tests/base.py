@@ -34,4 +34,11 @@ def assert_equal_logstash(logstash_output, expected_index, expected_version, exp
     assert_equal(prefix_and_index, f'INFO:security.logstash:{expected_index}')
     assert_equal(version, str(expected_version))
     assert_equal(logger_id, str(expected_logger_id))
-    assert_equal(json.loads(data), expected_data)
+    parsed_data = json.loads(data)
+    for k, v in expected_data.items():
+        assert_equal(parsed_data.get(k), v, f'Invalid data "{k}" ({parsed_data.get(k)} != {v})')
+
+
+def assert_equal_log_data(captured_log, expected_data):
+    for k, v in expected_data.items():
+        assert_equal(getattr(captured_log, k), v)

@@ -9,7 +9,7 @@ from datetime import datetime, time
 
 from django.core import serializers
 from django.core.serializers.json import DjangoJSONEncoder
-from django.db import router
+from django.db import router, transaction
 from django.utils.timezone import utc
 from django.utils.timezone import now
 from django.utils.module_loading import import_string
@@ -23,10 +23,10 @@ from security.backends.writer import BaseBackendWriter
 from security.config import settings
 from security.enums import RequestLogState, CeleryTaskInvocationLogState, CeleryTaskRunLogState, CommandState
 
-from .models import (
-    InputRequestLog, OutputRequestLog, CommandLog, CeleryTaskRunLog, CeleryTaskInvocationLog,
-    get_log_model_from_logger_name, get_response_state
-)
+from .models import CeleryTaskInvocationLog, get_log_model_from_logger_name, get_response_state
+
+
+MAX_VERSION = 9999
 
 
 def lazy_serialize_qs_without_pk(qs):
@@ -58,265 +58,164 @@ class SQLBackendWriter(BaseBackendWriter):
             *[related_object_triple[1:] for related_object_triple in logger.related_objects]
         )
 
+    def _get_version(self, logger, is_last):
+        if is_last:
+            return MAX_VERSION
+        elif 'last_sql_version' in logger.backend_logs:
+            return logger.backend_logs.last_sql_version + 1
+        else:
+            return 0
+
+    def _create_from_logger(self, logger, is_last, **extra_data):
+        version = self._get_version(logger, is_last)
+        data = logger.to_dict()
+        del data['related_objects']
+
+        model_class = get_log_model_from_logger_name(logger.logger_name)
+        if not model_class.objects.filter(id=logger.id, version__gte=version).exists():
+            instance = model_class(
+                version=version,
+                **extra_data,
+                **data
+            )
+            instance.save()
+            self._set_related_objects(instance, logger)
+            logger.backend_logs.sql_instance = instance
+            logger.backend_logs.last_sql_version = version
+
+    def _update_from_logger(self, logger, is_last, **extra_data):
+        version = self._get_version(logger, is_last)
+        data = logger.to_dict()
+        del data['related_objects']
+
+        with transaction.atomic():
+            instance = logger.backend_logs.sql_instance.__class__.objects.select_for_update().get(id=logger.id)
+            if instance.version < version:
+                instance = change_and_save(
+                    logger.backend_logs.sql_instance,
+                    version=version,
+                    **data,
+                    **extra_data,
+                    update_only_changed_fields=True,
+                )
+                self._set_related_objects(instance, logger)
+            logger.backend_logs.sql_instance = instance
+            logger.backend_logs.last_sql_version = version
+
+    def _create_or_update_from_logger(self, logger, is_last=False, **extra_data):
+        if 'sql_instance' in logger.backend_logs:
+            self._update_from_logger(logger, is_last, **extra_data)
+        else:
+            self._create_from_logger(logger, is_last, **extra_data)
+
     def input_request_started(self, logger):
-        input_request_log = InputRequestLog(
-            id=logger.id,
-            release=logger.release,
-            slug=logger.slug,
-            state=RequestLogState.INCOMPLETE,
-            extra_data=logger.extra_data,
-            parent_log=logger.parent_key,
-            **logger.data
-        )
-        input_request_log.save()
-        self._set_related_objects(input_request_log, logger)
-        logger.backend_logs.sql = input_request_log
+        self._create_or_update_from_logger(logger, state=RequestLogState.INCOMPLETE)
 
     def input_request_finished(self, logger):
-        if 'sql' in logger.backend_logs:
-            input_request_log = change_and_save(
-                logger.backend_logs.sql,
-                slug=logger.slug,
-                state=get_response_state(logger.data['response_code']),
-                extra_data=logger.extra_data,
-                update_only_changed_fields=True,
-                **logger.data
-            )
-            self._set_related_objects(input_request_log, logger)
+        self._create_or_update_from_logger(
+            logger, is_last=True, state=get_response_state(logger.response_code)
+        )
 
     def input_request_error(self, logger):
-        if 'sql' in logger.backend_logs:
-            input_request_log = change_and_save(
-                logger.backend_logs.sql,
-                slug=logger.slug,
-                extra_data=logger.extra_data,
-                update_only_changed_fields=True,
-                **logger.data
-            )
-            self._set_related_objects(input_request_log, logger)
+        self._create_or_update_from_logger(logger, state=RequestLogState.ERROR)
 
     def output_request_started(self, logger):
-        output_request_log = OutputRequestLog(
-            id=logger.id,
-            release=logger.release,
-            state=RequestLogState.INCOMPLETE,
-            extra_data=logger.extra_data,
-            parent_log=logger.parent_key,
-            **logger.data
-        )
-        output_request_log.save()
-        self._set_related_objects(output_request_log, logger)
-        logger.backend_logs.sql = output_request_log
+        self._create_or_update_from_logger(logger, state=RequestLogState.INCOMPLETE)
 
     def output_request_finished(self, logger):
-        if 'sql' in logger.backend_logs:
-            output_request_log = change_and_save(
-                logger.backend_logs.sql,
-                slug=logger.slug,
-                state=get_response_state(logger.data['response_code']),
-                extra_data=logger.extra_data,
-                update_only_changed_fields=True,
-                **logger.data
-            )
-            self._set_related_objects(output_request_log, logger)
+        self._create_or_update_from_logger(
+            logger, is_last=True, state=get_response_state(logger.response_code)
+        )
 
     def output_request_error(self, logger):
-        if 'sql' in logger.backend_logs:
-            output_request_log = change_and_save(
-                logger.backend_logs.sql,
-                slug=logger.slug,
-                state=RequestLogState.ERROR,
-                extra_data=logger.extra_data,
-                update_only_changed_fields=True,
-                **logger.data
-            )
-            self._set_related_objects(output_request_log, logger)
+        self._create_or_update_from_logger(
+            logger, is_last=True, state=RequestLogState.ERROR
+        )
 
     def command_started(self, logger):
-        command_log = CommandLog(
-            id=logger.id,
-            release=logger.release,
-            slug=logger.slug,
-            state=CommandState.ACTIVE,
-            extra_data=logger.extra_data,
-            parent_log=logger.parent_key,
-            **logger.data
+        self._create_or_update_from_logger(
+            logger, state=CommandState.ACTIVE
         )
-        command_log.save()
-        self._set_related_objects(command_log, logger)
-        logger.backend_logs.sql = command_log
 
     def command_output_updated(self, logger):
-        if 'sql' in logger.backend_logs:
-            change_and_save(
-                logger.backend_logs.sql,
-                slug=logger.slug,
-                update_only_changed_fields=True,
-                **logger.data
-            )
+        self._create_or_update_from_logger(
+            logger, state=CommandState.ACTIVE
+        )
 
     def command_finished(self, logger):
-        if 'sql' in logger.backend_logs:
-            command_log = change_and_save(
-                logger.backend_logs.sql,
-                slug=logger.slug,
-                state=CommandState.SUCCEEDED,
-                extra_data=logger.extra_data,
-                update_only_changed_fields=True,
-                **logger.data
-            )
-            self._set_related_objects(command_log, logger)
+        self._create_or_update_from_logger(
+            logger, is_last=True, state=CommandState.SUCCEEDED
+        )
 
     def command_error(self, logger):
-        if 'sql' in logger.backend_logs:
-            command_log = change_and_save(
-                logger.backend_logs.sql,
-                slug=logger.slug,
-                state=CommandState.FAILED,
-                extra_data=logger.extra_data,
-                update_only_changed_fields=True,
-                **logger.data
-            )
-            self._set_related_objects(command_log, logger)
+        self._create_or_update_from_logger(
+            logger, is_last=True, state=CommandState.FAILED
+        )
 
     def celery_task_invocation_started(self, logger):
-        celery_task_invocation_log = CeleryTaskInvocationLog(
-            id=logger.id,
-            release=logger.release,
-            slug=logger.slug,
-            state=CeleryTaskInvocationLogState.WAITING,
-            extra_data=logger.extra_data,
-            parent_log=logger.parent_key,
-            **logger.data
+        self._create_or_update_from_logger(
+            logger, state=CeleryTaskInvocationLogState.WAITING
         )
-        celery_task_invocation_log.save()
-        self._set_related_objects(celery_task_invocation_log, logger)
-        logger.backend_logs.sql = celery_task_invocation_log
 
     def celery_task_invocation_triggered(self, logger):
-        if 'sql' in logger.backend_logs:
-            change_and_save(
-                logger.backend_logs.sql,
-                slug=logger.slug,
-                state=CeleryTaskInvocationLogState.TRIGGERED,
-                extra_data=logger.extra_data,
-                update_only_changed_fields=True,
-                **logger.data
-            )
+        self._create_or_update_from_logger(
+            logger, state=CeleryTaskInvocationLogState.TRIGGERED
+        )
+
+    def celery_task_invocation_duplicate(self, logger):
+        self._create_or_update_from_logger(
+            logger, is_last=True, state=CeleryTaskInvocationLogState.DUPLICATE
+        )
 
     def celery_task_invocation_ignored(self, logger):
-        if 'sql' in logger.backend_logs:
-            change_and_save(
-                logger.backend_logs.sql,
-                slug=logger.slug,
-                state=CeleryTaskInvocationLogState.IGNORED,
-                extra_data=logger.extra_data,
-                update_only_changed_fields=True,
-                **logger.data
-            )
+        self._create_or_update_from_logger(
+            logger, is_last=True, state=CeleryTaskInvocationLogState.IGNORED
+        )
 
     def celery_task_invocation_timeout(self, logger):
-        if 'sql' in logger.backend_logs:
-            change_and_save(
-                logger.backend_logs.sql,
-                slug=logger.slug,
-                state=CeleryTaskInvocationLogState.TIMEOUT,
-                extra_data=logger.extra_data,
-                update_only_changed_fields=True,
-                **logger.data
-            )
+        self._create_or_update_from_logger(
+            logger, is_last=True, state=CeleryTaskInvocationLogState.TIMEOUT
+        )
 
     def celery_task_invocation_expired(self, logger):
-        celery_task_invocation_log = CeleryTaskInvocationLog.objects.update_or_create(
-            id=logger.id,
-            defaults=dict(
-                slug=logger.slug,
-                state=CeleryTaskInvocationLogState.EXPIRED,
-                extra_data=logger.extra_data,
-                **logger.data
-            )
-        )[0]
-        celery_task_invocation_log.runs.filter(
-            state=CeleryTaskRunLogState.ACTIVE
-        ).change_and_save(
-            state=CeleryTaskRunLogState.EXPIRED,
-            stop=logger.data['stop']
+        self._create_or_update_from_logger(
+            logger, is_last=True, state=CeleryTaskInvocationLogState.EXPIRED
+        )
+
+    def celery_task_invocation_succeeded(self, logger):
+        self._create_or_update_from_logger(
+            logger, is_last=True, state=CeleryTaskInvocationLogState.SUCCEEDED
+        )
+
+    def celery_task_invocation_failed(self, logger):
+        self._create_or_update_from_logger(
+            logger, is_last=True, state=CeleryTaskInvocationLogState.FAILED
         )
 
     def celery_task_run_started(self, logger):
-        celery_task_run_log = CeleryTaskRunLog(
-            id=logger.id,
-            release=logger.release,
-            slug=logger.slug,
-            state=CeleryTaskRunLogState.ACTIVE,
-            extra_data=logger.extra_data,
-            parent_log=logger.parent_key,
-            **logger.data
+        self._create_or_update_from_logger(
+            logger, state=CeleryTaskRunLogState.ACTIVE
         )
-        celery_task_run_log.save()
-        self._set_related_objects(celery_task_run_log, logger)
-        logger.backend_logs.sql = celery_task_run_log
 
     def celery_task_run_succeeded(self, logger):
-        if 'sql' in logger.backend_logs:
-            celery_task_run_log = change_and_save(
-                logger.backend_logs.sql,
-                slug=logger.slug,
-                state=CeleryTaskRunLogState.SUCCEEDED,
-                extra_data=logger.extra_data,
-                update_only_changed_fields=True,
-                **logger.data
-            )
-            celery_task_run_log.get_task_invocation_logs().filter(state__in={
-                CeleryTaskInvocationLogState.WAITING,
-                CeleryTaskInvocationLogState.TRIGGERED,
-                CeleryTaskInvocationLogState.ACTIVE
-            }).change_and_save(
-                state=CeleryTaskInvocationLogState.SUCCEEDED,
-                stop=logger.data['stop']
-            )
-            self._set_related_objects(celery_task_run_log, logger)
+        self._create_or_update_from_logger(
+            logger, is_last=True, state=CeleryTaskRunLogState.SUCCEEDED
+        )
 
     def celery_task_run_failed(self, logger):
-        if 'sql' in logger.backend_logs:
-            celery_task_run_log = change_and_save(
-                logger.backend_logs.sql,
-                slug=logger.slug,
-                state=CeleryTaskRunLogState.FAILED,
-                extra_data=logger.extra_data,
-                update_only_changed_fields=True,
-                **logger.data
-            )
-            celery_task_run_log.get_task_invocation_logs().filter(state__in={
-                CeleryTaskInvocationLogState.WAITING,
-                CeleryTaskInvocationLogState.TRIGGERED,
-                CeleryTaskInvocationLogState.ACTIVE
-            }).change_and_save(
-                state=CeleryTaskInvocationLogState.FAILED,
-                stop=logger.data['stop']
-            )
-            self._set_related_objects(celery_task_run_log, logger)
+        self._create_or_update_from_logger(
+            logger, is_last=True, state=CeleryTaskRunLogState.FAILED
+        )
 
     def celery_task_run_retried(self, logger):
-        if 'sql' in logger.backend_logs:
-            celery_task_run_log = change_and_save(
-                logger.backend_logs.sql,
-                slug=logger.slug,
-                state=CeleryTaskRunLogState.RETRIED,
-                extra_data=logger.extra_data,
-                update_only_changed_fields=True,
-                **logger.data
-            )
-            self._set_related_objects(celery_task_run_log, logger)
+        self._create_or_update_from_logger(
+            logger, state=CeleryTaskRunLogState.RETRIED
+        )
 
     def celery_task_run_output_updated(self, logger):
-        if 'sql' in logger.backend_logs:
-            change_and_save(
-                logger.backend_logs.sql,
-                slug=logger.slug,
-                update_only_changed_fields=True,
-                **logger.data
-            )
+        self._create_or_update_from_logger(
+            logger, state=CeleryTaskRunLogState.ACTIVE
+        )
 
     def set_stale_celery_task_log_state(self):
         processsing_stale_tasks = CeleryTaskInvocationLog.objects.filter_processing(
@@ -329,13 +228,17 @@ class SQLBackendWriter(BaseBackendWriter):
                     task,
                     state=CeleryTaskInvocationLogState.SUCCEEDED,
                     stop=task_last_run.stop,
-                    update_only_changed_fields=True
+                    time=(task_last_run.stop - task.start).total_seconds(),
+                    version=MAX_VERSION,
+                    update_only_changed_fields=True,
                 )
             elif task_last_run and task_last_run.state == CeleryTaskRunLogState.FAILED:
                 change_and_save(
                     task,
                     state=CeleryTaskInvocationLogState.FAILED,
                     stop=task_last_run.stop,
+                    time=(task_last_run.stop - task.start).total_seconds(),
+                    version=MAX_VERSION,
                     update_only_changed_fields=True
                 )
             else:
@@ -346,7 +249,7 @@ class SQLBackendWriter(BaseBackendWriter):
                         task.task_kwargs,
                         dict(
                             slug=task.slug,
-                            parent_key=task.parent_log,
+                            parent_log=task.parent_log,
                             related_objects=[
                                 (
                                     router.db_for_write(related_object.object_ct.model_class()),
@@ -354,25 +257,22 @@ class SQLBackendWriter(BaseBackendWriter):
                                     related_object.object_id
                                 ) for related_object in task.related_objects.all()
                             ],
-                            data=dict(
-                                start=task.start,
-                                celery_task_id=task.celery_task_id,
-                                stop=now(),
-                                name=task.name,
-                                queue_name=task.queue_name,
-                                applied_at=task.applied_at,
-                                triggered_at=task.triggered_at,
-                                is_unique=task.is_unique,
-                                is_async=task.is_async,
-                                is_duplicate=task.is_duplicate,
-                                is_on_commit=task.is_on_commit,
-                                input=task.input,
-                                task_args=task.task_args,
-                                task_kwargs=task.task_kwargs,
-                                estimated_time_of_first_arrival=task.estimated_time_of_first_arrival,
-                                expires_at=task.expires_at,
-                                stale_at=task.stale_at,
-                            )
+                            start=task.start,
+                            celery_task_id=task.celery_task_id,
+                            stop=task.stop,
+                            name=task.name,
+                            queue_name=task.queue_name,
+                            applied_at=task.applied_at,
+                            triggered_at=task.triggered_at,
+                            is_unique=task.is_unique,
+                            is_async=task.is_async,
+                            is_on_commit=task.is_on_commit,
+                            input=task.input,
+                            task_args=task.task_args,
+                            task_kwargs=task.task_kwargs,
+                            estimated_time_of_first_arrival=task.estimated_time_of_first_arrival,
+                            expires_at=task.expires_at,
+                            stale_at=task.stale_at,
                         )
                     )
                 except NotRegistered:
@@ -380,6 +280,7 @@ class SQLBackendWriter(BaseBackendWriter):
                         task,
                         state=CeleryTaskInvocationLogState.EXPIRED,
                         stop=now(),
+                        version=MAX_VERSION,
                         update_only_changed_fields=True
                     )
 

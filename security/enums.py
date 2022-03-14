@@ -31,6 +31,7 @@ class CeleryTaskInvocationLogState(IntegerChoicesEnum):
     EXPIRED = Choice(6, _('Expired'))
     TIMEOUT = Choice(8, _('Timeout'))
     IGNORED = Choice(9, _('Ignored'))
+    DUPLICATE = Choice(10, _('Duplicate'))
 
 
 class CeleryTaskRunLogState(IntegerChoicesEnum):

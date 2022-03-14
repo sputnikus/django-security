@@ -7,12 +7,17 @@ from .models import CommandLog, CeleryTaskRunLog, CeleryTaskInvocationLog, Input
 
 class store_elasticsearch_log(override_settings):
 
-    def __init__(self):
-        super().__init__(SECURITY_BACKEND_WRITERS=('elasticsearch',), SECURITY_ELASTICSEARCH_AUTO_REFRESH=True)
+    def __init__(self, **kwargs):
+        super().__init__(
+            SECURITY_BACKEND_WRITERS=('elasticsearch',), SECURITY_ELASTICSEARCH_AUTO_REFRESH=True, **kwargs
+        )
 
     def enable(self):
+        from .connection import set_connection
+
         super().enable()
         uuid = uuid4()
+        set_connection()
         for document_class in (CommandLog, CeleryTaskRunLog, CeleryTaskInvocationLog,
                                InputRequestLog, OutputRequestLog):
             document_class._index._name = f'{uuid}.{document_class._index._name}'

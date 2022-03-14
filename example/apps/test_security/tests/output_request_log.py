@@ -20,10 +20,11 @@ from security.decorators import log_with_data
 from security.enums import RequestLogState
 from security.backends.sql.models import OutputRequestLog as SQLOutputRequestLog
 from security.backends.elasticsearch.models import OutputRequestLog as ElasticsearchOutputRequestLog
+from security.backends.elasticsearch.tests import store_elasticsearch_log
 from security.backends.testing import capture_security_logs
 from security.utils import get_object_triple
 
-from .base import BaseTestCaseMixin, TRUNCATION_CHAR, assert_equal_logstash
+from .base import BaseTestCaseMixin, TRUNCATION_CHAR, assert_equal_logstash, assert_equal_log_data
 
 
 @override_settings(SECURITY_BACKEND_WRITERS={})
@@ -66,10 +67,10 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             assert_length_equal(logged_data.output_request_started, 1)
             assert_length_equal(logged_data.output_request_finished, 1)
             assert_length_equal(logged_data.output_request_error, 0)
-            assert_equal(logged_data.output_request_started[0].data, expected_output_request_started_data)
-            assert_equal(logged_data.output_request_finished[0].data, expected_output_request_finished_data)
+            assert_equal_log_data(logged_data.output_request_started[0], expected_output_request_started_data)
+            assert_equal_log_data(logged_data.output_request_finished[0], expected_output_request_finished_data)
             assert_equal(logged_data.output_request_started[0].slug, 'test')
-            assert_equal(logged_data.output_request_finished[0].related_objects, [get_object_triple(user)])
+            assert_equal(logged_data.output_request_finished[0].related_objects, {get_object_triple(user)})
 
     @responses.activate
     def test_output_request_error_should_be_logged(self):
@@ -103,8 +104,8 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             assert_length_equal(logged_data.output_request_started, 1)
             assert_length_equal(logged_data.output_request_finished, 0)
             assert_length_equal(logged_data.output_request_error, 1)
-            assert_equal(logged_data.output_request_started[0].data, expected_output_request_started_data)
-            assert_equal(logged_data.output_request_error[0].data, expected_output_request_error_data)
+            assert_equal_log_data(logged_data.output_request_started[0], expected_output_request_started_data)
+            assert_equal_log_data(logged_data.output_request_error[0], expected_output_request_error_data)
 
     @responses.activate
     def test_response_sensitive_data_body_in_json_should_be_hidden(self):
@@ -112,8 +113,8 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
 
         with capture_security_logs() as logged_data:
             requests.post('http://localhost', data=json.dumps({'password': 'secret-password'}))
-            assert_in('"password": "[Filtered]"', logged_data.output_request[0].data['request_body'])
-            assert_not_in('"password": "secret-password"', logged_data.output_request[0].data['request_body'])
+            assert_in('"password": "[Filtered]"', logged_data.output_request[0].request_body)
+            assert_not_in('"password": "secret-password"', logged_data.output_request[0].request_body)
             assert_in('"password": "secret-password"', responses.calls[0].request.body)
             assert_not_in('"password": "[Filtered]"', responses.calls[0].request.body)
 
@@ -122,7 +123,7 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
         responses.add(responses.POST, 'http://localhost', body='test')
         with capture_security_logs() as logged_data:
             requests.post('http://localhost', headers={'token': 'secret'})
-            assert_equal(logged_data.output_request[0].data['request_headers']['token'], '[Filtered]')
+            assert_equal(logged_data.output_request[0].request_headers['token'], '[Filtered]')
             assert_equal(responses.calls[0].request.headers['token'], 'secret')
 
     @responses.activate
@@ -130,7 +131,7 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
         responses.add(responses.POST, 'http://localhost', body='test')
         with capture_security_logs() as logged_data:
             requests.post('http://localhost', params={'token': 'secret'})
-            assert_equal(logged_data.output_request[0].data['queries']['token'], '[Filtered]')
+            assert_equal(logged_data.output_request[0].queries['token'], '[Filtered]')
             assert_equal(responses.calls[0].request.url, 'http://localhost/?token=secret')
 
     @responses.activate
@@ -138,7 +139,7 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
         responses.add(responses.POST, 'http://localhost', body='test')
         with capture_security_logs() as logged_data:
             requests.post('http://localhost', params={'token': ['secret', 'secret2']})
-            assert_equal(logged_data.output_request[0].data['queries']['token'], ['[Filtered]', '[Filtered]'])
+            assert_equal(logged_data.output_request[0].queries['token'], ['[Filtered]', '[Filtered]'])
             assert_equal(responses.calls[0].request.url, 'http://localhost/?token=secret&token=secret2')
 
     @responses.activate
@@ -146,7 +147,7 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
         responses.add(responses.POST, 'http://localhost', body='test')
         with capture_security_logs() as logged_data:
             requests.post('http://localhost?a=1&a=2', params={'b': '6', 'a': '3', 'c': ['5']})
-            assert_equal(logged_data.output_request[0].data['queries'], {'b': '6', 'a': ['1', '2', '3'], 'c': '5'})
+            assert_equal(logged_data.output_request[0].queries, {'b': '6', 'a': ['1', '2', '3'], 'c': '5'})
 
     @responses.activate
     @override_settings(SECURITY_BACKEND_WRITERS={'sql'})
@@ -188,7 +189,7 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
         assert_equal([rel_obj.object for rel_obj in sql_output_request_log.related_objects.all()], [user])
 
     @responses.activate
-    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'})
+    @store_elasticsearch_log()
     @data_consumer('create_user')
     def test_output_request_should_be_logged_in_elasticsearch_backend(self, user):
         responses.add(responses.POST, 'https://localhost/test', body='test')
@@ -226,7 +227,7 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             )
 
     @responses.activate
-    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'}, SECURITY_ELASTICSEARCH_LOGSTASH_WRITER=True)
+    @store_elasticsearch_log(SECURITY_ELASTICSEARCH_LOGSTASH_WRITER=True)
     @data_consumer('create_user')
     def test_output_request_should_be_logged_in_elasticsearch_backend_through_logstash(self, user):
         responses.add(responses.POST, 'https://localhost/test', body='test')
@@ -345,7 +346,7 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
         assert_is_not_none(sql_output_request_log.error_message)
 
     @responses.activate
-    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'})
+    @store_elasticsearch_log()
     def test_error_output_request_should_be_logged_in_elasticsearch_backend(self):
         with capture_security_logs() as logged_data:
             with assert_raises(ConnectionError):
@@ -377,7 +378,7 @@ class OutputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             assert_is_not_none(elasticsearch_input_request_log.error_message)
 
     @responses.activate
-    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'}, SECURITY_ELASTICSEARCH_LOGSTASH_WRITER=True)
+    @store_elasticsearch_log(SECURITY_ELASTICSEARCH_LOGSTASH_WRITER=True)
     def test_error_output_request_should_be_logged_in_elasticsearch_backend_through_logstash(self):
         with capture_security_logs() as logged_data:
             with self.assertLogs('security.logstash', level='INFO') as cm:

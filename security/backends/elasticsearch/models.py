@@ -178,7 +178,6 @@ class CeleryTaskInvocationLog(CeleryTaskInvocationLogStrMixin, Log):
     triggered_at = Date()
     is_unique = Boolean()
     is_async = Boolean()
-    is_duplicate = Boolean()
     is_on_commit = Boolean()
     input = Text()
     task_args = JSONTextField()

@@ -9,30 +9,31 @@ from security.backends.signals import (
 
 class CommandLogger(SecurityLogger):
 
-    name = LoggerName.COMMAND
+    logger_name = LoggerName.COMMAND
 
-    def log_started(self, name, input, is_executed_from_command_line, parent_log=None):
-        self.data.update(dict(
-            name=name,
-            input=input,
-            is_executed_from_command_line=is_executed_from_command_line,
-            start=now(),
-        ))
+    def __init__(self, name=None, input=None, is_executed_from_command_line=None, output=None, **kwargs):
+        super().__init__(**kwargs)
+        self.name = name
+        self.input = input
+        self.is_executed_from_command_line = is_executed_from_command_line
+        self.output = output
+
+    def log_started(self, name, input, is_executed_from_command_line):
+        self.start = now()
+        self.name = name
+        self.input = input
+        self.is_executed_from_command_line = is_executed_from_command_line
         command_started.send(sender=CommandLogger, logger=self)
 
     def log_finished(self):
-        self.data.update(dict(
-            stop=now()
-        ))
+        self.stop = now()
         command_finished.send(sender=CommandLogger, logger=self)
 
     def log_output_updated(self, output):
-        self.data['output'] = output
+        self.output = output
         command_output_updated.send(sender=CommandLogger, logger=self)
 
     def log_exception(self, ex_tb):
-        self.data.update(dict(
-            error_message=ex_tb,
-            stop=now()
-        ))
+        self.stop = now()
+        self.error_message = ex_tb,
         command_error.send(sender=CommandLogger, logger=self)

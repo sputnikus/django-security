@@ -29,12 +29,14 @@ from security.enums import (
 from security.backends.writer import BaseBackendWriter
 
 from .models import (
-    CeleryTaskRunLog, CeleryTaskInvocationLog, get_key_from_content_type_object_id_and_model_db, get_response_state,
-    get_log_model_from_logger_name, get_object_triple_from_key, logger_name_to_log_model, get_index_name, refresh_model
+    CeleryTaskInvocationLog, get_key_from_content_type_object_id_and_model_db, get_response_state,
+    get_log_model_from_logger_name, get_object_triple_from_key, logger_name_to_log_model, get_index_name
 )
 
 
 logstash_logger = logging.getLogger('security.logstash')
+
+MAX_VERSION = 9999
 
 
 def lazy_serialize_qs_without_pk(qs):
@@ -78,14 +80,6 @@ class BaseElasticsearchDataWriter:
             index_data[field_name] = value
         return index_data
 
-    def _update_data(self, data):
-        data = dict(data)
-        start = data.get('start')
-        stop = data.get('stop')
-        if start and stop:
-            data['time'] = (stop - start).total_seconds()
-        return data
-
     def update_index(self, index, **updated_data):
         raise NotImplementedError
 
@@ -95,54 +89,55 @@ class BaseElasticsearchDataWriter:
 
 class DirectElasticsearchDataWriter(BaseElasticsearchDataWriter):
 
-    def update_index(self, index, **updated_data):
+    def _create_index(self, logger_id, logger_name, version, data):
         try:
-            data = self._get_index_data(index)
-            data.update(updated_data)
-            index.update(
-                **self._update_data(data),
-                update_only_changed_fields=True,
-                retry_on_conflict=1,
-                refresh=settings.ELASTICSEARCH_AUTO_REFRESH,
+            index_class = get_log_model_from_logger_name(logger_name)
+            index = index_class(**data)
+            index.meta.id = logger_id
+            index.save(
+                params={
+                    'version': version,
+                    'version_type': 'external'
+                }
             )
         except ConflictError:
-            # conflict errors are ignored, celery task invocation was changed with another process
-            pass
+            raise
 
-    def _create_index_from_logger(self, logger, **extra_data):
-        index_class = get_log_model_from_logger_name(logger.name)
-        index = index_class(
-            slug=logger.slug,
-            release=logger.release,
-            related_objects=self._get_related_object_keys(logger),
-            extra_data=logger.extra_data,
-            parent_log=logger.parent_key,
-            **extra_data,
-            **self._update_data(logger.data)
+    def update_index(self, index, **updated_data):
+        data = self._get_index_data(index)
+        data.update(updated_data)
+        logger_name = {v: k for k, v in logger_name_to_log_model.items()}[index.__class__]
+        self._create_index(
+            index.id,
+            logger_name,
+            MAX_VERSION,
+            data
         )
-        index.meta.id = logger.id
-        index.save()
-        logger.backend_logs.elasticsearch_index = index
 
-    def _update_index_from_logger(self, logger, **extra_data):
-        self.update_index(logger.backend_logs.elasticsearch_index, **dict(
-            slug=logger.slug,
-            related_objects=self._get_related_object_keys(logger),
-            extra_data=logger.extra_data,
-            **extra_data,
-            **self._update_data(logger.data)
-        ))
-
-    def create_or_update_index_from_logger(self, logger, is_last=True, **extra_data):
-        if 'elasticsearch_index' in logger.backend_logs:
-            self._update_index_from_logger(logger, **extra_data)
+    def create_or_update_index_from_logger(self, logger, is_last, **extra_data):
+        if is_last:
+            version = MAX_VERSION
+        elif 'last_elasticsearch_version' in logger.backend_logs:
+            version = logger.backend_logs.last_elasticsearch_version + 1
         else:
-            self._create_index_from_logger(logger, **extra_data)
+            version = 0
+
+        data = logger.to_dict()
+
+        del data['id']
+        data['related_objects'] = self._get_related_object_keys(logger)
+        data.update(extra_data)
+
+        self._create_index(
+            logger.id,
+            logger.logger_name,
+            version,
+            data
+        )
+        logger.backend_logs.last_elasticsearch_version = version
 
 
 class LogstashElasticsearchDataWriter(BaseElasticsearchDataWriter):
-
-    MAX_ELASTICSEARCH_VERSION = 9999
 
     def _serialize_data(self, data):
         serialized_data = {}
@@ -156,32 +151,25 @@ class LogstashElasticsearchDataWriter(BaseElasticsearchDataWriter):
         return json.dumps(serialized_data, cls=DjangoJSONEncoder)
 
     def _get_log_message(self, logger_id, logger_name, version, data):
-        return f'{get_index_name(logger_name)} {version} {logger_id} {self._serialize_data(self._update_data(data))}'
+        return f'{get_index_name(logger_name)} {version} {logger_id} {self._serialize_data(data)}'
 
     def _get_logger_message(self, logger, last_version=False, **extra_data):
         if last_version:
-            version = self.MAX_ELASTICSEARCH_VERSION
+            version = MAX_VERSION
         elif 'last_elasticsearch_version' in logger.backend_logs:
             version = logger.backend_logs.last_elasticsearch_version + 1
         else:
             version = 0
 
-        logger_data = self._update_data({
-            **dict(
-                slug=logger.slug,
-                release=logger.release,
-                related_objects=self._get_related_object_keys(logger),
-                extra_data=logger.extra_data,
-                parent_log=logger.parent_key,
-            ),
-            **logger.data,
-            **extra_data
-        })
+        logger_data = logger.to_dict()
+        del logger_data['id']
+        logger_data['related_objects'] = self._get_related_object_keys(logger)
+        logger_data.update(extra_data)
 
         logger.backend_logs.last_elasticsearch_version = version
         return self._get_log_message(
             logger.id,
-            logger.name,
+            logger.logger_name,
             version,
             logger_data
         )
@@ -203,8 +191,8 @@ class LogstashElasticsearchDataWriter(BaseElasticsearchDataWriter):
             self._get_log_message(
                 index.id,
                 logger_name,
-                self.MAX_ELASTICSEARCH_VERSION,
-                self._update_data(data)
+                MAX_VERSION,
+                data
             )
         )
 
@@ -222,7 +210,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
 
     def input_request_finished(self, logger):
         self.get_data_writer().create_or_update_index_from_logger(
-            logger, is_last=True, state=get_response_state(logger.data['response_code'])
+            logger, is_last=True, state=get_response_state(logger.response_code)
         )
 
     def input_request_error(self, logger):
@@ -233,7 +221,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
 
     def output_request_finished(self, logger):
         self.get_data_writer().create_or_update_index_from_logger(
-            logger, is_last=True, state=get_response_state(logger.data['response_code'])
+            logger, is_last=True, state=get_response_state(logger.response_code)
         )
 
     def output_request_error(self, logger):
@@ -271,6 +259,11 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             logger, state=CeleryTaskInvocationLogState.TRIGGERED
         )
 
+    def celery_task_invocation_duplicate(self, logger):
+        self.get_data_writer().create_or_update_index_from_logger(
+            logger, is_last=True, state=CeleryTaskInvocationLogState.DUPLICATE
+        )
+
     def celery_task_invocation_ignored(self, logger):
         self.get_data_writer().create_or_update_index_from_logger(
             logger, is_last=True, state=CeleryTaskInvocationLogState.IGNORED
@@ -286,15 +279,15 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             logger, is_last=True, state=CeleryTaskInvocationLogState.EXPIRED
         )
 
-        if logger.data['celery_task_id']:
-            celery_task_run_log_qs = CeleryTaskRunLog.search().filter(
-                Q('term', celery_task_id=logger.data['celery_task_id'])
-                & Q('term', state=CeleryTaskRunLogState.ACTIVE.name)
-            )
-            for celery_task_run in celery_task_run_log_qs:
-                self.get_data_writer().update_index(
-                    celery_task_run, state=CeleryTaskRunLogState.EXPIRED, stop=logger.data['stop']
-                )
+    def celery_task_invocation_succeeded(self, logger):
+        self.get_data_writer().create_or_update_index_from_logger(
+            logger, is_last=True, state=CeleryTaskInvocationLogState.SUCCEEDED
+        )
+
+    def celery_task_invocation_failed(self, logger):
+        self.get_data_writer().create_or_update_index_from_logger(
+            logger, is_last=True, state=CeleryTaskInvocationLogState.FAILED
+        )
 
     def celery_task_run_started(self, logger):
         self.get_data_writer().create_or_update_index_from_logger(
@@ -306,39 +299,10 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             logger, is_last=True, state=CeleryTaskRunLogState.SUCCEEDED
         )
 
-        refresh_model(CeleryTaskInvocationLog)
-        celery_task_invocations_qs = CeleryTaskInvocationLog.search().filter(
-            'term', celery_task_id=logger.data['celery_task_id']
-        ).query(
-            Q('term', state=CeleryTaskInvocationLogState.WAITING.name)
-            | Q('term', state=CeleryTaskInvocationLogState.TRIGGERED.name)
-            | Q('term', state=CeleryTaskInvocationLogState.ACTIVE.name)
-        )
-        for celery_task_invocation in celery_task_invocations_qs:
-            self.get_data_writer().update_index(
-                celery_task_invocation,
-                state=CeleryTaskInvocationLogState.SUCCEEDED,
-                stop=logger.data['stop'],
-            )
-
     def celery_task_run_failed(self, logger):
         self.get_data_writer().create_or_update_index_from_logger(
             logger, is_last=True, state=CeleryTaskRunLogState.FAILED
         )
-        refresh_model(CeleryTaskInvocationLog)
-        celery_task_invocations_qs = CeleryTaskInvocationLog.search().filter(
-            'term', celery_task_id=logger.data['celery_task_id']
-        ).query(
-            Q('term', state=CeleryTaskInvocationLogState.WAITING.name)
-            | Q('term', state=CeleryTaskInvocationLogState.TRIGGERED.name)
-            | Q('term', state=CeleryTaskInvocationLogState.ACTIVE.name)
-        )
-        for celery_task_invocation in celery_task_invocations_qs:
-            self.get_data_writer().update_index(
-                celery_task_invocation,
-                state=CeleryTaskInvocationLogState.FAILED,
-                stop=logger.data['stop'],
-            )
 
     def celery_task_run_retried(self, logger):
         self.get_data_writer().create_or_update_index_from_logger(
@@ -352,21 +316,23 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
 
     def set_stale_celery_task_log_state(self):
         processsing_stale_tasks = CeleryTaskInvocationLog.search().filter(
-            Q('range', stale_at={'lt': now()}) & Q(
-                Q('term', state=CeleryTaskInvocationLogState.WAITING.name)
-                | Q('term', state=CeleryTaskInvocationLogState.TRIGGERED.name)
-                | Q('term', state=CeleryTaskInvocationLogState.ACTIVE.name)
-            )
+            Q('range', stale_at={'lt': now()}) & Q('term', state=CeleryTaskInvocationLogState.TRIGGERED.name)
         ).sort('stale_at')
         for task in processsing_stale_tasks[:settings.SET_STALE_CELERY_INVOCATIONS_LIMIT_PER_RUN]:
             task_last_run = task.last_run
             if task_last_run and task_last_run.state == CeleryTaskRunLogState.SUCCEEDED:
                 self.get_data_writer().update_index(
-                    task, state=CeleryTaskInvocationLogState.SUCCEEDED, stop=task_last_run.stop
+                    task,
+                    state=CeleryTaskInvocationLogState.SUCCEEDED,
+                    stop=task_last_run.stop,
+                    time=(task_last_run.stop - task.start).total_seconds()
                 )
             elif task_last_run and task_last_run.state == CeleryTaskRunLogState.FAILED:
                 self.get_data_writer().update_index(
-                    task, state=CeleryTaskInvocationLogState.FAILED, stop=task_last_run.stop
+                    task,
+                    state=CeleryTaskInvocationLogState.FAILED,
+                    stop=task_last_run.stop,
+                    time=(task_last_run.stop - task.start).total_seconds()
                 )
             else:
                 try:
@@ -378,29 +344,26 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
                         task_kwargs,
                         dict(
                             slug=task.slug,
-                            parent_key=task.parent_log,
+                            parent_log=task.parent_log,
                             related_objects=[
                                 get_object_triple_from_key(key) for key in task.related_objects or ()
                             ],
-                            data=dict(
-                                start=task.start,
-                                celery_task_id=task.celery_task_id,
-                                stop=now(),
-                                name=task.name,
-                                queue_name=task.queue_name,
-                                applied_at=task.applied_at,
-                                triggered_at=task.triggered_at,
-                                is_unique=task.is_unique,
-                                is_async=task.is_async,
-                                is_duplicate=task.is_duplicate,
-                                is_on_commit=task.is_on_commit,
-                                input=task.input,
-                                task_args=task_args,
-                                task_kwargs=task_kwargs,
-                                estimated_time_of_first_arrival=task.estimated_time_of_first_arrival,
-                                expires_at=task.expires_at,
-                                stale_at=task.stale_at,
-                            )
+                            start=task.start,
+                            celery_task_id=task.celery_task_id,
+                            stop=task.stop,
+                            name=task.name,
+                            queue_name=task.queue_name,
+                            applied_at=task.applied_at,
+                            triggered_at=task.triggered_at,
+                            is_unique=task.is_unique,
+                            is_async=task.is_async,
+                            is_on_commit=task.is_on_commit,
+                            input=task.input,
+                            task_args=task_args,
+                            task_kwargs=task_kwargs,
+                            estimated_time_of_first_arrival=task.estimated_time_of_first_arrival,
+                            expires_at=task.expires_at,
+                            stale_at=task.stale_at,
                         )
                     )
                 except NotRegistered:

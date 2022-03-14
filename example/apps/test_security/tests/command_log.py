@@ -17,6 +17,7 @@ from security.config import settings
 from security.decorators import log_with_data
 from security.enums import CommandState, LoggerName
 from security.backends.sql.models import CommandLog as SQLCommandLog
+from security.backends.elasticsearch.tests import store_elasticsearch_log
 from security.backends.elasticsearch.models import CommandLog as ElasticsearchCommandLog
 from security.backends.signals import (
     command_started, command_error, command_finished, command_output_updated, output_request_finished
@@ -25,7 +26,7 @@ from security.backends.reader import get_logs_related_with_object
 from security.backends.testing import capture_security_logs
 from security.utils import get_object_triple
 
-from .base import BaseTestCaseMixin, TRUNCATION_CHAR, test_call_command, assert_equal_logstash
+from .base import BaseTestCaseMixin, TRUNCATION_CHAR, test_call_command, assert_equal_logstash, assert_equal_log_data
 
 
 @override_settings(SECURITY_BACKEND_WRITERS={})
@@ -48,8 +49,8 @@ class CommandLogTestCase(BaseTestCaseMixin, ClientTestCase):
             assert_length_equal(logged_data.command_started, 1)
             assert_length_equal(logged_data.command_finished, 1)
             assert_length_equal(logged_data.command_error, 0)
-            assert_equal(logged_data.command_started[0].data, expected_command_started_data)
-            assert_equal(logged_data.command_finished[0].data, expected_command_finished_data)
+            assert_equal_log_data(logged_data.command_started[0], expected_command_started_data)
+            assert_equal_log_data(logged_data.command_finished[0], expected_command_finished_data)
 
     @override_settings(SECURITY_LOG_STRING_IO_FLUSH_TIMEOUT=0)
     def test_command_log_string_io_flush_timeout_should_changed(self):
@@ -75,8 +76,8 @@ class CommandLogTestCase(BaseTestCaseMixin, ClientTestCase):
             assert_length_equal(logged_data.command_started, 1)
             assert_length_equal(logged_data.command_finished, 0)
             assert_length_equal(logged_data.command_error, 1)
-            assert_equal(logged_data.command_started[0].data, expected_command_started_data)
-            assert_equal(logged_data.command_error[0].data, expected_command_error_data)
+            assert_equal_log_data(logged_data.command_started[0], expected_command_started_data)
+            assert_equal_log_data(logged_data.command_error[0], expected_command_error_data)
 
     @responses.activate
     @data_consumer('create_user')
@@ -115,11 +116,10 @@ class CommandLogTestCase(BaseTestCaseMixin, ClientTestCase):
             assert_equal([rel_obj.object for rel_obj in sql_command_log.related_objects.all()], [user])
             assert_equal(get_logs_related_with_object(LoggerName.COMMAND, user), [sql_command_log])
 
-    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'}, SECURITY_BACKEND_READER='elasticsearch',
-                       SECURITY_ELASTICSEARCH_AUTO_REFRESH=True)
+    @store_elasticsearch_log(SECURITY_BACKEND_READER='elasticsearch')
     @data_consumer('create_user')
     def test_command_should_be_logged_in_elasticsearch_backend(self, user):
-        with capture_security_logs() as logged_data:
+         with capture_security_logs() as logged_data:
             with log_with_data(related_objects=[user]):
                 test_call_command('test_command', verbosity=0)
                 elasticsearch_command_log = ElasticsearchCommandLog.get(
@@ -139,9 +139,10 @@ class CommandLogTestCase(BaseTestCaseMixin, ClientTestCase):
                     [rel_obj for rel_obj in elasticsearch_command_log.related_objects],
                     ['default|3|{}'.format(user.id)]
                 )
+                ElasticsearchCommandLog._index.refresh()
                 assert_equal(get_logs_related_with_object(LoggerName.COMMAND, user), [elasticsearch_command_log])
 
-    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'}, SECURITY_ELASTICSEARCH_LOGSTASH_WRITER=True)
+    @store_elasticsearch_log(SECURITY_ELASTICSEARCH_LOGSTASH_WRITER=True)
     @data_consumer('create_user')
     def test_command_should_be_logged_in_elasticsearch_backend_through_logstash(self, user):
         with capture_security_logs() as logged_data:
@@ -236,7 +237,7 @@ class CommandLogTestCase(BaseTestCaseMixin, ClientTestCase):
             assert_is_not_none(sql_command_log.error_message)
             assert_equal([rel_obj.object for rel_obj in sql_command_log.related_objects.all()], [user])
 
-    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'})
+    @store_elasticsearch_log()
     @data_consumer('create_user')
     def test_error_command_should_be_logged_in_elasticsearch_backend(self, user):
         with capture_security_logs() as logged_data:
@@ -261,7 +262,7 @@ class CommandLogTestCase(BaseTestCaseMixin, ClientTestCase):
                     ['default|3|{}'.format(user.id)]
                 )
 
-    @override_settings(SECURITY_BACKEND_WRITERS={'elasticsearch'}, SECURITY_ELASTICSEARCH_LOGSTASH_WRITER=True)
+    @store_elasticsearch_log(SECURITY_ELASTICSEARCH_LOGSTASH_WRITER=True)
     @data_consumer('create_user')
     def test_error_command_should_be_logged_in_elasticsearch_backend_through_logstash(self, user):
         with capture_security_logs() as logged_data:

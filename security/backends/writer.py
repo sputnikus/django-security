@@ -9,7 +9,8 @@ from security.backends.signals import (
     celery_task_invocation_started, celery_task_invocation_triggered, celery_task_invocation_ignored,
     celery_task_invocation_timeout, celery_task_invocation_expired,
     celery_task_run_started, celery_task_run_succeeded, celery_task_run_failed, celery_task_run_retried,
-    celery_task_run_output_updated
+    celery_task_run_output_updated, celery_task_invocation_succeeded, celery_task_invocation_failed,
+    celery_task_invocation_duplicate
 )
 from security.config import settings
 
@@ -40,6 +41,9 @@ class BaseBackendWriter:
         'celery_task_invocation_ignored': celery_task_invocation_ignored,
         'celery_task_invocation_timeout': celery_task_invocation_timeout,
         'celery_task_invocation_expired': celery_task_invocation_expired,
+        'celery_task_invocation_succeeded': celery_task_invocation_succeeded,
+        'celery_task_invocation_failed': celery_task_invocation_failed,
+        'celery_task_invocation_duplicate': celery_task_invocation_duplicate,
 
         'celery_task_run_started': celery_task_run_started,
         'celery_task_run_succeeded': celery_task_run_succeeded,
@@ -104,6 +108,9 @@ class BaseBackendWriter:
     def celery_task_invocation_triggered(self, logger):
         raise NotImplementedError
 
+    def celery_task_invocation_duplicate(self, logger):
+        raise NotImplementedError
+
     def celery_task_invocation_ignored(self, logger):
         raise NotImplementedError
 
@@ -111,6 +118,12 @@ class BaseBackendWriter:
         raise NotImplementedError
 
     def celery_task_invocation_expired(self, logger):
+        raise NotImplementedError
+
+    def celery_task_invocation_succeeded(self, logger):
+        raise NotImplementedError
+
+    def celery_task_invocation_failed(self, logger):
         raise NotImplementedError
 
     def celery_task_run_started(self, logger):

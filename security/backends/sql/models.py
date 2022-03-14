@@ -76,6 +76,14 @@ class Log(LogShortIdMixin, models.Model):
         db_index=True,
         max_length=250
     )
+    error_message = models.TextField(
+        null=True,
+        blank=True
+    )
+    version = models.PositiveSmallIntegerField(
+        null=False,
+        blank=False
+    )
 
     def save(self, update_fields=None, *args, **kwargs):
         if not self.time and self.start and self.stop:
@@ -150,10 +158,6 @@ class RequestLog(Log):
         null=False,
         blank=False,
         default=RequestLogState.INCOMPLETE
-    )
-    error_message = models.TextField(
-        null=True,
-        blank=True
     )
 
     def __str__(self):
@@ -254,11 +258,6 @@ class CommandLog(CommandLogStrMixin, Log):
         default=CommandState.ACTIVE,
         db_index=True
     )
-    error_message = models.TextField(
-        null=True,
-        blank=True,
-        editable=False
-    )
     related_objects = MultipleDBGenericManyToManyField()
 
     objects = BaseLogQuerySet.as_manager()
@@ -269,21 +268,9 @@ class CommandLog(CommandLogStrMixin, Log):
 
 class CeleryTaskInvocationLogManager(models.Manager):
 
-    def filter_not_started(self):
-        return self.filter(
-            state__in={
-                CeleryTaskInvocationLogState.WAITING,
-                CeleryTaskInvocationLogState.TRIGGERED
-            }
-        )
-
     def filter_processing(self, related_objects=None, **kwargs):
         qs = self.filter(
-            state__in={
-                CeleryTaskInvocationLogState.ACTIVE,
-                CeleryTaskInvocationLogState.WAITING,
-                CeleryTaskInvocationLogState.TRIGGERED
-            }
+            state=CeleryTaskInvocationLogState.TRIGGERED
         ).filter(**kwargs)
 
         if related_objects:
@@ -324,10 +311,6 @@ class CeleryTaskInvocationLog(CeleryTaskInvocationLogStrMixin, Log):
     )
     is_unique = models.BooleanField()
     is_async = models.BooleanField()
-    is_duplicate = models.BooleanField(
-        null=True,
-        blank=True
-    )
     is_on_commit = models.BooleanField()
     input = models.TextField(
         blank=True,
@@ -437,10 +420,6 @@ class CeleryTaskRunLog(CeleryTaskRunLogStrMixin, Log):
         null=True,
         editable=False,
         encoder=DjangoJSONEncoder
-    )
-    error_message = models.TextField(
-        null=True,
-        blank=True
     )
     output = models.TextField(
         blank=True,

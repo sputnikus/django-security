@@ -16,9 +16,12 @@ command_error = Signal()
 
 celery_task_invocation_started = Signal()
 celery_task_invocation_triggered = Signal()
+celery_task_invocation_duplicate = Signal()
 celery_task_invocation_ignored = Signal()
 celery_task_invocation_timeout = Signal()
 celery_task_invocation_expired = Signal()
+celery_task_invocation_succeeded = Signal()
+celery_task_invocation_failed = Signal()
 
 celery_task_run_started = Signal()
 celery_task_run_succeeded = Signal()

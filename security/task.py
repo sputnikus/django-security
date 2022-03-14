@@ -4,7 +4,6 @@ from datetime import timedelta
 
 from django.core.management.base import OutputWrapper
 from django.db import transaction
-
 from django_celery_extensions.task import DjangoTask, ResultWrapper
 
 from celery.utils.time import maybe_iso8601
@@ -12,7 +11,7 @@ from celery.utils.time import maybe_iso8601
 from chamber.utils.transaction import pre_commit, in_atomic_block
 
 from security.config import settings
-from security.utils import LogStringIO
+from security.utils import LogStringIO, deserialize_data, serialize_data
 from security.logging.celery.logger import CeleryTaskRunLogger, CeleryInvocationLogger
 
 
@@ -23,12 +22,12 @@ class LoggedResultWrapper(ResultWrapper):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.invocation_log = CeleryInvocationLogger(
+        self.invocation_logger = CeleryInvocationLogger(
             self._invocation_id, related_objects=self._options.pop('related_objects', [])
         )
 
     def on_apply(self):
-        self.invocation_log.log_started(
+        self.invocation_logger.log_started(
             name=self._task.name,
             queue_name=self._options['queue'],
             task_args=self._args or [],
@@ -41,7 +40,7 @@ class LoggedResultWrapper(ResultWrapper):
 
     def on_trigger(self):
         stale_time_limit = self._options.get('stale_time_limit')
-        self.invocation_log.log_triggered(
+        self.invocation_logger.log_triggered(
             triggered_at=self._options.get('trigger_time'),
             stale_at=(
                 self._options.get('trigger_time') + timedelta(seconds=stale_time_limit)
@@ -54,7 +53,7 @@ class LoggedResultWrapper(ResultWrapper):
 
     def on_unique(self):
         stale_time_limit = self._options.get('stale_time_limit')
-        self.invocation_log.log_unique(
+        self.invocation_logger.log_unique(
             triggered_at=self._options.get('trigger_time'),
             stale_at=(
                 self._options.get('trigger_time') + timedelta(seconds=stale_time_limit)
@@ -66,10 +65,10 @@ class LoggedResultWrapper(ResultWrapper):
         )
 
     def on_ignored(self):
-        self.invocation_log.log_ignored()
+        self.invocation_logger.log_ignored()
 
     def on_timeout(self):
-        self.invocation_log.log_timeout()
+        self.invocation_logger.log_timeout()
 
 
 class LoggedTask(DjangoTask):
@@ -95,6 +94,9 @@ class LoggedTask(DjangoTask):
         super().on_task_start(task_id, args, kwargs)
         run_logger = CeleryTaskRunLogger()
         self.request.run_logger = run_logger
+        self.request.invocation_logger = CeleryInvocationLogger(
+            **deserialize_data(self._get_header_from_request('invocation_logger_data'))
+        )
         run_logger.log_started(
             name=self.name,
             queue_name=self.request.delivery_info.get('routing_key'),
@@ -123,9 +125,8 @@ class LoggedTask(DjangoTask):
         super().on_task_success(task_id, args, kwargs, retval)
         try:
             self.request.output_stream.close()
-            self.request.run_logger.log_succeeded(
-                result=retval
-            )
+            self.request.run_logger.log_succeeded(result=retval)
+            self.request.invocation_logger.log_succeeded()
         finally:
             self.request.run_logger.close()
 
@@ -136,9 +137,8 @@ class LoggedTask(DjangoTask):
             log_id = self.request.run_logger.id
             try:
                 self.request.output_stream.close()
-                self.request.run_logger.log_failed(
-                    ex_tb=str(exc)
-                )
+                self.request.run_logger.log_failed(ex_tb=str(exc))
+                self.request.invocation_logger.log_failed()
             finally:
                 self.request.run_logger.close()
 
@@ -153,8 +153,8 @@ class LoggedTask(DjangoTask):
         )
 
     def expire_invocation(self, invocation_log_id, args, kwargs, logger_data):
-        with CeleryInvocationLogger(invocation_log_id, **logger_data) as invocation_logger:
-            invocation_logger.log_expired(self.name)
+        with CeleryInvocationLogger(id=invocation_log_id, **logger_data) as invocation_logger:
+            invocation_logger.log_expired()
 
         logger.error(
             f'Task with name {self.name} was expired',
@@ -162,6 +162,18 @@ class LoggedTask(DjangoTask):
                 'invocation_log_id': invocation_log_id
             }
         )
+
+    def _apply_and_get_result(self, result, args, kwargs, invocation_id, is_async=False, headers=None, **options):
+        headers = {} if headers is None else headers
+        headers['invocation_logger_data'] = serialize_data(result.invocation_logger.to_dict())
+        return super()._apply_and_get_result(
+            result, args, kwargs, invocation_id, is_async=is_async, headers=headers, **options
+        )
+
+    def retry(self, headers=None, **options):
+        headers = {} if headers is None else headers
+        headers['invocation_logger_data'] = serialize_data(self.request.invocation_logger.to_dict())
+        return super().retry(headers=headers, **options)
 
     @property
     def run_logger(self):

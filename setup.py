@@ -45,6 +45,7 @@ setup(
         'django-choice-enumfields>=1.1.0',
         'django-generic-m2m-field>=0.0.4',
         'django-celery-extensions>=0.0.28',
+        'isodate>=0.6.1',
     ],
     zip_safe=False
 )
