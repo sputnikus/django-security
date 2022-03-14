@@ -7,6 +7,4 @@ responses==0.9.0
 celery==5.0.5
 freezegun==0.3.12
 elasticsearch-dsl==7.4.0
-https://github.com/druids/django-celery-extensions/tarball/AddResultToApplyAndGetResult
-https://github.com/druids/django-generic-m2m-field/tarball/SupportAddWitContentTypeAndPK
 -e ../

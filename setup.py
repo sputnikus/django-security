@@ -43,8 +43,8 @@ setup(
         'django-chamber>=0.6.11',
         'attrdict>=2.0.1',
         'django-choice-enumfields>=1.1.0',
-        'django-generic-m2m-field>=0.0.4',
-        'django-celery-extensions>=0.0.28',
+        'django-generic-m2m-field>=0.0.8',
+        'django-celery-extensions>=0.0.31',
         'isodate>=0.6.1',
     ],
     zip_safe=False
