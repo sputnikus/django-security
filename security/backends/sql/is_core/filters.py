@@ -8,13 +8,13 @@ from django.utils.translation import ugettext
 from django.contrib.contenttypes.models import ContentType
 
 from pyston.filters.django_filters import SimpleMethodFilter
-from pyston.filters.filters import OPERATORS
+from pyston.filters.utils import OperatorSlug
 from pyston.filters.exceptions import FilterValueError
 
 
 class UsernameUserFilter(SimpleMethodFilter):
 
-    allowed_operators = (OPERATORS.CONTAINS,)
+    allowed_operators = (OperatorSlug.CONTAINS,)
 
     def clean_value(self, value, operator_slug, request):
         user_model = get_user_model()
@@ -32,7 +32,7 @@ class UsernameUserFilter(SimpleMethodFilter):
 
 class RelatedObjectsFilter(SimpleMethodFilter):
 
-    allowed_operators = (OPERATORS.IN,)
+    allowed_operators = (OperatorSlug.IN,)
 
     def clean_value(self, value, operator_slug, request):
         cleaned_values = []
