@@ -101,7 +101,7 @@ class DirectElasticsearchDataWriter(BaseElasticsearchDataWriter):
                 }
             )
         except ConflictError:
-            raise
+            pass
 
     def update_index(self, index, **updated_data):
         data = self._get_index_data(index)
@@ -114,7 +114,7 @@ class DirectElasticsearchDataWriter(BaseElasticsearchDataWriter):
             data
         )
 
-    def create_or_update_index_from_logger(self, logger, is_last, **extra_data):
+    def create_or_update_index_from_logger(self, logger, is_last=False, **extra_data):
         if is_last:
             version = MAX_VERSION
         elif 'last_elasticsearch_version' in logger.backend_logs:
