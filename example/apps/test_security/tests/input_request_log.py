@@ -36,7 +36,7 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
 
     def test_input_request_to_homepage_should_be_logged(self):
         expected_input_request_started_data = {
-            'request_headers': {'COOKIE': '[Filtered]'},
+            'request_headers': {'Cookie': '[Filtered]'},
             'request_body': '',
             'user_id': None,
             'method': 'GET',
@@ -66,7 +66,11 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
     @data_consumer('create_user')
     def test_input_request_to_login_page_should_be_logged(self, user):
         expected_input_request_started_data = {
-            'request_headers': {'COOKIE': '[Filtered]'},
+            'request_headers': {
+                'Content-Length': not_none_eq_obj,
+                'Content-Type': not_none_eq_obj,
+                'Cookie': '[Filtered]',
+            },
             'request_body': (
                 '--BoUnDaRyStRiNg\r\n'
                 'Content-Disposition: form-data; name="username"\r\n'
@@ -111,7 +115,7 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
 
     def test_input_request_to_error_page_should_be_logged(self):
         expected_input_request_started_data = {
-            'request_headers': {'COOKIE': '[Filtered]'},
+            'request_headers': {'Cookie': '[Filtered]'},
             'request_body': '',
             'user_id': None,
             'method': 'GET',
@@ -256,7 +260,7 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
     def test_sensitive_replacement_should_be_changed(self, user):
         with capture_security_logs() as logged_data:
             assert_http_redirect(self.post('/admin/login/', data={'username': 'test', 'password': 'test'}))
-            assert_equal(logged_data.input_request[0].request_headers['COOKIE'], '(Filtered)')
+            assert_equal(logged_data.input_request[0].request_headers['Cookie'], '(Filtered)')
 
     def test_sensitive_queries_should_be_hidden(self):
         with capture_security_logs() as logged_data:
@@ -267,7 +271,7 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
     def test_sensitive_headers_should_be_hidden(self, user):
         with capture_security_logs() as logged_data:
             assert_http_redirect(self.post('/admin/login/', data={'username': 'test', 'password': 'test'}))
-            assert_equal(logged_data.input_request[0].request_headers['COOKIE'], '[Filtered]')
+            assert_equal(logged_data.input_request[0].request_headers['Cookie'], '[Filtered]')
 
     def test_sensitive_data_body_in_raw_form_should_be_hidden(self):
         with capture_security_logs() as logged_data:
@@ -292,7 +296,7 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
             sql_input_request_log = SQLInputRequestLog.objects.get()
             assert_equal_model_fields(
                 sql_input_request_log,
-                request_headers={'COOKIE': '[Filtered]'},
+                request_headers={'Cookie': '[Filtered]'},
                 request_body='',
                 user_id=None,
                 method='GET',
@@ -324,7 +328,7 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
                 )
                 assert_equal_model_fields(
                     elasticsearch_input_request_log,
-                    request_headers='{"COOKIE": "[Filtered]"}',
+                    request_headers='{"Cookie": "[Filtered]"}',
                     request_body='',
                     user_id=None,
                     method='GET',
@@ -365,7 +369,7 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
                         'related_objects': ['|'.join(str(v) for v in get_object_triple(user))],
                         'extra_data': {},
                         'parent_log': None,
-                        'request_headers': '{"COOKIE": "[Filtered]"}',
+                        'request_headers': '{"Cookie": "[Filtered]"}',
                         'request_body': '',
                         'user_id': None,
                         'method': 'GET',
@@ -470,7 +474,7 @@ class InputRequestLogTestCase(BaseTestCaseMixin, ClientTestCase):
                     'related_objects': [],
                     'extra_data': {},
                     'parent_log': None,
-                    'request_headers': '{"COOKIE": "[Filtered]"}',
+                    'request_headers': '{"Cookie": "[Filtered]"}',
                     'request_body': '',
                     'user_id': None,
                     'method': 'GET',

@@ -15,7 +15,7 @@ from security.backends.signals import (
 )
 from security.logging.common import SecurityLogger
 
-from .utils import get_headers, clean_headers, clean_queries, clean_body
+from .utils import clean_headers, clean_queries, clean_body
 
 
 class InputRequestLogger(SecurityLogger):
@@ -47,7 +47,7 @@ class InputRequestLogger(SecurityLogger):
         except Resolver404:
             view_slug = None
 
-        self.request_headers = clean_headers(get_headers(request))
+        self.request_headers = clean_headers(request.headers)
         self.request_body = (
             settings.SENSITIVE_DATA_REPLACEMENT
             if request.body and self._hide_request_body
