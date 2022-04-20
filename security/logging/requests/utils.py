@@ -16,12 +16,6 @@ def is_base_collection(v):
     return isinstance(v, (list, tuple, set))
 
 
-def get_headers(request):
-    regex = re.compile('^HTTP_')
-    return dict((regex.sub('', header), value) for (header, value)
-                in request.META.items() if header.startswith('HTTP_'))
-
-
 def regex_sub_groups_global(pattern, repl, string):
     """
     Globally replace all groups inside pattern with `repl`.
