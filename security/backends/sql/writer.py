@@ -88,7 +88,7 @@ class SQLBackendWriter(BaseBackendWriter):
         data = logger.to_dict()
         del data['related_objects']
 
-        with transaction.atomic():
+        with transaction.atomic(using=settings.LOG_DB_NAME):
             instance = logger.backend_logs.sql_instance.__class__.objects.select_for_update().get(id=logger.id)
             if instance.version < version:
                 instance = change_and_save(
