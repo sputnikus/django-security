@@ -5,8 +5,8 @@ from pyston.utils.decorators import filter_class, order_by
 
 from is_core.utils.decorators import short_description
 
-from is_core.main import DjangoModelUiRestCore
-from is_core.generic_views.inlines.inline_table_views import DjangoModelInlineTableView
+from is_core.main import DjangoUiRestCore
+from is_core.generic_views.inlines.inline_table_views import DjangoInlineTableView
 
 from security.backends.common.is_core import (
     LogCoreMixin, ChildLogTableViewMixin, InputRequestLogCoreMixin, OutputRequestLogCoreMixin,
@@ -21,7 +21,7 @@ from security.backends.sql.models import (
 from .filters import UsernameUserFilter, RelatedObjectsFilter
 
 
-class ChildLogTableView(ChildLogTableViewMixin, DjangoModelInlineTableView):
+class ChildLogTableView(ChildLogTableViewMixin, DjangoInlineTableView):
 
     def _get_log_key(self, log):
         return get_log_key(log)
@@ -42,7 +42,7 @@ class CeleryTaskInvocationLogInlineTableView(ChildLogTableView):
     model = CeleryTaskInvocationLog
 
 
-class LogCore(LogCoreMixin, DjangoModelUiRestCore):
+class LogCore(LogCoreMixin, DjangoUiRestCore):
 
     abstract = True
 
@@ -90,7 +90,7 @@ class CommandLogCore(CommandLogCoreMixin, LogCore):
 
 
 class CeleryRunCeleryTaskInvocationLogInlineTableView(CeleryTaskInvocationLogInlineTableViewMixin,
-                                                      DjangoModelInlineTableView):
+                                                      DjangoInlineTableView):
 
     model = CeleryTaskInvocationLog
 
@@ -103,7 +103,7 @@ class CeleryTaskRunLogCore(CeleryTaskRunLogCoreMixin, LogCore):
     celery_task_invocation_inline_table_view = CeleryRunCeleryTaskInvocationLogInlineTableView
 
 
-class CeleryTaskRunLogInlineTableView(CeleryTaskRunLogInlineTableViewMixin, DjangoModelInlineTableView):
+class CeleryTaskRunLogInlineTableView(CeleryTaskRunLogInlineTableViewMixin, DjangoInlineTableView):
 
     model = CeleryTaskRunLog
 
@@ -116,27 +116,27 @@ class CeleryTaskInvocationLogCore(CeleryTaskInvocationLogCoreMixin, LogCore):
     celery_task_run_inline_table_view = CeleryTaskRunLogInlineTableView
 
 
-class RelatedInputRequestLogInlineTableView(RelatedLogInlineTableViewMixin, DjangoModelInlineTableView):
+class RelatedInputRequestLogInlineTableView(RelatedLogInlineTableViewMixin, DjangoInlineTableView):
 
     model = InputRequestLog
 
 
-class RelatedOutputRequestLogInlineTableView(RelatedLogInlineTableViewMixin, DjangoModelInlineTableView):
+class RelatedOutputRequestLogInlineTableView(RelatedLogInlineTableViewMixin, DjangoInlineTableView):
 
     model = OutputRequestLog
 
 
-class RelatedCommandLogInlineTableView(RelatedLogInlineTableViewMixin, DjangoModelInlineTableView):
+class RelatedCommandLogInlineTableView(RelatedLogInlineTableViewMixin, DjangoInlineTableView):
 
     model = CommandLog
 
 
-class RelatedCeleryTaskInvocationLogInlineTableView(RelatedLogInlineTableViewMixin, DjangoModelInlineTableView):
+class RelatedCeleryTaskInvocationLogInlineTableView(RelatedLogInlineTableViewMixin, DjangoInlineTableView):
 
     model = CeleryTaskInvocationLog
 
 
-class RelatedCeleryTaskRunLogInlineTableView(RelatedLogInlineTableViewMixin, DjangoModelInlineTableView):
+class RelatedCeleryTaskRunLogInlineTableView(RelatedLogInlineTableViewMixin, DjangoInlineTableView):
 
     model = CeleryTaskRunLog
 
