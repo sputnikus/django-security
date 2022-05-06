@@ -1,7 +1,6 @@
 import os
 import json
 import gzip
-import math
 import logging
 
 from enum import Enum
@@ -39,7 +38,7 @@ logstash_logger = logging.getLogger('security.logstash')
 MAX_VERSION = 9999
 
 
-def lazy_serialize_qs_without_pk(qs):
+def lazy_serialize_qs(qs):
     def generator():
         for obj in qs:
             yield obj.to_dict()
@@ -55,9 +54,19 @@ def lazy_serialize_qs_without_pk(qs):
 
 
 def get_querysets_by_batch(qs, batch):
-    steps = math.ceil(qs.count() / batch)
-    for step in range(steps):
-        yield qs[step * batch:(step+1) * batch]
+    last_document = None
+    while True:
+        batch_qs = qs
+        if last_document:
+            batch_qs = batch_qs.extra(search_after=last_document.meta.sort)
+
+        batch_list = list(batch_qs[:batch])
+        yield batch_list
+
+        if len(batch_list) == batch:
+            last_document = batch_list[-1]
+        else:
+            break
 
 
 class BaseElasticsearchDataWriter:
@@ -376,7 +385,9 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
     def clean_logs(self, type, timestamp, backup_path, stdout):
         storage = import_string(settings.BACKUP_STORAGE_CLASS)()
 
-        qs = get_log_model_from_logger_name(type).search().filter(Q('range', stop={'lt': timestamp})).sort('stop')
+        qs = get_log_model_from_logger_name(type).search().filter(
+            Q('range', stop={'lt': timestamp})
+        ).sort('stop', '_id')
         step_timestamp = None
         if qs.count() != 0:
             step_timestamp = list(qs[0:1])[0].stop
@@ -407,7 +418,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
                             with TextIOWrapper(gzip.GzipFile(filename='{}.json'.format(log_file_name),
                                                              fileobj=f, mode='wb')) as gzf:
                                 json.dump(
-                                    lazy_serialize_qs_without_pk(qs_batch), gzf, cls=DjangoJSONEncoder, indent=5
+                                    lazy_serialize_qs(qs_batch), gzf, cls=DjangoJSONEncoder, indent=5
                                 )
                 stdout.write(4 * ' ' + 'deleting logs')
                 qs_filtered_by_day.delete()

@@ -1,6 +1,14 @@
+import socket
+from datetime import datetime
+
 from logging.handlers import SocketHandler
 
-from .formatter import LogstashFormatter
+from .serializer import serialize_message
+
+
+def format_timestamp(time):
+    tstamp = datetime.utcfromtimestamp(time)
+    return tstamp.strftime("%Y-%m-%dT%H:%M:%S") + ".%03d" % (tstamp.microsecond / 1000) + "Z"
 
 
 class TCPLogstashHandler(SocketHandler):
@@ -12,7 +20,19 @@ class TCPLogstashHandler(SocketHandler):
 
     def __init__(self, host, port=5959):
         super().__init__(host, port)
-        self.formatter = LogstashFormatter()
+        self._host = socket.gethostname()
 
     def makePickle(self, record):
-        return self.formatter.format(record)
+        return serialize_message(
+            self.formatter.format(record),
+            {
+                'logger': {
+                    'host': self._host,
+                    'path': record.pathname,
+                    'timestamp': format_timestamp(record.created),
+                    'level': record.levelname,
+                    'logger_name': record.name,
+                },
+                **getattr(record, 'metadata', {}),
+            }
+        )
