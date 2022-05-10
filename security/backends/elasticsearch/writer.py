@@ -387,7 +387,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
 
         qs = get_log_model_from_logger_name(type).search().filter(
             Q('range', stop={'lt': timestamp})
-        ).sort('stop', '_id')
+        ).sort('stop')
         step_timestamp = None
         if qs.count() != 0:
             step_timestamp = list(qs[0:1])[0].stop
@@ -396,7 +396,9 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             min_timestamp = datetime.combine(step_timestamp, time.min).replace(tzinfo=utc)
             max_timestamp = datetime.combine(step_timestamp, time.max).replace(tzinfo=utc)
 
-            qs_filtered_by_day = qs.filter(Q('range', stop={'gte': min_timestamp, 'lte': max_timestamp}))
+            qs_filtered_by_day = qs.filter(Q('range', stop={'gte': min_timestamp, 'lte': max_timestamp})).sort(
+                'stop', '_id'
+            )
 
             if qs_filtered_by_day.count() != 0:
                 stdout.write(
