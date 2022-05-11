@@ -410,7 +410,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
 
         while step_timestamp and step_timestamp < timestamp:
             min_timestamp = datetime.combine(step_timestamp, time.min).replace(tzinfo=utc)
-            max_timestamp = datetime.combine(step_timestamp + timedelta(days=90), time.max).replace(tzinfo=utc)
+            max_timestamp = datetime.combine(step_timestamp, time.max).replace(tzinfo=utc)
 
             qs_filtered_by_day = qs.filter(Q('range', stop={'gte': min_timestamp, 'lte': max_timestamp})).sort(
                 'stop', '_id'
