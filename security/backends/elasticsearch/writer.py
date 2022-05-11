@@ -3,6 +3,8 @@ import json
 import gzip
 import logging
 
+from itertools import islice, chain
+
 from enum import Enum
 
 from io import TextIOWrapper
@@ -38,14 +40,28 @@ logstash_logger = logging.getLogger('security.logstash')
 MAX_VERSION = 9999
 
 
-def lazy_serialize_qs(qs):
-    def generator():
-        for obj in qs:
+def batch(iterable, size):
+    sourceiter = iter(iterable)
+    try:
+        while True:
+            batchiter = islice(sourceiter, size)
+            yield chain([next(batchiter)], batchiter)
+    except StopIteration:
+        pass
+
+
+def get_queryset_dict_data_by_batch(qs, batch_size):
+    for batch_qs in get_querysets_by_batch(qs, batch_size):
+        for obj in batch_qs:
             yield obj.to_dict()
+
+
+def lazy_serialize_iterable(iterable):
 
     class StreamList(list):
         def __iter__(self):
-            return generator()
+            for obj in iterable:
+                yield obj
 
         def __len__(self):
             return 1
@@ -394,7 +410,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
 
         while step_timestamp and step_timestamp < timestamp:
             min_timestamp = datetime.combine(step_timestamp, time.min).replace(tzinfo=utc)
-            max_timestamp = datetime.combine(step_timestamp, time.max).replace(tzinfo=utc)
+            max_timestamp = datetime.combine(step_timestamp + timedelta(days=90), time.max).replace(tzinfo=utc)
 
             qs_filtered_by_day = qs.filter(Q('range', stop={'gte': min_timestamp, 'lte': max_timestamp})).sort(
                 'stop', '_id'
@@ -408,7 +424,9 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
                 )
 
                 if backup_path:
-                    for qs_batch in get_querysets_by_batch(qs_filtered_by_day, settings.PURGE_LOG_BACKUP_BATCH):
+                    for batch_data in batch(get_queryset_dict_data_by_batch(qs_filtered_by_day,
+                                                                            settings.ELASTICSERACH_BACKUP_BATCH_SIZE),
+                                            settings.PURGE_LOG_BACKUP_BATCH):
                         log_file_name = os.path.join(backup_path, str(step_timestamp.date()))
                         if storage.exists('{}.json.gz'.format(log_file_name)):
                             i = 1
@@ -420,7 +438,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
                             with TextIOWrapper(gzip.GzipFile(filename='{}.json'.format(log_file_name),
                                                              fileobj=f, mode='wb')) as gzf:
                                 json.dump(
-                                    lazy_serialize_qs(qs_batch), gzf, cls=DjangoJSONEncoder, indent=5
+                                    lazy_serialize_iterable(batch_data), gzf, cls=DjangoJSONEncoder, indent=5
                                 )
                 stdout.write(4 * ' ' + 'deleting logs')
                 qs_filtered_by_day.delete()
