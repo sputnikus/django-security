@@ -149,7 +149,6 @@ class DirectElasticsearchDataWriter(BaseElasticsearchDataWriter):
 
         data = logger.to_dict()
 
-        del data['id']
         data['related_objects'] = self._get_related_object_keys(logger)
         data.update(extra_data)
 
@@ -187,7 +186,6 @@ class LogstashElasticsearchDataWriter(BaseElasticsearchDataWriter):
             version = 0
 
         logger_data = logger.to_dict()
-        del logger_data['id']
         logger_data['related_objects'] = self._get_related_object_keys(logger)
         logger_data.update(extra_data)
 
@@ -413,7 +411,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
             max_timestamp = datetime.combine(step_timestamp, time.max).replace(tzinfo=utc)
 
             qs_filtered_by_day = qs.filter(Q('range', stop={'gte': min_timestamp, 'lte': max_timestamp})).sort(
-                'stop', '_id'
+                'stop', 'id'
             )
 
             if qs_filtered_by_day.count() != 0:

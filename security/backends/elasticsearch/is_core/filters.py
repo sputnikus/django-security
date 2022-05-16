@@ -13,6 +13,7 @@ from pyston.filters.exceptions import FilterValueError
 
 from is_core.contrib.elasticsearch.filters import CoreElasticsearchFilterManagerFilterManager
 
+from security.config import settings
 from security.backends.elasticsearch.models import get_key_from_content_type_object_id_and_model_db
 
 
@@ -22,13 +23,16 @@ class UsernameUserFilter(ElasticsearchFilter):
 
     def clean_value(self, value, operator_slug, request):
         user_model = get_user_model()
-        return list(
-            user_model.objects.filter(
-                **{'{}__contains'.format(user_model.USERNAME_FIELD): value}
-            ).annotate(
-                str_id=Cast('id', output_field=TextField())
-            ).values_list('str_id', flat=True)
+        queryset = user_model.objects.filter(
+            **{'{}__contains'.format(user_model.USERNAME_FIELD): value}
+        ).annotate(
+            str_id=Cast('id', output_field=TextField())
         )
+
+        if queryset[:settings.ELASTICSERACH_MAX_NUMBER_OF_TERMS].count() > settings.ELASTICSERACH_MAX_NUMBER_OF_TERMS:
+            raise FilterValueError(ugettext('Too many users found for specified username.'))
+
+        return list(queryset.values_list('str_id', flat=True))
 
     def get_filter_term(self, value, operator_slug, request):
         return Q('terms', **{'user_id': value})
