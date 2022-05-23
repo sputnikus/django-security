@@ -64,6 +64,7 @@ class EnumField(CustomField):
 
 class Log(LogShortIdMixin, Document):
 
+    id = Keyword()
     extra_data = Object()
     slug = Keyword()
     related_objects = Keyword()
@@ -74,7 +75,7 @@ class Log(LogShortIdMixin, Document):
     release = Keyword()
 
     def __str__(self):
-        return self.id
+        return self.meta.id
 
     @classmethod
     def _get_using(cls, using=None):
@@ -82,12 +83,8 @@ class Log(LogShortIdMixin, Document):
         return super()._get_using(using)
 
     @property
-    def id(self):
-        return self.meta.id
-
-    @property
     def pk(self):
-        return self.id
+        return self.meta.id
 
     def update(
         self,
