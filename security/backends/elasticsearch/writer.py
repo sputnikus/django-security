@@ -40,6 +40,16 @@ logstash_logger = logging.getLogger('security.logstash')
 MAX_VERSION = 9999
 
 
+def batch_delete_queryset(queryset, batch):
+    tmp_params = queryset._params.copy()
+    queryset._params['max_docs'] = batch
+    queryset._params['refresh'] = True
+    while True:
+        if queryset.delete()['deleted'] == 0:
+            break
+    queryset._params = tmp_params
+
+
 def batch(iterable, size):
     sourceiter = iter(iterable)
     try:
@@ -400,18 +410,18 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
         storage = import_string(settings.BACKUP_STORAGE_CLASS)()
 
         qs = get_log_model_from_logger_name(type).search().filter(
-            Q('range', stop={'lt': timestamp})
-        ).sort('stop')
+            Q('range', start={'lt': timestamp})
+        ).sort('start')
         step_timestamp = None
         if qs.count() != 0:
-            step_timestamp = list(qs[0:1])[0].stop
+            step_timestamp = list(qs[0:1])[0].start
 
         while step_timestamp and step_timestamp < timestamp:
             min_timestamp = datetime.combine(step_timestamp, time.min).replace(tzinfo=utc)
             max_timestamp = datetime.combine(step_timestamp, time.max).replace(tzinfo=utc)
 
-            qs_filtered_by_day = qs.filter(Q('range', stop={'gte': min_timestamp, 'lte': max_timestamp})).sort(
-                'stop', 'id'
+            qs_filtered_by_day = qs.filter(Q('range', start={'gte': min_timestamp, 'lte': max_timestamp})).sort(
+                'start', 'id'
             )
 
             if qs_filtered_by_day.count() != 0:
@@ -439,6 +449,6 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
                                     lazy_serialize_iterable(batch_data), gzf, cls=DjangoJSONEncoder, indent=5
                                 )
                 stdout.write(4 * ' ' + 'deleting logs')
-                qs_filtered_by_day.delete()
+                batch_delete_queryset(qs_filtered_by_day, settings.ELASTICSERACH_DELETE_BATCH_SIZE)
 
             step_timestamp = min_timestamp + timedelta(days=1)
