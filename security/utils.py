@@ -14,6 +14,7 @@ from django.utils.timezone import now, is_aware
 from django.utils.duration import duration_iso_string
 
 from .config import settings
+from .enums import LoggerName
 
 
 def get_throttling_validators(name):
@@ -210,3 +211,21 @@ def deserialize_data(o):
         return [deserialize_data(v) for v in o]
     else:
         return o
+
+
+def get_run_logger():
+    """
+    Return celery task run or command logger
+    """
+    from security.logging.common import get_last_logger
+
+    return get_last_logger(LoggerName.CELERY_TASK_RUN) or get_last_logger(LoggerName.COMMAND)
+
+
+def add_related_objects_to_run_logger(obj):
+    """
+    Add related object to celery task run or command logger
+    """
+    run_logger = get_run_logger()
+    if run_logger:
+        run_logger.add_related_objects(obj)
