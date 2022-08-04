@@ -29,7 +29,7 @@ class UsernameUserFilter(ElasticsearchFilter):
             str_id=Cast('id', output_field=TextField())
         )
 
-        if queryset[:settings.ELASTICSERACH_MAX_NUMBER_OF_TERMS].count() > settings.ELASTICSERACH_MAX_NUMBER_OF_TERMS:
+        if queryset[:settings.ELASTICSEARCH_MAX_NUMBER_OF_TERMS].count() > settings.ELASTICSEARCH_MAX_NUMBER_OF_TERMS:
             raise FilterValueError(ugettext('Too many users found for specified username.'))
 
         return list(queryset.values_list('str_id', flat=True))

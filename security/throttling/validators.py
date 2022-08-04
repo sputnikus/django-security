@@ -1,12 +1,12 @@
 from datetime import timedelta
 
-from django.conf import settings
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django.urls import resolve, Resolver404
 
 from ipware.ip import get_client_ip
 
+from security.config import settings
 from security.backends.reader import get_count_input_requests
 from security.enums import InputRequestSlug
 
@@ -21,7 +21,7 @@ class ThrottlingValidator:
         self.description = description
 
     def validate(self, request):
-        if not getattr(settings, 'TURN_OFF_THROTTLING', False) and not self._validate(request):
+        if settings.THROTTLING_ENABLED and not self._validate(request):
             raise ThrottlingException(self.description)
 
     def _validate(self, request):

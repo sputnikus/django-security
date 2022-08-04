@@ -147,7 +147,7 @@ class BaseBackendWriter:
     def set_stale_celery_task_log_state(self):
         pass
 
-    def clean_logs(self, type, timestamp, backup_path, stdout):
+    def clean_logs(self, type, timestamp, backup_path, stdout, stderr):
         pass
 
 
@@ -170,6 +170,6 @@ def set_stale_celery_task_log_state():
         writer.set_stale_celery_task_log_state()
 
 
-def clean_logs(type, timestamp, backup_path, stdout):
+def clean_logs(type, timestamp, backup_path, stdout, stderr):
     for writer in get_writer_backends():
-        writer.clean_logs(type, timestamp, backup_path, stdout)
+        writer.clean_logs(type, timestamp, backup_path, stdout, stderr)

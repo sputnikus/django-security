@@ -2,6 +2,7 @@ import os
 import json
 import gzip
 import logging
+import time as time_sleep
 
 from itertools import islice, chain
 
@@ -20,7 +21,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from celery import current_app
 from celery.exceptions import NotRegistered
 
-from elasticsearch import ConflictError
+from elasticsearch import ConflictError, ConnectionTimeout
 from elasticsearch_dsl import Q
 
 from security.config import settings
@@ -40,14 +41,24 @@ logstash_logger = logging.getLogger('security.logstash')
 MAX_VERSION = 9999
 
 
-def batch_delete_queryset(queryset, batch):
-    tmp_params = queryset._params.copy()
-    queryset._params['max_docs'] = batch
-    queryset._params['refresh'] = True
-    while True:
-        if queryset.delete()['deleted'] == 0:
-            break
-    queryset._params = tmp_params
+def batch_delete_queryset(queryset, batch, stdout, stderr, attempt=0):
+    try:
+        tmp_params = queryset._params.copy()
+        queryset._params['max_docs'] = batch
+        queryset._params['refresh'] = True
+        queryset._params['request_timeout'] = settings.ELASTICSEARCH_CLEAN_LOGS_DELETE_REQUEST_TIMEOUT
+        while True:
+            stdout.write('.', ending='')
+            if queryset.delete()['deleted'] == 0:
+                break
+        queryset._params = tmp_params
+    except (ConflictError, ConnectionTimeout):
+        if attempt > settings.ELASTICSEARCH_CLEAN_LOGS_DELETE_ATTEMPTS:
+            raise
+        time_sleep.sleep(settings.ELASTICSEARCH_CLEAN_LOGS_DELETE_ATTEMPT_SLEEP)
+        stderr.write('.', ending='')
+        queryset._params = tmp_params
+        batch_delete_queryset(queryset, batch, stdout, stderr, attempt+1)
 
 
 def batch(iterable, size):
@@ -66,11 +77,14 @@ def get_queryset_dict_data_by_batch(qs, batch_size):
             yield obj.to_dict()
 
 
-def lazy_serialize_iterable(iterable):
+def get_lazy_serialize_iterable(iterable, stdout, batch):
 
     class StreamList(list):
+
         def __iter__(self):
-            for obj in iterable:
+            for i, obj in enumerate(iterable, 1):
+                if i % batch == 0:
+                    stdout.write('.', ending='')
                 yield obj
 
         def __len__(self):
@@ -406,7 +420,7 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
                         stop=now()
                     )
 
-    def clean_logs(self, type, timestamp, backup_path, stdout):
+    def clean_logs(self, type, timestamp, backup_path, stdout, stderr):
         storage = import_string(settings.BACKUP_STORAGE_CLASS)()
 
         qs = get_log_model_from_logger_name(type).search().filter(
@@ -432,23 +446,43 @@ class ElasticsearchBackendWriter(BaseBackendWriter):
                 )
 
                 if backup_path:
-                    for batch_data in batch(get_queryset_dict_data_by_batch(qs_filtered_by_day,
-                                                                            settings.ELASTICSERACH_BACKUP_BATCH_SIZE),
-                                            settings.PURGE_LOG_BACKUP_BATCH):
-                        log_file_name = os.path.join(backup_path, str(step_timestamp.date()))
-                        if storage.exists('{}.json.gz'.format(log_file_name)):
-                            i = 1
-                            while storage.exists('{}({}).json.gz'.format(log_file_name, i)):
-                                i += 1
-                            log_file_name = '{}({})'.format(log_file_name, i)
-                        stdout.write(4 * ' ' + 'generating backup file: {}.json.gz'.format(log_file_name))
-                        with storage.open('{}.json.gz'.format(log_file_name), 'wb') as f:
-                            with TextIOWrapper(gzip.GzipFile(filename='{}.json'.format(log_file_name),
-                                                             fileobj=f, mode='wb')) as gzf:
-                                json.dump(
-                                    lazy_serialize_iterable(batch_data), gzf, cls=DjangoJSONEncoder, indent=5
-                                )
-                stdout.write(4 * ' ' + 'deleting logs')
-                batch_delete_queryset(qs_filtered_by_day, settings.ELASTICSERACH_DELETE_BATCH_SIZE)
+                    created_log_files = []
+
+                    try:
+                        for batch_data in batch(
+                                get_queryset_dict_data_by_batch(
+                                    qs_filtered_by_day, settings.ELASTICSEARCH_CLEAN_LOGS_READ_BATCH_SIZE
+                                ),
+                                settings.CLEAN_LOGS_BACKUP_FILE_BATCH_SIZE):
+                            log_file_name = os.path.join(backup_path, str(step_timestamp.date()))
+                            if storage.exists(f'{log_file_name}.json.gz'):
+                                i = 1
+                                while storage.exists(f'{log_file_name}({i}).json.gz'):
+                                    i += 1
+                                log_file_name = f'{log_file_name}({i})'
+                            log_file_name = f'{log_file_name}.json.gz'
+                            stdout.write(4 * ' ' + f'generating backup file: {log_file_name}', ending=' ')
+                            with storage.open(log_file_name, 'wb') as f:
+                                with TextIOWrapper(gzip.GzipFile(filename='{}.json'.format(log_file_name),
+                                                                 fileobj=f, mode='wb')) as gzf:
+                                    created_log_files.append(log_file_name)
+                                    json.dump(
+                                        get_lazy_serialize_iterable(
+                                            batch_data, stdout, settings.ELASTICSEARCH_CLEAN_LOGS_READ_BATCH_SIZE
+                                        ),
+                                        gzf, cls=DjangoJSONEncoder, indent=5
+                                    )
+                            stdout.write('')
+                    except Exception:
+                        stdout.write('')
+                        stderr.write(4 * ' ' + 'raised exception removing created files')
+                        for log_file_name in created_log_files:
+                            storage.delete(log_file_name)
+                        raise
+                stdout.write(4 * ' ' + 'deleting logs', ending=' ')
+                batch_delete_queryset(
+                    qs_filtered_by_day, settings.ELASTICSEARCH_CLEAN_LOGS_DELETE_BATCH_SIZE, stdout, stderr
+                )
+                stdout.write('')
 
             step_timestamp = min_timestamp + timedelta(days=1)

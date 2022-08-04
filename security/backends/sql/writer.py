@@ -284,7 +284,7 @@ class SQLBackendWriter(BaseBackendWriter):
                         update_only_changed_fields=True
                     )
 
-    def clean_logs(self, type, timestamp, backup_path, stdout):
+    def clean_logs(self, type, timestamp, backup_path, stdout, stderr):
         storage = import_string(settings.BACKUP_STORAGE_CLASS)()
 
         qs = get_log_model_from_logger_name(type).objects.filter(stop__lte=timestamp).order_by('stop')
@@ -293,7 +293,7 @@ class SQLBackendWriter(BaseBackendWriter):
             max_timestamp = datetime.combine(step_timestamp, time.max).replace(tzinfo=utc)
             qs_filtered_by_day = qs.filter(stop__range=(min_timestamp, max_timestamp))
 
-            for qs_batch in get_querysets_by_batch(qs_filtered_by_day, settings.PURGE_LOG_BACKUP_BATCH):
+            for qs_batch in get_querysets_by_batch(qs_filtered_by_day, settings.CLEAN_LOGS_BACKUP_FILE_BATCH_SIZE):
                 stdout.write(
                     2 * ' ' + 'Cleaning logs for date {} ({})'.format(
                         step_timestamp.date(), qs_batch.count()
@@ -306,7 +306,7 @@ class SQLBackendWriter(BaseBackendWriter):
                         i = 1
                         while storage.exists('{}({}).json.gz'.format(log_file_name, i)):
                             i += 1
-                        log_file_name = '{}({})'.format(log_file_name, i)
+                        log_file_name = f'{log_file_name}({i})'
 
                     stdout.write(4 * ' ' + 'generating backup file: {}.json.gz'.format(log_file_name))
 
@@ -318,5 +318,5 @@ class SQLBackendWriter(BaseBackendWriter):
                             )
 
                 stdout.write(4 * ' ' + 'deleting logs')
-                for qs_batch_to_delete in get_querysets_by_batch(qs_batch, settings.PURGE_LOG_DELETE_BATCH):
+                for qs_batch_to_delete in get_querysets_by_batch(qs_batch, settings.SQL_CLEAN_LOGS_DELETE_BATCH_SIZE):
                     qs_filtered_by_day.filter(pk__in=qs_batch_to_delete).delete()
