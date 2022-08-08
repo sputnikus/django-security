@@ -59,4 +59,4 @@ class Command(BaseCommand):
 
         if confirm == 'yes':
             self.stdout.write('Clean data')
-            clean_logs(type, UNIT_OPTIONS[unit](amount), options.get('backup'), self.stdout)
+            clean_logs(type, UNIT_OPTIONS[unit](amount), options.get('backup'), self.stdout, self.stderr)
