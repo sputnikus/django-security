@@ -8,8 +8,8 @@ DEFAULTS = {
     'THROTTLING_FAILURE_VIEW': 'security.throttling.views.throttling_failure_view',
     'LOG_REQUEST_IGNORE_IP': (),
     'LOG_REQUEST_IGNORE_URL_PATHS': (),
-    'LOG_REQUEST_BODY_LENGTH': 1000,
-    'LOG_RESPONSE_BODY_LENGTH': 1000,
+    'LOG_REQUEST_BODY_LENGTH': 10000,
+    'LOG_RESPONSE_BODY_LENGTH': 10000,
     'LOG_RESPONSE_BODY_CONTENT_TYPES': (
         'application/json', 'application/xml', 'text/xml', 'text/csv',
     ),
@@ -70,6 +70,8 @@ DEFAULTS = {
     'LOG_MAX_REVISIONS_COUNT': 20,
     'RAISE_WRITER_EXCEPTIONS': False,
     'THROTTLING_ENABLED': True,
+    'LOG_STRING_OUTPUT_TRUNCATE_LENGTH': 10000,
+    'LOG_STRING_OUTPUT_TRUNCATE_OFFSET': 1000,
 }
 
 
