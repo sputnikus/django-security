@@ -249,3 +249,12 @@ Setup
 .. attribute:: SECURITY_LOG_STRING_IO_FLUSH_TIMEOUT
 
   Timeout which set how often will be stored output stream to the log. Default value is ``5`` (s).
+
+.. attribute:: SECURITY_LOG_STRING_OUTPUT_TRUNCATE_LENGTH
+
+  Max length of log output string. Default value is ``10000``.
+
+.. attribute:: SECURITY_LOG_STRING_OUTPUT_TRUNCATE_OFFSET
+
+  Because too frequent string truncation can cause high CPU load, log string is truncated by more characters. This setting defines this value which is by default ``1000``.
+

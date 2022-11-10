@@ -32,20 +32,38 @@ def is_atty_string(s):
     return bool(re.search(r'^' + re.escape('\x1b[') + r'\d+m$', s))
 
 
+def truncate_lines_from_left(value, max_length):
+    """
+    Firstly text is truncated according to max_length.
+    Next step is find next character '\n' and while text before \n is removed. On the start is added '…'
+
+    If there is only one line (without \n) which is longer than max_length. Whole line is removed and replaced with …\n
+    """
+    if len(value) <= max_length:
+        return value
+
+    # value 2 is added because of …\n
+    truncated_value = value[len(value) + 2 - max_length:]
+    truncated_value_split_by_newline = truncated_value.split('\n', 1)
+    return f'…\n{"" if len(truncated_value_split_by_newline) == 1 else truncated_value_split_by_newline[1]}'
+
+
 class LogStringIO(StringIO):
 
     BOLD = '\x1b[1m'
     RESET = '\x1b[0m'
 
-    def __init__(self, flush_callback=None, flush_timeout=None, *args, **kwargs):
+    def __init__(self, flush_callback=None, flush_timeout=None, write_time=True, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._is_closed = False
         self._last_newline = 0
         self._flush_callback = flush_callback
-        self._write_time = True
+        self._write_time = write_time
+        self._write_time_to_line = self._write_time
         self._last_flush_time = time()
         self._flush_timeout = settings.LOG_STRING_IO_FLUSH_TIMEOUT if flush_timeout is None else flush_timeout
         self._flushed = True
+        self._next_line_number = 1
 
     def _flush(self, force=False):
         if (not self._flushed and self._flush_callback
@@ -53,6 +71,18 @@ class LogStringIO(StringIO):
             self._flush_callback(self)
             self._last_flush_time = time()
             self._flushed = True
+
+    def _write_line_number_and_time(self):
+        if self._write_time:
+            super().write('{}{}[{}] [{}]{} '.format(
+                self.RESET,
+                self.BOLD,
+                self._next_line_number,
+                now().strftime('%d-%m-%Y %H:%M:%S'),
+                self.RESET
+            ))
+            self._write_time_to_line = False
+            self._next_line_number += 1
 
     def write(self, s):
         if not self._is_closed:
@@ -65,23 +95,44 @@ class LogStringIO(StringIO):
                     if not cursor_first:
                         self.seek(self._last_newline)
                         self.truncate()
-                        self._write_time = True
+                        self._write_time_to_line = self._write_time
                     cursor_first = False
-
-                    if self._write_time and not is_atty_string(cursor_block):
-                        cursor_block = '{}{}[{}]{} {}'.format(
-                            self.RESET, self.BOLD, now().strftime('%d-%m-%Y %H:%M:%S'), self.RESET, cursor_block
-                        )
-                        self._write_time = False
-
+                    if self._write_time_to_line and not is_atty_string(cursor_block):
+                        self._write_line_number_and_time()
                     super().write(cursor_block)
 
                 if i != len(lines) - 1:
                     super().write('\n')
                     self._last_newline = self.tell()
-                    self._write_time = True
+                    self._write_time_to_line = self._write_time
 
+            self._truncate_by_max_length()
             self._flush()
+
+    def _truncate_by_max_length(self):
+        """
+        StringIO value is truncated from left side to maximal length defined in LOG_STRING_OUTPUT_TRUNCATE_LENGTH.
+        Because too frequent string truncation can cause high CPU load, log string is truncated by more characters.
+        The value is defined in LOG_STRING_OUTPUT_TRUNCATE_OFFSET. Eg
+            LOG_STRING_OUTPUT_TRUNCATE_LENGTH = 10000
+            LOG_STRING_OUTPUT_TRUNCATE_OFFSET = 1000
+
+            if text is longer than 10000 character is truncated to 9000 characters.
+
+        To better readability the text is further truncated to the following newline.
+        """
+        if self.tell() > settings.LOG_STRING_OUTPUT_TRUNCATE_LENGTH:
+            original_value = self.getvalue()
+            truncated_value = truncate_lines_from_left(
+                self.getvalue(),
+                settings.LOG_STRING_OUTPUT_TRUNCATE_LENGTH - settings.LOG_STRING_OUTPUT_TRUNCATE_OFFSET
+            )
+            self._last_newline = self._last_newline - (len(original_value) - len(truncated_value))
+            self.seek(0)
+            self.truncate()
+            super().write(truncated_value)
+            if truncated_value.endswith('\n'):
+                self._write_line_number_and_time()
 
     def isatty(self):
         return True
