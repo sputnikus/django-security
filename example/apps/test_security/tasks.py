@@ -42,6 +42,7 @@ def unique_task():
 @celery_app.task(
     base=LoggedTask,
     name='ignored_after_success_task',
-    ignore_task_after_success_timedelta=timedelta(hours=1, minutes=5))
+    ignore_task_after_success=True,
+    ignore_task_timedelta=timedelta(hours=1, minutes=5))
 def ignored_after_success_task():
     return 'ignored_task_after_success'

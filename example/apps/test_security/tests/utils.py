@@ -163,11 +163,11 @@ class UtilsTestCase(GermaniumTestCase):
         log_string_io.write('write very long text' + 100*' ')
         assert_equal(
             log_string_io.getvalue(),
-            '…\n' + time_string.format(3)
+            '…\n' + time_string.format(2)
         )
 
         log_string_io.write('new text')
         assert_equal(
             log_string_io.getvalue(),
-            '…\n' + time_string.format(3) + 'new text'
+            '…\n' + time_string.format(2) + 'new text'
         )

@@ -82,7 +82,6 @@ class LogStringIO(StringIO):
                 self.RESET
             ))
             self._write_time_to_line = False
-            self._next_line_number += 1
 
     def write(self, s):
         if not self._is_closed:
@@ -103,6 +102,7 @@ class LogStringIO(StringIO):
 
                 if i != len(lines) - 1:
                     super().write('\n')
+                    self._next_line_number += 1
                     self._last_newline = self.tell()
                     self._write_time_to_line = self._write_time
 

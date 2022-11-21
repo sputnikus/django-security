@@ -44,7 +44,7 @@ setup(
         'attrdict>=2.0.1',
         'django-choice-enumfields>=1.1.0',
         'django-generic-m2m-field>=0.0.8',
-        'django-celery-extensions>=0.0.31',
+        'django-celery-extensions>=0.0.36',
         'isodate>=0.6.1',
     ],
     zip_safe=False
