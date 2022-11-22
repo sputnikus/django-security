@@ -1,10 +1,10 @@
-Django~=3.1
+Django==3.1
 django-germanium==2.3.0
-flake8
-coveralls
-django-reversion>=2.0.13
+flake8==5.0.4
+coveralls==3.3.1
+django-reversion==4.0.2
 responses==0.9.0
-celery==5.0.5
+celery==5.2.7
 freezegun==0.3.12
 elasticsearch-dsl==7.4.0
 django-pyston==2.16.0
