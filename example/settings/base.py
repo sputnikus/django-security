@@ -215,3 +215,5 @@ SECURITY_ELASTICSEARCH_DATABASE = dict(
     hosts=[{'host': 'localhost', 'port': 9200}],
 )
 SECURITY_RAISE_WRITER_EXCEPTIONS = True
+
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
