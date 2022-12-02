@@ -46,3 +46,12 @@ def unique_task():
     ignore_task_timedelta=timedelta(hours=1, minutes=5))
 def ignored_after_success_task():
     return 'ignored_task_after_success'
+
+
+@celery_app.task(
+    base=LoggedTask,
+    name='acks_late_with_no_failure_or_timeout_acknowledgement',
+    acks_late=True,
+    acks_on_failure_or_timeout=False)
+def acks_late_with_no_failure_or_timeout_acknowledgement():
+    raise RuntimeError('error')

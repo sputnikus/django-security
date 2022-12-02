@@ -138,7 +138,9 @@ class LoggedTask(DjangoTask):
             try:
                 self.request.output_stream.close()
                 self.request.run_logger.log_failed(ex_tb=str(exc))
-                self.request.invocation_logger.log_failed()
+                if not self.acks_late or self.acks_on_failure_or_timeout:
+                    # Task will be started again invocation can't be logged
+                    self.request.invocation_logger.log_failed()
             finally:
                 self.request.run_logger.close()
 
