@@ -44,7 +44,10 @@ from security.backends.testing import capture_security_logs
 from security.backends.reader import get_logs_related_with_object
 from security.utils import get_object_triple
 
-from apps.test_security.tasks import error_task, retry_task, sum_task, unique_task, ignored_after_success_task
+from apps.test_security.tasks import (
+    error_task, retry_task, sum_task, unique_task, ignored_after_success_task,
+    acks_late_with_no_failure_or_timeout_acknowledgement
+)
 
 from .base import BaseTestCaseMixin, TRUNCATION_CHAR, test_call_command, assert_equal_logstash, assert_equal_log_data
 
@@ -153,6 +156,7 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
             error_task.apply()
             assert_length_equal(logged_data.celery_task_invocation_started, 1)
             assert_length_equal(logged_data.celery_task_invocation_triggered, 1)
+            assert_length_equal(logged_data.celery_task_invocation_failed, 1)
             assert_length_equal(logged_data.celery_task_run_started, 1)
             assert_length_equal(logged_data.celery_task_run_succeeded, 0)
             assert_length_equal(logged_data.celery_task_run_failed, 1)
@@ -1080,3 +1084,56 @@ class CeleryLogTestCase(BaseTestCaseMixin, ClientTestCase):
                         ).state,
                         CeleryTaskInvocationLogState.SUCCEEDED
                     )
+
+    def test_acks_late_with_no_failure_or_timeout_acknowledgement_celery_task_should_not_log_invocation_error(self):
+        expected_invocation_started_data = {
+            'name': 'acks_late_with_no_failure_or_timeout_acknowledgement',
+            'queue_name': 'default',
+            'input': '',
+            'task_args': [],
+            'task_kwargs': {},
+            'applied_at': not_none_eq_obj,
+            'is_async': False,
+            'is_unique': False,
+            'is_on_commit': False,
+            'start': not_none_eq_obj,
+        }
+        expected_invocation_triggered_data = {
+            **expected_invocation_started_data,
+            'triggered_at': not_none_eq_obj,
+            'stale_at': None,
+            'estimated_time_of_first_arrival': not_none_eq_obj,
+            'expires_at': None,
+            'celery_task_id': not_none_eq_obj,
+        }
+
+        expected_run_started_data = {
+            'name': 'acks_late_with_no_failure_or_timeout_acknowledgement',
+            'queue_name': None,
+            'input': '',
+            'task_args': [],
+            'task_kwargs': {},
+            'start': not_none_eq_obj,
+            'retries': 0,
+            'celery_task_id': not_none_eq_obj,
+            'waiting_time': not_none_eq_obj,
+        }
+        expected_run_failed_data = {
+            **expected_run_started_data,
+            'stop': not_none_eq_obj,
+            'error_message': not_none_eq_obj,
+        }
+        with capture_security_logs() as logged_data:
+            acks_late_with_no_failure_or_timeout_acknowledgement.apply()
+            assert_length_equal(logged_data.celery_task_invocation_started, 1)
+            assert_length_equal(logged_data.celery_task_invocation_triggered, 1)
+            assert_length_equal(logged_data.celery_task_invocation_failed, 0)
+            assert_length_equal(logged_data.celery_task_run_started, 1)
+            assert_length_equal(logged_data.celery_task_run_succeeded, 0)
+            assert_length_equal(logged_data.celery_task_run_failed, 1)
+            assert_length_equal(logged_data.celery_task_run_retried, 0)
+            assert_equal_log_data(logged_data.celery_task_invocation_started[0], expected_invocation_started_data)
+
+            assert_equal_log_data(logged_data.celery_task_invocation_triggered[0], expected_invocation_triggered_data)
+            assert_equal_log_data(logged_data.celery_task_run_started[0], expected_run_started_data)
+            assert_equal_log_data(logged_data.celery_task_run_failed[0], expected_run_failed_data)
