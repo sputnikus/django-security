@@ -28,6 +28,6 @@ class TestingBackendReader(BaseBackendReader):
             return []
 
         return [
-            logger for logger in capture_security_logs.logged_data.get(logger_name.replace('-', '_'))
+            logger for logger in getattr(capture_security_logs.logged_data, logger_name.replace('-', '_'))
             if get_object_triple(related_object) in logger.related_objects
         ]

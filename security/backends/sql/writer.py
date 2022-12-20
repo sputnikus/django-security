@@ -62,7 +62,7 @@ class SQLBackendWriter(BaseBackendWriter):
         if is_last:
             return MAX_VERSION
         elif 'last_sql_version' in logger.backend_logs:
-            return logger.backend_logs.last_sql_version + 1
+            return logger.backend_logs['last_sql_version'] + 1
         else:
             return 0
 
@@ -80,8 +80,8 @@ class SQLBackendWriter(BaseBackendWriter):
             )
             instance.save()
             self._set_related_objects(instance, logger)
-            logger.backend_logs.sql_instance = instance
-            logger.backend_logs.last_sql_version = version
+            logger.backend_logs['sql_instance'] = instance
+            logger.backend_logs['last_sql_version'] = version
 
     def _update_from_logger(self, logger, is_last, **extra_data):
         version = self._get_version(logger, is_last)
@@ -89,18 +89,18 @@ class SQLBackendWriter(BaseBackendWriter):
         del data['related_objects']
 
         with transaction.atomic(using=settings.LOG_DB_NAME):
-            instance = logger.backend_logs.sql_instance.__class__.objects.select_for_update().get(id=logger.id)
+            instance = logger.backend_logs['sql_instance'].__class__.objects.select_for_update().get(id=logger.id)
             if instance.version < version:
                 instance = change_and_save(
-                    logger.backend_logs.sql_instance,
+                    logger.backend_logs['sql_instance'],
                     version=version,
                     **data,
                     **extra_data,
                     update_only_changed_fields=True,
                 )
                 self._set_related_objects(instance, logger)
-            logger.backend_logs.sql_instance = instance
-            logger.backend_logs.last_sql_version = version
+            logger.backend_logs['sql_instance'] = instance
+            logger.backend_logs['last_sql_version'] = version
 
     def _create_or_update_from_logger(self, logger, is_last=False, **extra_data):
         if 'sql_instance' in logger.backend_logs:

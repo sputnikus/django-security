@@ -109,14 +109,14 @@ class CommandTestCase(BaseTestCaseMixin, ClientTestCase):
                 test_call_command('purge_logs', type=log_type, interactive=False, expiration='1d', backup=log_type)
                 log_model._index.refresh()
                 assert_equal(log_model.search().filter(
-                    'ids', values=[logged_data[log_data_name][0].id]
+                    'ids', values=[getattr(logged_data, log_data_name)[0].id]
                 ).count(), 1)
 
                 with freeze_time(now() + timedelta(days=1, minutes=1)):
                     test_call_command('purge_logs', type=log_type, interactive=False, expiration='1d', backup=log_type)
                     log_model._index.refresh()
                     assert_equal(log_model.search().filter(
-                        'ids', values=[logged_data[log_data_name][0].id]
+                        'ids', values=[getattr(logged_data, log_data_name)[0].id]
                     ).count(), 0)
                 assert_equal(len(os.listdir(log_directory)), 1)
         shutil.rmtree(settings.BACKUP_STORAGE_PATH)
