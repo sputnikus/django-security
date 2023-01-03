@@ -1,12 +1,11 @@
 Django<=3.2
-django-germanium==2.3.0
+django-germanium==2.3.6
 flake8==5.0.4
 coveralls==3.3.1
 django-reversion==4.0.2
-responses==0.9.0
+responses==0.22.0
 celery==5.2.7
 freezegun==0.3.12
 elasticsearch-dsl==7.4.0
 django-pyston==2.16.0
-https://github.com/druids/django-generic-m2m-field/tarball/SupportDjango3.2
 -e ../

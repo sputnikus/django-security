@@ -1,7 +1,5 @@
 from django.conf import settings as django_settings
 
-from attrdict import AttrDict
-
 
 DEFAULTS = {
     'DEFAULT_THROTTLING_VALIDATORS_PATH': 'security.throttling.default_validators',
@@ -81,12 +79,7 @@ class Settings:
         if attr not in DEFAULTS:
             raise AttributeError('Invalid Security setting: "{}"'.format(attr))
 
-        value = getattr(django_settings, 'SECURITY_{}'.format(attr), DEFAULTS[attr])
-
-        if isinstance(value, dict):
-            value = AttrDict(value)
-
-        return value
+        return getattr(django_settings, 'SECURITY_{}'.format(attr), DEFAULTS[attr])
 
 
 settings = Settings()

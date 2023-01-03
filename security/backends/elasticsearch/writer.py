@@ -167,7 +167,7 @@ class DirectElasticsearchDataWriter(BaseElasticsearchDataWriter):
         if is_last:
             version = MAX_VERSION
         elif 'last_elasticsearch_version' in logger.backend_logs:
-            version = logger.backend_logs.last_elasticsearch_version + 1
+            version = logger.backend_logs['last_elasticsearch_version'] + 1
         else:
             version = 0
 
@@ -182,7 +182,7 @@ class DirectElasticsearchDataWriter(BaseElasticsearchDataWriter):
             version,
             data
         )
-        logger.backend_logs.last_elasticsearch_version = version
+        logger.backend_logs['last_elasticsearch_version'] = version
 
 
 class LogstashElasticsearchDataWriter(BaseElasticsearchDataWriter):
@@ -205,7 +205,7 @@ class LogstashElasticsearchDataWriter(BaseElasticsearchDataWriter):
         if last_version:
             version = MAX_VERSION
         elif 'last_elasticsearch_version' in logger.backend_logs:
-            version = logger.backend_logs.last_elasticsearch_version + 1
+            version = logger.backend_logs['last_elasticsearch_version'] + 1
         else:
             version = 0
 
@@ -213,7 +213,7 @@ class LogstashElasticsearchDataWriter(BaseElasticsearchDataWriter):
         logger_data['related_objects'] = self._get_related_object_keys(logger)
         logger_data.update(extra_data)
 
-        logger.backend_logs.last_elasticsearch_version = version
+        logger.backend_logs['last_elasticsearch_version'] = version
         return self._get_log_message(
             logger.id,
             logger.logger_name,
