@@ -42,7 +42,7 @@ class SecurityLogger(ContextDecorator, local):
                 self.slug = self.parent.slug
         parent_with_id = self._get_parent_with_id()
         self.parent_log = (
-            '{}|{}'.format(parent_with_id.logger_name, parent_with_id.id) if parent_with_id else None
+            '{}|{}'.format(parent_with_id.logger_name.value, parent_with_id.id) if parent_with_id else None
         ) if parent_log is undefined else parent_log
 
         self._extra_data = extra_data

@@ -272,7 +272,7 @@ def get_log_from_key(key):
 
 def get_log_key(log):
     logger_name = {v: k for k, v in logger_name_to_log_model.items()}[log.__class__]
-    return '{}|{}'.format(logger_name, log.meta.id)
+    return '{}|{}'.format(logger_name.value, log.meta.id)
 
 
 def refresh_model(model):
